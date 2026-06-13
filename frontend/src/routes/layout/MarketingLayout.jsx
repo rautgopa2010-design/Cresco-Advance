@@ -248,7 +248,9 @@ import Footer from "../marketing/footer/Footer";
 import { useState, useEffect, useRef } from "react";
 
 export default function MarketingLayout() {
-    const [theme, setTheme] = useState(localStorage.getItem("theme") ?? "light");
+    const [theme, setTheme] = useState(
+        () => localStorage.getItem("theme") ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+    );
     const location = useLocation();
     const gtagLoaded = useRef(false);
     const tawkLoaded = useRef(false);
@@ -348,12 +350,6 @@ export default function MarketingLayout() {
         tawkLoaded.current = true;
     }, [isMarketingRoute]);
 
-    // Theme code (keep as is)
-    useEffect(() => {
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        setTheme(theme || (prefersDark ? "dark" : "light"));
-    }, []);
-
     useEffect(() => {
         if (theme === "dark") {
             document.documentElement.classList.add("dark");
@@ -364,12 +360,12 @@ export default function MarketingLayout() {
     }, [theme]);
 
     return (
-        <div className="flex min-h-screen flex-col bg-white/50 text-gray-700 transition-colors dark:bg-black dark:text-white">
+        <div className="flex min-h-screen flex-col bg-white text-slate-700 transition-colors dark:bg-slate-950 dark:text-white">
             <Navbar
                 theme={theme}
                 setTheme={setTheme}
             />
-            <main className="-mb-32 flex-1">
+            <main className="flex-1">
                 <Outlet />
             </main>
             <Footer theme={theme} />

@@ -1,6 +1,6 @@
-import React from "react";
 import assets from "../../../assets/assets";
 import { Link } from "react-router-dom";
+import PropTypes from "prop-types";
 
 const Footer = ({ theme }) => {
     const manualYear = 2025;
@@ -8,9 +8,9 @@ const Footer = ({ theme }) => {
     const displayYear = manualYear === currentYear ? `${manualYear}` : `${manualYear}-${currentYear}`;
 
     return (
-        <div className="mt-44 bg-slate-50 px-4 pt-10 shadow-[0_-4px_4px_-1px_rgba(0,0,0,0.1)] transition-colors dark:bg-gray-900 md:mt-40 md:px-10 lg:px-20">
+        <div className="mt-0 border-t border-slate-200 bg-slate-50 px-4 pt-14 transition-colors dark:border-slate-800 dark:bg-gray-900 md:px-10 lg:px-20">
             {/* Footer Top */}
-            <div className="mb-3 lg:-mt-16 md:-mt-2 -mt-3 flex justify-between gap-10 max-lg:flex-col lg:items-center">
+            <div className="mx-auto mb-8 flex max-w-[1380px] justify-between gap-10 max-lg:flex-col lg:items-center">
                 <div className="text-sm text-gray-700 dark:text-gray-400">
                     <Link
                         to="/marketing-website"
@@ -218,6 +218,10 @@ const Footer = ({ theme }) => {
             </footer>
         </div>
     );
+};
+
+Footer.propTypes = {
+    theme: PropTypes.string,
 };
 
 export default Footer;
