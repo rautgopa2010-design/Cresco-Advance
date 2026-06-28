@@ -543,7 +543,7 @@
 
 // export default Followup;
 
-import { File, ChevronLeft, ChevronRight, PhoneCall } from "lucide-react";
+import { File, ChevronLeft, ChevronRight, PhoneCall, SlidersHorizontal, ChevronDown } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import FollowupModal from "./FollowupModal";
 import { useDispatch, useSelector } from "react-redux";
@@ -551,6 +551,7 @@ import { getLeads, markFollowupCompleted } from "../../redux/actions/leadAndFoll
 import { getEmployees } from "../../redux/actions/employee";
 import { CircularProgress, TextField, Autocomplete, Chip, Typography, IconButton } from "@mui/material";
 import { FaWhatsapp } from "react-icons/fa";
+import { useSessionToggle } from "../../hooks/use-session-toggle";
 
 const Followup = () => {
     const dispatch = useDispatch();
@@ -597,16 +598,16 @@ const Followup = () => {
         followupDate.setHours(0, 0, 0, 0);
 
         if (followupDate.getTime() === today.getTime()) {
-            return "bg-green-200"; // TODAY
+            return "bg-blue-100 text-blue-800"; // TODAY
         } else if (followupDate < today) {
-            return "bg-red-200"; // PAST DATE
+            return "bg-orange-100 text-orange-800"; // PAST DATE
         } else {
-            return "bg-blue-200"; // FUTURE DATE
+            return "bg-purple-100 text-purple-800"; // FUTURE DATE
         }
     };
 
     // ================= Filters =================
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState(() => JSON.parse(localStorage.getItem("crm:followup-filters") || "null") || ({
         fromDate: "",
         toDate: "",
         company: "",
@@ -614,7 +615,12 @@ const Followup = () => {
         mobile: "",
         email: "",
         assignedTo: [],
-    });
+    }));
+    const [filtersOpen, setFiltersOpen] = useSessionToggle("crm:followup-filters-open", false);
+
+    useEffect(() => {
+        localStorage.setItem("crm:followup-filters", JSON.stringify(filters));
+    }, [filters]);
 
     const handleFilterChange = (key, value) => {
         setFilters((prev) => ({ ...prev, [key]: value }));
@@ -747,13 +753,11 @@ const Followup = () => {
 
                     {/* ===== Filter Box ===== */}
                     <div className="mt-3 rounded-lg border border-gray-300 bg-gray-50 p-3 shadow-sm">
-                        <Typography
-                            variant="subtitle1"
-                            className="mb-2 font-semibold text-[#053054]"
-                        >
-                            Filters
-                        </Typography>
-                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <button type="button" onClick={() => setFiltersOpen((open) => !open)} className="flex w-full items-center justify-between text-sm font-semibold text-slate-700" aria-expanded={filtersOpen}>
+                            <span className="flex items-center gap-2"><SlidersHorizontal size={17} className="text-indigo-600" />{filtersOpen ? "Hide Filters" : "Show Filters"}</span>
+                            <ChevronDown size={18} className={`transition ${filtersOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        {filtersOpen && <div className="crm-filter-panel mt-4 grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                             {/* ✅ From Date / To Date Filters */}
                             <TextField
                                 label="From Date"
@@ -830,7 +834,7 @@ const Followup = () => {
                                 className="w-full"
                                 loading={!employees?.length}
                             />
-                        </div>
+                        </div>}
                     </div>
 
                     {/* ===== Show Entries ===== */}

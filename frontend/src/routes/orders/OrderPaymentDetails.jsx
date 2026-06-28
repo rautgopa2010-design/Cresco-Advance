@@ -120,7 +120,7 @@ import { CircularProgress } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import { getOrderPayments } from "../../redux/actions/orderPayment";
 import { IoArrowBackCircle } from "react-icons/io5";
-import { Printer } from "lucide-react";
+import { Printer, Download, Mail } from "lucide-react";
 import OrderPaymentPrint from "./OrderPaymentPrint";
 import { getOrders } from "../../redux/actions/order";
 import { getCompanySetup } from "../../redux/actions/companySetup";
@@ -214,15 +214,17 @@ const OrderPaymentDetails = () => {
                                     <h3 className="text-lg font-bold text-[#053054]">
                                         Payment ID: {p.paymentId}
                                     </h3>
-                                    <button
-                                        onClick={() => {
-                                            setPrintPayment(p);
-                                            setTimeout(() => paymentPrintRef.current?.print(), 300);
-                                        }}
-                                        className="text-orange-500 transition-transform hover:scale-110"
-                                    >
-                                        <Printer size={20} />
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        <button onClick={() => { setPrintPayment(p); setTimeout(() => paymentPrintRef.current?.print(), 300); }} className="text-orange-500 transition-transform hover:scale-110" title="Print receipt">
+                                            <Printer size={20} />
+                                        </button>
+                                        <button onClick={() => { setPrintPayment(p); setTimeout(() => paymentPrintRef.current?.print(), 300); }} className="text-blue-600 transition-transform hover:scale-110" title="Download receipt as PDF">
+                                            <Download size={20} />
+                                        </button>
+                                        <a href={`mailto:${selectedOrder?.email || ""}?subject=${encodeURIComponent(`Payment receipt for order ${selectedOrder?.orderNo || orderId}`)}&body=${encodeURIComponent(`Payment of ₹${p.amount} was received on ${p.payDate}. Receipt reference: RCP-${selectedOrder?.orderNo || orderId}-${p.id}.`)}`} className="text-indigo-600 transition-transform hover:scale-110" title="Email receipt">
+                                            <Mail size={20} />
+                                        </a>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2 text-sm text-gray-700">

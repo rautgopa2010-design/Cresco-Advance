@@ -25,7 +25,7 @@ export const filterLinksByPermission = (links, permissions, isProviderAdmin = fa
                                 // Nested groups (e.g., Master)
                                 if (cloneChild.isGroup && cloneChild.children) {
                                     cloneChild.children = cloneChild.children.filter((sub) => {
-                                        let moduleName = sub.label;
+                                        let moduleName = sub.moduleName || sub.label;
                                         if (cloneLink.label === "Settings" && cloneChild.label === "Master") {
                                             moduleName = "Master";
                                         }
@@ -44,7 +44,7 @@ export const filterLinksByPermission = (links, permissions, isProviderAdmin = fa
                                 }
 
                                 // Map Master children
-                                let moduleName = cloneChild.label;
+                                let moduleName = cloneChild.moduleName || cloneChild.label;
                                 if (cloneLink.label === "Settings" && cloneChild.label === "Master") {
                                     moduleName = "Master";
                                 }
@@ -57,7 +57,7 @@ export const filterLinksByPermission = (links, permissions, isProviderAdmin = fa
                         return cloneLink.children.length > 0 ? cloneLink : null;
                     }
 
-                    return hasModulePermission(permissions, cloneLink.label) ? cloneLink : null;
+                    return hasModulePermission(permissions, cloneLink.moduleName || cloneLink.label) ? cloneLink : null;
                 })
                 .filter(Boolean);
 

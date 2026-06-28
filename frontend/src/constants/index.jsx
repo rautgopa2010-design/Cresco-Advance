@@ -1,4 +1,4 @@
-import { Dot, Home, Settings, CircleDot, UserRound, User } from "lucide-react";
+import { Building2, CreditCard, Dot, Home, Settings, CircleDot, UserRound, User } from "lucide-react";
 import { MdOutlineLeaderboard, MdOutlineSettingsAccessibility, MdPages } from "react-icons/md";
 import { RiUserFollowLine } from "react-icons/ri";
 import { SiWikiquote } from "react-icons/si";
@@ -57,7 +57,7 @@ export const adminNavbarLinks = [
     {
         links: [{ label: "Dashboard", icon: Home, path: "/" }],
     },
-    { links: [{ label: "Enquiry", icon: UserRound, path: "/enquiry" }] },
+    { links: [{ label: "Enquiries", moduleName: "Enquiry", icon: UserRound, path: "/enquiries" }] },
     {
         links: [
             {
@@ -76,9 +76,26 @@ export const adminNavbarLinks = [
     { links: [{ label: "Followup", icon: RiUserFollowLine, path: "/followup" }] },
     { links: [{ label: "Quotations", icon: SiWikiquote, path: "/quotations" }] },
     { links: [{ label: "Orders", icon: FaJediOrder, path: "/orders" }] },
+    { links: [{ label: "Payment", icon: CreditCard, path: "/payments" }] },
+    {
+        links: [
+            {
+                label: "Vendor",
+                icon: Building2,
+                isAccordion: true,
+                showArrow: true,
+                defaultOpen: false,
+                children: [
+                    { label: "Add Vendor", path: "/vendors/add", icon: Dot },
+                    { label: "Vendor List", path: "/vendors", icon: Dot },
+                ],
+            },
+        ],
+    },
     { links: [{ label: "Customer", icon: BsBorderStyle, path: "/customer" }] },
     { links: [{ label: "Invoice", icon: LiaFileInvoiceSolid, path: "/invoice" }] },
     { links: [{ label: "Reports", icon: TbReportAnalytics, path: "/reports" }] },
+    { links: [{ label: "Analytics", moduleName: "Reports", icon: TbReportAnalytics, path: "/analytics" }] },
     { links: [{ label: "Incentive", icon: GiTargetShot, path: "/incentive" }] },
     {
         links: [

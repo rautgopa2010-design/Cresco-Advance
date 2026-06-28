@@ -10,6 +10,8 @@ const AssignedIncentives = db.assignedIncentives;
 const Employee = db.employee;
 const CreLead = db.lead;
 const Roles = db.roles;
+const OrderPayment = db.orderPayment;
+const OrderPaymentSchedule = db.orderPaymentSchedule;
 const { sendErrorResponse } = require("../utility/sendErrorResponse");
 const { Op } = require("sequelize");
 const { getParentRoles } = require("../utility/roleHelper");
@@ -34,6 +36,7 @@ exports.getDashboardData = async (req, res) => {
       leadSource,
       missedFollowupsCount,
       ticketDashboard,
+      businessPaymentMetrics,
     ] = await Promise.all([
       getCustomerOnboardedCount(org_id, userId, userRoleId),
       getLeadCount(org_id, userId, userRoleId), // ← Fixed name
@@ -54,6 +57,7 @@ exports.getDashboardData = async (req, res) => {
       leadSources(org_id, userId, userRoleId),
       getMissedFollowupsCount(org_id, userId, userRoleId), // ← New function call
       exports.getTicketDashboardData(org_id, userId, userRoleId),
+      getBusinessPaymentMetrics(org_id, userId, userRoleId),
     ]);
 
     res.status(200).json({
@@ -69,11 +73,85 @@ exports.getDashboardData = async (req, res) => {
       leadSource: leadSource,
       missedFollowups: missedFollowupsCount,
       tickets: ticketDashboard,
+      ...businessPaymentMetrics,
     });
   } catch (err) {
     console.error("Get Dashboard Data Error:", err);
     return sendErrorResponse(res, 500, "Failed to get dashboard values");
   }
+};
+
+const getBusinessPaymentMetrics = async (org_id, userId, userRoleId) => {
+  const orders = await Order.findAll({
+    where: { org_id },
+    attributes: ["id", "user_id", "assignedRoleIds", "finalAmt", "email", "mobile"],
+    raw: true,
+  });
+
+  const visibleOrders = [];
+  for (const order of orders) {
+    let isVisible = Number(order.user_id) === Number(userId);
+    if (!isVisible) {
+      const roles = parseJSON(order.assignedRoleIds, []);
+      for (const roleId of roles) {
+        const parents = await getParentRoles(roleId, org_id);
+        if (parents.map(Number).includes(Number(userRoleId))) {
+          isVisible = true;
+          break;
+        }
+      }
+    }
+    if (isVisible) visibleOrders.push(order);
+  }
+
+  const orderIds = visibleOrders.map((order) => order.id);
+  if (!orderIds.length) {
+    return {
+      totalBusiness: 0,
+      totalConvertedCustomers: 0,
+      currentMonthPaymentReceived: 0,
+      totalOutstandingBalance: 0,
+    };
+  }
+
+  const [payments, schedules] = await Promise.all([
+    OrderPayment.findAll({ where: { org_id, order_id: { [Op.in]: orderIds } }, raw: true }),
+    OrderPaymentSchedule.findAll({ where: { org_id, order_id: { [Op.in]: orderIds } }, raw: true }),
+  ]);
+
+  const now = new Date();
+  const parsePaymentDate = (dateValue) => {
+    const [day, month, year] = String(dateValue || "").split("-").map(Number);
+    return day && month && year ? new Date(year, month - 1, day) : null;
+  };
+
+  const currentMonthPaymentReceivedFromPayments = payments.reduce((sum, payment) => {
+    const paymentDate = parsePaymentDate(payment.payDate) || new Date(payment.createdAt);
+    return paymentDate && paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear()
+      ? sum + (Number(payment.amount) || 0)
+      : sum;
+  }, 0);
+
+  const currentMonthPaymentReceivedFromSchedules = schedules.reduce((sum, schedule) => {
+    const updatedDate = new Date(schedule.updatedAt || schedule.createdAt);
+    return updatedDate &&
+      updatedDate.getMonth() === now.getMonth() &&
+      updatedDate.getFullYear() === now.getFullYear() &&
+      Number(schedule.receivedAmount) > 0
+      ? sum + (Number(schedule.receivedAmount) || 0)
+      : sum;
+  }, 0);
+
+  const customerKeys = new Set(
+    visibleOrders.map((order) => String(order.email || order.mobile || order.id).trim().toLowerCase()),
+  );
+
+  return {
+    totalBusiness: visibleOrders.reduce((sum, order) => sum + (Number(order.finalAmt) || 0), 0),
+    totalConvertedCustomers: customerKeys.size,
+    currentMonthPaymentReceived: currentMonthPaymentReceivedFromPayments || currentMonthPaymentReceivedFromSchedules,
+    totalOutstandingBalance: schedules.reduce((sum, schedule) => sum + Math.max(Number(schedule.dueAmount) || 0, 0), 0),
+  };
 };
 
 const getCustomerOnboardedCount = async (org_id, userId, userRoleId) => {

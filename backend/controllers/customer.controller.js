@@ -7,6 +7,20 @@ const { Op } = require("sequelize");
 const { getParentRoles } = require("../utility/roleHelper");
 const { sendImportSuccessEmail } = require("../utility/bulkImportEmail");
 
+const GST_NOT_APPLICABLE_VALUES = new Set([
+  "",
+  "na",
+  "n/a",
+  "not applicable",
+  "no",
+  "*",
+]);
+
+const normalizeGstin = (value) => {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return GST_NOT_APPLICABLE_VALUES.has(trimmed.toLowerCase()) ? null : trimmed;
+};
+
 // Create customer
 exports.createCustomer = async (req, res) => {
   const errors = validationResult(req);
@@ -44,8 +58,7 @@ exports.createCustomer = async (req, res) => {
 
   try {
     // Normalize GSTIN: convert empty string to null
-    const normalizedGstinNo =
-      gstinNo && gstinNo.trim() !== "" ? gstinNo.trim() : null;
+    const normalizedGstinNo = normalizeGstin(gstinNo);
 
     // Duplicate checks
     const duplicateChecks = [];
@@ -333,8 +346,7 @@ exports.updateCustomer = async (req, res) => {
     if (!customer) return sendErrorResponse(res, 404, "Customer not found.");
 
     // Normalize GSTIN
-    const normalizedGstinNo =
-      gstinNo && gstinNo.trim() !== "" ? gstinNo.trim() : null;
+    const normalizedGstinNo = normalizeGstin(gstinNo);
 
     // Duplicate checks (exclude current customer)
     const duplicateChecks = [];

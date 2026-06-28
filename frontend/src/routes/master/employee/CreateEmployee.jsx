@@ -541,7 +541,7 @@
 
 // export default CreateEmployee;
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getSalutations } from "../../../redux/actions/salutation";
 import { getRoles } from "../../../redux/actions/rbac";
@@ -567,6 +567,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
 import ConfirmationModal from "../../../components/ConfirmationModal";
+import { usePincodeLookup } from "../../../hooks/use-pincode-lookup";
 
 const CreateEmployee = () => {
     const dispatch = useDispatch();
@@ -592,6 +593,7 @@ const CreateEmployee = () => {
         city: "",
         pincode: "",
         reportTo: "",
+        targetAmount: "",
         role: {
             id: "",
             name: "",
@@ -617,6 +619,38 @@ const CreateEmployee = () => {
     const [isSameAddress, setIsSameAddress] = useState(false);
     const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
 
+    const applyPermanentLocation = useCallback(
+        ({ city, state, country: countryName }) => {
+            const countryRecord = country.find((item) => item.country?.toLowerCase() === countryName.toLowerCase());
+            setForm((prev) => ({
+                ...prev,
+                city,
+                state,
+                country: countryName,
+                selectedCountryId: countryRecord?.id || prev.selectedCountryId,
+            }));
+            setErrors((prev) => ({ ...prev, city: false, state: false, country: false }));
+        },
+        [country],
+    );
+
+    const applyAlternateLocation = useCallback(
+        ({ city, state, country: countryName }) => {
+            const countryRecord = country.find((item) => item.country?.toLowerCase() === countryName.toLowerCase());
+            setAlternateAddress((prev) => ({
+                ...prev,
+                city,
+                state,
+                country: countryName,
+                selectedCountryId: countryRecord?.id || prev.selectedCountryId,
+            }));
+        },
+        [country],
+    );
+
+    const permanentLookup = usePincodeLookup(applyPermanentLocation);
+    const alternateLookup = usePincodeLookup(applyAlternateLocation);
+
     const { isMaxUsersError } = useSelector((state) => ({
         isMaxUsersError: state.employee.isMaxUsersError,
     }));
@@ -629,6 +663,18 @@ const CreateEmployee = () => {
         dispatch(getCountryCode());
         dispatch(clearSnackbar());
     }, [dispatch]);
+
+    useEffect(() => {
+        if (form.pincode.length !== 6) return undefined;
+        const timeout = setTimeout(() => permanentLookup.lookup(form.pincode), 350);
+        return () => clearTimeout(timeout);
+    }, [form.pincode, permanentLookup.lookup]);
+
+    useEffect(() => {
+        if (isSameAddress || alternateAddress.pincode.length !== 6) return undefined;
+        const timeout = setTimeout(() => alternateLookup.lookup(alternateAddress.pincode), 350);
+        return () => clearTimeout(timeout);
+    }, [alternateAddress.pincode, alternateLookup.lookup, isSameAddress]);
 
     useEffect(() => {
         if (justSubmitted && snackbarMessage) {
@@ -652,6 +698,7 @@ const CreateEmployee = () => {
                     city: "",
                     pincode: "",
                     reportTo: "",
+                    targetAmount: "",
                     role: {
                         id: "",
                         name: "",
@@ -854,7 +901,12 @@ const CreateEmployee = () => {
                     pincode: form.pincode,
                 },
                 alternateAddress: { ...alternateAddress },
+                targetAmount: form.targetAmount,
             };
+            const employeeTargetKey = form.email ? `crm:employee-target:${form.email.toLowerCase()}` : "";
+            if (employeeTargetKey) {
+                localStorage.setItem(employeeTargetKey, String(form.targetAmount || 0));
+            }
 
             dispatch(createEmployee(employeeData));
         }
@@ -1067,8 +1119,12 @@ const CreateEmployee = () => {
                                         label="Pincode *"
                                         placeholder="Pincode"
                                         value={form.pincode}
-                                        onChange={handleChange("pincode")}
+                                        onChange={(event) => handleChange("pincode")({ target: { value: event.target.value.replace(/\D/g, "").slice(0, 6) } })}
                                         error={errors.pincode}
+                                        helperText={permanentLookup.error || (permanentLookup.loading ? "Finding city, state and country..." : "Location fills automatically at 6 digits")}
+                                        InputProps={{
+                                            endAdornment: permanentLookup.loading ? <CircularProgress size={18} /> : null,
+                                        }}
                                         fullWidth
                                         size="small"
                                         sx={{
@@ -1149,7 +1205,11 @@ const CreateEmployee = () => {
                                         label="Pincode"
                                         placeholder="Pincode"
                                         value={alternateAddress.pincode}
-                                        onChange={(e) => setAlternateAddress({ ...alternateAddress, pincode: e.target.value })}
+                                        onChange={(e) => setAlternateAddress({ ...alternateAddress, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                                        helperText={alternateLookup.error || (alternateLookup.loading ? "Finding city, state and country..." : "Location fills automatically at 6 digits")}
+                                        InputProps={{
+                                            endAdornment: alternateLookup.loading ? <CircularProgress size={18} /> : null,
+                                        }}
                                         fullWidth
                                         size="small"
                                         sx={{
@@ -1243,6 +1303,19 @@ const CreateEmployee = () => {
                                     error={errors.reportTo}
                                 />
                             )}
+                            sx={{ flex: 1 }}
+                        />
+                    </Box>
+                    <Box className="flex w-full flex-col gap-4 lg:flex-row">
+                        <TextField
+                            label="Target Amount"
+                            placeholder="Set employee target"
+                            type="number"
+                            value={form.targetAmount}
+                            onChange={handleChange("targetAmount")}
+                            fullWidth
+                            size="small"
+                            helperText="This target will be used for target achievement analytics."
                             sx={{ flex: 1 }}
                         />
                     </Box>

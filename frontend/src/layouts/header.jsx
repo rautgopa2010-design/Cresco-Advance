@@ -320,17 +320,17 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode 
     ) ?? false;
 
     return (
-        <header className="relative z-10 flex h-[60px] items-center justify-between bg-white px-4 shadow-md transition-colors">
+        <header className="relative z-10 flex h-[60px] items-center justify-between border-b border-slate-200 bg-white/95 px-3 shadow-sm backdrop-blur-xl transition-colors sm:px-5">
             <div className="flex items-center gap-x-3">
                 <button
-                    className="btn-ghost size-10 text-[#3a3542]"
+                    className="btn-ghost size-10 border border-slate-200 text-slate-700 shadow-sm"
                     onClick={() => setCollapsed(!collapsed)}
                 >
                     <ChevronsLeft className={collapsed ? "rotate-180" : ""} />
                 </button>
 
                 {/* Support Email & Mobile */}
-                <div className="flex flex-col items-start gap-1 text-[10px] text-[#3a3542] md:gap-2 md:text-sm lg:flex-row lg:items-center lg:gap-5 lg:text-base">
+                <div className="hidden items-start gap-1 text-slate-600 sm:flex sm:flex-col md:gap-2 md:text-sm lg:flex-row lg:items-center lg:gap-5">
                     <div className="flex items-center gap-2">
                         <Mail size={20} />
                         <p className="-mt-0.5 text-[10px] md:text-sm lg:text-base">{supportEmail}</p>
@@ -365,7 +365,7 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode 
                 >
                     <button
                         onClick={handleProfileClick}
-                        className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-[#053054] font-bold text-white"
+                        className="flex size-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-indigo-600 to-blue-700 font-bold text-white shadow-md shadow-indigo-200 ring-2 ring-white"
                     >
                         {profileImage ? (
                             <img
@@ -379,7 +379,7 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode 
                     </button>
 
                     {showDropdown && (
-                        <div className="absolute right-0 z-50 mt-2 w-52 rounded-md border border-gray-200 bg-white shadow-lg">
+                        <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-300/50">
                             {/* Greeting & Role Section */}
                             <div className="bg-gradient-to-r from-blue-300 via-blue-200 to-blue-100 py-2 text-sm text-gray-700">
                                 {(() => {

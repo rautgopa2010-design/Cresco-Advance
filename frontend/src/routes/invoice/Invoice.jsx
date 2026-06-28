@@ -110,7 +110,7 @@
 // export default Invoice;
 
 import { Button } from "@material-tailwind/react";
-import { File, PencilLine, Trash, Printer, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { File, PencilLine, Trash, Printer, X, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { LiaFileInvoiceSolid } from "react-icons/lia";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -122,6 +122,7 @@ import InvoicePrint from "./InvoicePrint";
 import { getCompanySetup } from "../../redux/actions/companySetup";
 import { getPrefix } from "../../redux/actions/prefix";
 import { getBanks } from "../../redux/actions/bankDetails";
+import { useSessionToggle } from "../../hooks/use-session-toggle";
 
 const Invoice = () => {
     const navigate = useNavigate();
@@ -225,6 +226,7 @@ const Invoice = () => {
         mobile: "",
         email: "",
     });
+    const [filtersOpen, setFiltersOpen] = useSessionToggle("crm:invoice-filters-open", false);
 
     const handleFilterChange = (key, value) => {
         setFilters((prev) => ({ ...prev, [key]: value }));
@@ -316,13 +318,11 @@ const Invoice = () => {
 
                     {/* ===== Filters Box ===== */}
                     <div className="mt-3 rounded-lg border border-gray-300 bg-gray-50 p-3 shadow-sm">
-                        <Typography
-                            variant="subtitle1"
-                            className="mb-2 font-semibold text-[#053054]"
-                        >
-                            Filters
-                        </Typography>
-                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <button type="button" onClick={() => setFiltersOpen((open) => !open)} className="flex w-full items-center justify-between text-sm font-semibold text-slate-700" aria-expanded={filtersOpen}>
+                            <span className="flex items-center gap-2"><SlidersHorizontal size={17} className="text-indigo-600" />{filtersOpen ? "Hide Filters" : "Show Filters"}</span>
+                            <ChevronDown size={18} className={`transition ${filtersOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        {filtersOpen && <div className="crm-filter-panel mt-4 grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                             {/* ✅ From Date */}
                             <TextField
                                 label="From Date"
@@ -367,7 +367,7 @@ const Invoice = () => {
                                 value={filters.email}
                                 onChange={(e) => handleFilterChange("email", e.target.value)}
                             />
-                        </div>
+                        </div>}
                     </div>
 
                     {/* ===== Table + Pagination ===== */}

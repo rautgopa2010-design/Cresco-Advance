@@ -122,8 +122,8 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
         <aside
             ref={ref}
             className={cn(
-                "fixed z-[100] flex h-full w-[240px] flex-col overflow-x-visible border-r border-slate-300 bg-white",
-                collapsed ? "md:w-[70px] md:items-center" : "md:w-[240px]",
+                "crm-sidebar fixed z-[100] flex h-full w-[268px] flex-col overflow-x-visible border-r border-slate-200 bg-white shadow-[10px_0_30px_rgba(15,23,42,0.06)]",
+                collapsed ? "md:w-[82px] md:items-center" : "md:w-[268px]",
                 collapsed ? "max-md:-left-full" : "max-md:left-0",
             )}
         >
@@ -145,14 +145,14 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                 to="/"
                 onClick={handleMobileNavigation}
             >
-                <div className="flex cursor-pointer items-center justify-center">
+                <div className="flex cursor-pointer items-center justify-center px-4 py-4">
                     {/* Wrapper with fixed aspect ratio for consistency */}
                     <div
                         className={cn(
-                            "relative overflow-hidden rounded-lg bg-gray-50", // optional: subtle bg + rounding
+                            "relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm",
                             collapsed
-                                ? "mx-auto mt-4 h-12 w-16" // collapsed: small square-ish
-                                : "mx-auto mt-2 h-[60px] w-80", // expanded: wider rectangle
+                                ? "mx-auto h-12 w-12"
+                                : "mx-auto h-[58px] w-full",
                         )}
                     >
                         <img
@@ -167,7 +167,16 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                 </div>
             </Link>
 
-            <nav className="flex w-full flex-col gap-y-4 overflow-y-auto overflow-x-hidden p-3 [scrollbar-width:_thin]">
+            {!collapsed && (
+                <div className="mx-4 mb-3 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-500">CRM Workspace</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-slate-800">
+                        {user?.role_name || (helpDeskMode ? "Helpdesk" : "Sales CRM")}
+                    </p>
+                </div>
+            )}
+
+            <nav className="flex w-full flex-col gap-y-2 overflow-y-auto overflow-x-hidden px-3 pb-5 pt-2 [scrollbar-width:_thin]">
                 {linksToRender.map((group, gIndex) => (
                     <div
                         key={group.title || `group-${gIndex}`}
@@ -190,8 +199,8 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                     {/* Accordion header – only toggle, do NOT close sidebar */}
                                     <div
                                         className={cn(
-                                            "sidebar-item group relative flex cursor-pointer items-center gap-2 rounded bg-gradient-to-r p-2 text-[#433C50] hover:from-violet-100 hover:to-violet-300",
-                                            collapsed && "md:w-[45px]",
+                                            "sidebar-item group relative flex cursor-pointer items-center gap-3 rounded-xl p-2.5 text-slate-700",
+                                            collapsed && "md:w-[52px] md:justify-center",
                                         )}
                                         onClick={() => {
                                             if (link.showArrow) toggleAccordion(link.label);
@@ -216,7 +225,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                             size={22}
                                             className="flex-shrink-0"
                                         />
-                                        {!collapsed && <p className="whitespace-nowrap">{link.label}</p>}
+                                        {!collapsed && <p className="whitespace-nowrap font-semibold">{link.label}</p>}
                                         {!collapsed && link.showArrow && <span className="ml-auto">{openAccordions[link.label] ? "▲" : "▼"}</span>}
                                     </div>
 
@@ -228,7 +237,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                     ? `${contentRefs.current[link.label].current?.scrollHeight}px`
                                                     : `0px`,
                                         }}
-                                        className="ml-6 overflow-hidden transition-all duration-500 ease-in-out"
+                                        className="ml-4 overflow-hidden border-l border-slate-100 pl-3 transition-all duration-500 ease-in-out"
                                     >
                                         <div className="flex flex-col gap-1 py-1">
                                             {link.children.map((child, cIndex) => {
@@ -265,7 +274,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                         >
                                                             {/* Nested group header – toggle only */}
                                                             <div
-                                                                className="flex cursor-pointer items-center gap-2 bg-gradient-to-r p-2 text-[#433C50] hover:from-violet-100 hover:to-violet-300"
+                                                                className="sidebar-item flex cursor-pointer items-center gap-2 rounded-xl p-2 text-slate-700"
                                                                 onClick={() => {
                                                                     toggleNestedAccordion(child.label);
                                                                     // → NO close here either
@@ -275,7 +284,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                                     size={20}
                                                                     className="text-slate-500"
                                                                 />
-                                                                <p className="whitespace-nowrap">{child.label}</p>
+                                                                <p className="whitespace-nowrap font-semibold">{child.label}</p>
                                                                 <span className="ml-auto">{openNestedAccordions[child.label] ? "▼" : "▲"}</span>
                                                             </div>
 
@@ -308,10 +317,10 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                                                 to={subItem.path}
                                                                                 className={({ isActive }) =>
                                                                                     cn(
-                                                                                        "sidebar-item group relative ml-2 flex items-center gap-2 rounded bg-gradient-to-r p-2 hover:from-violet-100 hover:to-violet-300",
+                                                                                        "sidebar-item group relative ml-1 flex items-center gap-2 rounded-xl p-2",
                                                                                         isActive
-                                                                                            ? "bg-gradient-to-r from-violet-100 to-violet-300 text-[#433C50]"
-                                                                                            : "text-[#433C50]",
+                                                                                            ? "active text-slate-900"
+                                                                                            : "text-slate-600",
                                                                                     )
                                                                                 }
                                                                                 onClick={handleMobileNavigation} // ← close only here
@@ -320,7 +329,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                                                     size={18}
                                                                                     className="text-slate-500"
                                                                                 />
-                                                                                <p className="whitespace-nowrap">{subItem.label}</p>
+                                                                                <p className="whitespace-nowrap font-medium">{subItem.label}</p>
                                                                             </NavLink>
                                                                         );
                                                                     })}
@@ -336,10 +345,10 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                         to={child.path}
                                                         className={({ isActive }) =>
                                                             cn(
-                                                                "sidebar-item group relative ml-2 flex items-center gap-2 rounded bg-gradient-to-r p-2 hover:from-violet-100 hover:to-violet-300",
+                                                                "sidebar-item group relative ml-1 flex items-center gap-2 rounded-xl p-2",
                                                                 isActive
-                                                                    ? "bg-gradient-to-r from-violet-100 to-violet-300 text-[#433C50]"
-                                                                    : "text-[#433C50]",
+                                                                    ? "active text-slate-900"
+                                                                    : "text-slate-600",
                                                             )
                                                         }
                                                         onClick={handleMobileNavigation} // ← close only on navigation
@@ -348,7 +357,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                             size={20}
                                                             className="flex-shrink-0 text-slate-500"
                                                         />
-                                                        <p className="whitespace-nowrap">{child.label}</p>
+                                                        <p className="whitespace-nowrap font-medium">{child.label}</p>
                                                     </NavLink>
                                                 );
                                             })}
@@ -361,9 +370,9 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                     to={link.path}
                                     className={({ isActive }) =>
                                         cn(
-                                            "sidebar-item group relative flex items-center gap-2 rounded bg-gradient-to-r p-2 hover:from-violet-100 hover:to-violet-300",
-                                            collapsed && "md:w-[45px]",
-                                            isActive ? "bg-gradient-to-r from-violet-100 to-violet-300 text-[#433C50]" : "text-[#433C50]",
+                                            "sidebar-item group relative flex items-center gap-3 rounded-xl p-2.5",
+                                            collapsed && "md:w-[52px] md:justify-center",
+                                            isActive ? "active text-slate-900" : "text-slate-700",
                                         )
                                     }
                                     onClick={handleMobileNavigation} // ← close only on navigation
@@ -386,7 +395,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                         size={22}
                                         className="flex-shrink-0"
                                     />
-                                    {!collapsed && <p className="whitespace-nowrap">{link.label}</p>}
+                                    {!collapsed && <p className="whitespace-nowrap font-semibold">{link.label}</p>}
                                 </NavLink>
                             );
                         })}

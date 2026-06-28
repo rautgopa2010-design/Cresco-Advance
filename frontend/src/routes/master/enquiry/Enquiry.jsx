@@ -1355,13 +1355,14 @@
 // export default Enquiry;
 
 import { Button } from "@material-tailwind/react";
-import { File, PencilLine, Trash, UserRound, X, ChevronLeft, ChevronRight, BadgePlus } from "lucide-react";
+import { File, PencilLine, Trash, UserRound, X, ChevronLeft, ChevronRight, BadgePlus, SlidersHorizontal, ChevronDown } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getCustomers, deleteCustomer, addCustomerContact, importCustomers, bulkAssignCustomers } from "../../../redux/actions/customer";
 import { getEmployees } from "../../../redux/actions/employee";
 import { Alert, Box, CircularProgress, IconButton, Modal, Snackbar, Typography, useMediaQuery, TextField, Autocomplete, Chip } from "@mui/material";
+import { useSessionToggle } from "../../../hooks/use-session-toggle";
 import { clearSnackbar } from "../../../redux/actions/commonActions";
 import { getSalutations } from "../../../redux/actions/salutation";
 import { getCountryCode } from "../../../redux/actions/countryCode";
@@ -1393,15 +1394,15 @@ const Enquiry = () => {
     }, [dispatch]);
 
     const handleCreateClick = () => {
-        navigate("/enquiry/create-enquiry");
+        navigate("/enquiries/new");
     };
 
     const handleEditClick = (id) => {
-        navigate(`/enquiry/edit-enquiry/${id}`);
+        navigate(`/enquiries/${id}/edit`);
     };
 
     const handleViewClick = (id) => {
-        navigate(`/enquiry/view-enquiry/${id}`);
+        navigate(`/enquiries/${id}`);
     };
 
     const modalStyle = {
@@ -1661,7 +1662,7 @@ const Enquiry = () => {
     };
 
     // ✅ Added fromDate & toDate
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState(() => JSON.parse(localStorage.getItem("crm:enquiry-filters") || "null") || ({
         fromDate: "",
         toDate: "",
         company: "",
@@ -1669,7 +1670,12 @@ const Enquiry = () => {
         mobile: "",
         email: "",
         assignedTo: [],
-    });
+    }));
+    const [filtersOpen, setFiltersOpen] = useSessionToggle("crm:enquiry-filters-open", false);
+
+    useEffect(() => {
+        localStorage.setItem("crm:enquiry-filters", JSON.stringify(filters));
+    }, [filters]);
 
     const [addContactOpen, setAddContactOpen] = useState(false);
     const [selectedCustomerId, setSelectedCustomerId] = useState(null);
@@ -2022,14 +2028,12 @@ const Enquiry = () => {
 
                     {/* ===== Filter Box ===== */}
                     <div className="mt-3 rounded-lg border border-gray-300 bg-gray-50 p-3 shadow-sm">
-                        <Typography
-                            variant="subtitle1"
-                            className="mb-2 font-semibold text-[#053054]"
-                        >
-                            Filters
-                        </Typography>
+                        <button type="button" onClick={() => setFiltersOpen((open) => !open)} className="flex w-full items-center justify-between text-sm font-semibold text-slate-700" aria-expanded={filtersOpen}>
+                            <span className="flex items-center gap-2"><SlidersHorizontal size={17} className="text-indigo-600" />{filtersOpen ? "Hide Filters" : "Show Filters"}</span>
+                            <ChevronDown size={18} className={`transition ${filtersOpen ? "rotate-180" : ""}`} />
+                        </button>
 
-                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {filtersOpen && <div className="crm-filter-panel mt-4 grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                             {/* ✅ Date Filters */}
                             <TextField
                                 label="From Date"
@@ -2107,7 +2111,7 @@ const Enquiry = () => {
                                 className="w-full"
                                 loading={!employees?.length}
                             />
-                        </div>
+                        </div>}
                     </div>
 
                     <div className="card-body p-0">

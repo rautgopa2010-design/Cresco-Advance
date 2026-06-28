@@ -1424,7 +1424,7 @@
 
 // export default CreateEnquiry;
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getSalutations } from "../../../redux/actions/salutation";
 import { getCustomerCategory } from "../../../redux/actions/customerCategory";
@@ -1441,6 +1441,7 @@ import { Button } from "@material-tailwind/react";
 import { useNavigate } from "react-router-dom";
 import { Search, UserRound } from "lucide-react";
 import { CUSTOMER_ERROR } from "../../../redux/types";
+import { usePincodeLookup } from "../../../hooks/use-pincode-lookup";
 
 const CreateEnquiry = () => {
     const dispatch = useDispatch();
@@ -1487,6 +1488,51 @@ const CreateEnquiry = () => {
     const { countryCode } = useSelector((state) => state.countryCode);
     const { roles } = useSelector((state) => state.rbac);
     const { leadSource } = useSelector((state) => state.leadSource);
+
+    const applyBillingLocation = useCallback(
+        ({ city, state, country: countryName }) => {
+            const countryRecord = country.find((item) => item.country?.toLowerCase() === countryName.toLowerCase());
+            setForm((prev) => ({
+                ...prev,
+                billingCity: city,
+                billingState: state,
+                billingCountry: countryName,
+                selectedBillingCountryId: countryRecord?.id || prev.selectedBillingCountryId,
+            }));
+            setErrors((prev) => ({ ...prev, billingCity: false, billingState: false, billingCountry: false }));
+        },
+        [country],
+    );
+
+    const applyShippingLocation = useCallback(
+        ({ city, state, country: countryName }) => {
+            const countryRecord = country.find((item) => item.country?.toLowerCase() === countryName.toLowerCase());
+            setForm((prev) => ({
+                ...prev,
+                shippingCity: city,
+                shippingState: state,
+                shippingCountry: countryName,
+                selectedShippingCountryId: countryRecord?.id || prev.selectedShippingCountryId,
+            }));
+            setErrors((prev) => ({ ...prev, shippingCity: false, shippingState: false, shippingCountry: false }));
+        },
+        [country],
+    );
+
+    const billingLookup = usePincodeLookup(applyBillingLocation);
+    const shippingLookup = usePincodeLookup(applyShippingLocation);
+
+    useEffect(() => {
+        if (form.billingPincode.length !== 6) return undefined;
+        const timeout = setTimeout(() => billingLookup.lookup(form.billingPincode), 350);
+        return () => clearTimeout(timeout);
+    }, [form.billingPincode, billingLookup.lookup]);
+
+    useEffect(() => {
+        if (copyBillingToShipping || form.shippingPincode.length !== 6) return undefined;
+        const timeout = setTimeout(() => shippingLookup.lookup(form.shippingPincode), 350);
+        return () => clearTimeout(timeout);
+    }, [copyBillingToShipping, form.shippingPincode, shippingLookup.lookup]);
 
     useEffect(() => {
         dispatch(clearSnackbar());
@@ -1536,7 +1582,7 @@ const CreateEnquiry = () => {
                 setTimeout(() => {
                     setJustSubmitted(false);
                     dispatch(clearSnackbar());
-                    navigate("/enquiry");
+                    navigate("/enquiries");
                 }, 1000);
             } else {
                 // For error case, just reset the flag
@@ -2087,8 +2133,12 @@ const CreateEnquiry = () => {
                                     label="Pincode *"
                                     placeholder="Pincode"
                                     value={form.billingPincode}
-                                    onChange={handleChange("billingPincode")}
+                                    onChange={(event) => handleChange("billingPincode")({ target: { value: event.target.value.replace(/\D/g, "").slice(0, 6) } })}
                                     error={!!errors.billingPincode}
+                                    helperText={billingLookup.error || (billingLookup.loading ? "Finding city, state and country..." : "Location fills automatically at 6 digits")}
+                                    InputProps={{
+                                        endAdornment: billingLookup.loading ? <CircularProgress size={18} /> : null,
+                                    }}
                                     fullWidth
                                     size="small"
                                     sx={{
@@ -2250,8 +2300,12 @@ const CreateEnquiry = () => {
                                     label="Pincode *"
                                     placeholder="Pincode"
                                     value={form.shippingPincode}
-                                    onChange={handleChange("shippingPincode")}
+                                    onChange={(event) => handleChange("shippingPincode")({ target: { value: event.target.value.replace(/\D/g, "").slice(0, 6) } })}
                                     error={!!errors.shippingPincode}
+                                    helperText={shippingLookup.error || (shippingLookup.loading ? "Finding city, state and country..." : "Location fills automatically at 6 digits")}
+                                    InputProps={{
+                                        endAdornment: shippingLookup.loading ? <CircularProgress size={18} /> : null,
+                                    }}
                                     fullWidth
                                     size="small"
                                     disabled={copyBillingToShipping}

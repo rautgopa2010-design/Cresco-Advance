@@ -35,6 +35,7 @@ const EditEmployee = () => {
         city: "",
         pincode: "",
         reportTo: "",
+        targetAmount: "",
         role: {
             id: "",
             name: "",
@@ -99,6 +100,7 @@ const EditEmployee = () => {
                     country: existingEmployee.country || "",
                     selectedCountryId: country.find((c) => c.country === existingEmployee.country)?.id || "",
                     reportTo: isSA ? "" : reportToEmp?.id || "",
+                    targetAmount: localStorage.getItem(`crm:employee-target:${String(existingEmployee.email || "").toLowerCase()}`) || "",
                     role: {
                         id: existingEmployee.role_id,
                         name: roleObj?.name || "",
@@ -138,6 +140,7 @@ const EditEmployee = () => {
                     city: "",
                     pincode: "",
                     reportTo: "",
+                    targetAmount: "",
                     role: {
                         id: "",
                         name: "",
@@ -319,6 +322,10 @@ const EditEmployee = () => {
                 },
                 alternateAddress: { ...alternateAddress },
             };
+
+            if (form.email) {
+                localStorage.setItem(`crm:employee-target:${form.email.toLowerCase()}`, String(form.targetAmount || 0));
+            }
 
             dispatch(updateEmployee(id, employeeData));
         }
@@ -695,6 +702,19 @@ const EditEmployee = () => {
                                     error={!isSuperAdminEmployee && errors.reportTo}
                                 />
                             )}
+                            sx={{ flex: 1 }}
+                        />
+                    </Box>
+                    <Box className="flex w-full flex-col gap-4 lg:flex-row">
+                        <TextField
+                            label="Target Amount"
+                            placeholder="Set employee target"
+                            type="number"
+                            value={form.targetAmount}
+                            onChange={handleChange("targetAmount")}
+                            fullWidth
+                            size="small"
+                            helperText="Target is used in Analytics target achievement."
                             sx={{ flex: 1 }}
                         />
                     </Box>

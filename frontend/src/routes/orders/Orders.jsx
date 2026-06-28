@@ -755,7 +755,7 @@
 
 
 import { Button } from "@material-tailwind/react";
-import { File, PencilLine, Trash, X, ChevronLeft, ChevronRight, Printer } from "lucide-react";
+import { File, PencilLine, Trash, X, ChevronLeft, ChevronRight, Printer, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { FaJediOrder } from "react-icons/fa6";
 import React, { useEffect, useRef, useState } from "react";
@@ -769,6 +769,7 @@ import { getOrderStatus } from "../../redux/actions/orderStatus";
 import OrderPrint from "./OrderPrint";
 import { getCompanySetup } from "../../redux/actions/companySetup";
 import { getPrefix } from "../../redux/actions/prefix";
+import { useSessionToggle } from "../../hooks/use-session-toggle";
 
 const Orders = () => {
     const navigate = useNavigate();
@@ -864,6 +865,7 @@ const Orders = () => {
         email: "",
         status: "",
     });
+    const [filtersOpen, setFiltersOpen] = useSessionToggle("crm:order-filters-open", false);
 
     const handleFilterChange = (key, value) => {
         setFilters((prev) => ({ ...prev, [key]: value }));
@@ -962,13 +964,11 @@ const Orders = () => {
 
                         {/* ===== Filter Box ===== */}
                         <div className="rounded-lg border border-gray-300 bg-gray-50 p-3 shadow-sm">
-                            <Typography
-                                variant="subtitle1"
-                                className="mb-2 font-semibold text-[#053054]"
-                            >
-                                Filters
-                            </Typography>
-                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            <button type="button" onClick={() => setFiltersOpen((open) => !open)} className="flex w-full items-center justify-between text-sm font-semibold text-slate-700" aria-expanded={filtersOpen}>
+                                <span className="flex items-center gap-2"><SlidersHorizontal size={17} className="text-indigo-600" />{filtersOpen ? "Hide Filters" : "Show Filters"}</span>
+                                <ChevronDown size={18} className={`transition ${filtersOpen ? "rotate-180" : ""}`} />
+                            </button>
+                            {filtersOpen && <div className="crm-filter-panel mt-4 grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                                 <TextField
                                     label="From Date"
                                     type="date"
@@ -1026,7 +1026,7 @@ const Orders = () => {
                                         </MenuItem>
                                     ))}
                                 </TextField>
-                            </div>
+                            </div>}
                         </div>
 
                         <div className="card-body p-0">

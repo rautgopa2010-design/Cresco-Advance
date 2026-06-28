@@ -37,7 +37,7 @@ const AppLayout = () => {
     });
 
     return (
-        <div className="flex min-h-screen flex-col bg-slate-100 transition-colors dark:bg-slate-950">
+        <div className="flex min-h-screen flex-col bg-[#f5f7fb] transition-colors dark:bg-slate-950">
             <div
                 className={cn(
                     "pointer-events-none fixed inset-0 -z-10 bg-black opacity-0 transition-opacity",
@@ -50,16 +50,16 @@ const AppLayout = () => {
                 setCollapsed={setCollapsed}
                 helpDeskMode={helpDeskMode}
             />
-            <div className={cn("flex-1 transition-[margin] duration-300", collapsed ? "md:ml-[70px]" : "md:ml-[240px]")}>
+            <div className={cn("flex-1 transition-[margin] duration-300", collapsed ? "md:ml-[82px]" : "md:ml-[268px]")}>
                 <Header
                     collapsed={collapsed}
                     setCollapsed={setCollapsed}
                     helpDeskMode={helpDeskMode}
                     setHelpDeskMode={setHelpDeskMode}
                 />
-                <div className="h-[calc(100vh-66px-66px)] overflow-y-auto overflow-x-hidden p-6 md:h-[calc(100vh-72px-72px)] lg:h-[calc(100vh-61px-61px)]">
+                <main className="h-[calc(100vh-66px-66px)] overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:h-[calc(100vh-72px-72px)] lg:h-[calc(100vh-61px-61px)] lg:p-6">
                     <Outlet context={{ helpDeskMode }} />
-                </div>
+                </main>
                 <Footer />
             </div>
         </div>

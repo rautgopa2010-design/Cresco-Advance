@@ -1223,6 +1223,8 @@ const GenerateOrder = () => {
         unit: "",
         description: "",
         pricePerUnit: "",
+        purchaseCost: "",
+        vendorName: "",
         subTotal: "",
         gstinType: "Intrastate",
         cgst: "",
@@ -1429,6 +1431,45 @@ const GenerateOrder = () => {
     const [filteredCategories, setFilteredCategories] = useState([]);
     const [filteredSubCategories, setFilteredSubCategories] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
+    const [productSearch, setProductSearch] = useState("");
+
+    const buildProductSuggestions = (rows = product) =>
+        rows.flatMap((prod) =>
+            Array.isArray(prod.product)
+                ? prod.product.map((pName) => ({
+                      name: pName,
+                      label: [pName, prod.brand, prod.productCategoryName, prod.productSubCategoryName].filter(Boolean).join(" / "),
+                      productBrand: prod.brand || "",
+                      productCategory: prod.productCategoryName || "",
+                      productSubCategory: prod.productSubCategoryName || "",
+                      hsnCode: prod.hsnCode,
+                      description: prod.description,
+                      unit: prod.productUnitName,
+                      productPrice: prod.productPrice,
+                  }))
+                : [],
+        );
+
+    const getProductOptions = () => {
+        const base =
+            form.productBrand || form.productCategory || form.productSubCategory
+                ? product.filter(
+                      (item) =>
+                          (!form.productBrand || item.brand === form.productBrand) &&
+                          (!form.productCategory || item.productCategoryName === form.productCategory) &&
+                          (!form.productSubCategory || item.productSubCategoryName === form.productSubCategory),
+                  )
+                : product;
+        return buildProductSuggestions(base);
+    };
+
+    const filterProductSuggestions = (options, { inputValue }) => {
+        const search = String(inputValue || "").trim().toLowerCase();
+        if (!search) return options.slice(0, 20);
+        return options
+            .filter((option) => `${option?.name || ""} ${option?.label || ""}`.toLowerCase().includes(search))
+            .slice(0, 20);
+    };
 
     const handleChange = (field) => (e) => {
         const value = e.target.value;
@@ -1474,6 +1515,9 @@ const GenerateOrder = () => {
                     Array.isArray(prod.product)
                         ? prod.product.map((pName) => ({
                               name: pName,
+                              productBrand: prod.brand || "",
+                              productCategory: prod.productCategoryName || "",
+                              productSubCategory: prod.productSubCategoryName || "",
                               hsnCode: prod.hsnCode,
                               description: prod.description,
                               unit: prod.productUnitName,
@@ -1490,11 +1534,15 @@ const GenerateOrder = () => {
             }
 
             if (field === "product") {
-                const selected = filteredProducts.find((p) => p.name === value);
+                const selected = e.target.option || filteredProducts.find((p) => p.name === value) || buildProductSuggestions().find((p) => p.name === value);
+                if (selected?.productBrand) updatedForm.productBrand = selected.productBrand;
+                if (selected?.productCategory) updatedForm.productCategory = selected.productCategory;
+                if (selected?.productSubCategory) updatedForm.productSubCategory = selected.productSubCategory;
                 updatedForm.hsnCode = selected?.hsnCode || "";
                 updatedForm.description = selected?.description || "";
                 updatedForm.unit = selected?.unit || "";
                 updatedForm.pricePerUnit = selected?.productPrice || "";
+                setProductSearch(value || "");
             }
 
             return updatedForm;
@@ -1883,18 +1931,6 @@ const GenerateOrder = () => {
         let tempErrors = {};
         let hasError = false;
 
-        if (!form.productBrand) {
-            tempErrors.productBrand = true;
-            hasError = true;
-        }
-        if (!form.productCategory) {
-            tempErrors.productCategory = true;
-            hasError = true;
-        }
-        if (!form.productSubCategory) {
-            tempErrors.productSubCategory = true;
-            hasError = true;
-        }
         if (!form.product) {
             tempErrors.product = true;
             hasError = true;
@@ -1947,6 +1983,8 @@ const GenerateOrder = () => {
             unit: form.unit,
             description: form.description,
             pricePerUnit: form.pricePerUnit,
+            purchaseCost: form.purchaseCost,
+            vendorName: form.vendorName,
             subTotal: form.subTotal,
             gstinType: form.gstinType,
             cgst: form.cgst,
@@ -2000,6 +2038,8 @@ const GenerateOrder = () => {
             unit: "",
             description: "",
             pricePerUnit: "",
+            purchaseCost: "",
+            vendorName: "",
             subTotal: "",
             cgst: "",
             sgst: "",
@@ -2024,6 +2064,8 @@ const GenerateOrder = () => {
             unit: "",
             description: "",
             pricePerUnit: "",
+            purchaseCost: "",
+            vendorName: "",
             subTotal: "",
             discount: "",
             total: "",
@@ -2034,6 +2076,7 @@ const GenerateOrder = () => {
             sgstAmt: "",
             igstAmt: "",
         }));
+        setProductSearch("");
         setEditProductDetailsIndex(null);
         setEditProductDetailsType("");
     };
@@ -2044,6 +2087,7 @@ const GenerateOrder = () => {
 
         setEditProductDetailsIndex(index);
         setEditProductDetailsType(item.gstinType);
+        setProductSearch(item.product || "");
 
         // Step 1: Filter categories for the brand
         const matchedBrand = productCategory.find((cat) => cat.brand === item.productBrand);
@@ -2089,6 +2133,8 @@ const GenerateOrder = () => {
             unit: selectedProduct?.unit || item.unit || "",
             quantity: item.quantity,
             pricePerUnit: item.pricePerUnit,
+            purchaseCost: item.purchaseCost || "",
+            vendorName: item.vendorName || "",
             subTotal: item.subTotal,
             gstinType: item.gstinType,
             cgst: item.cgst,
@@ -2899,10 +2945,28 @@ const GenerateOrder = () => {
                             />
                             <Autocomplete
                                 disablePortal
-                                options={(filteredProducts || []).map((prod) => prod.name)}
-                                value={form.product || ""}
-                                onChange={(e, newValue) => handleChange("product")({ target: { value: newValue } })}
-                                disabled={!form.productSubCategory}
+                                options={getProductOptions()}
+                                filterOptions={filterProductSuggestions}
+                                autoHighlight
+                                open={productSearch.trim().length > 0 && productSearch !== form.product}
+                                inputValue={productSearch}
+                                onInputChange={(event, newInputValue, reason) => {
+                                    if (reason === "input") setProductSearch(newInputValue);
+                                    if (reason === "clear") setProductSearch("");
+                                }}
+                                noOptionsText="No matching product found"
+                                getOptionLabel={(option) => (typeof option === "string" ? option : option?.name || "")}
+                                isOptionEqualToValue={(option, value) => option?.name === value?.name}
+                                value={getProductOptions().find((prod) => prod.name === form.product) || null}
+                                onChange={(e, newValue) => handleChange("product")({ target: { value: newValue?.name || "", option: newValue } })}
+                                renderOption={(props, option) => (
+                                    <li {...props}>
+                                        <div>
+                                            <div className="font-medium">{option.name}</div>
+                                            <div className="text-xs text-gray-500">{[option.productBrand, option.productCategory, option.productSubCategory].filter(Boolean).join(" > ")}</div>
+                                        </div>
+                                    </li>
+                                )}
                                 renderInput={(params) => (
                                     <TextField
                                         {...params}
@@ -2964,6 +3028,18 @@ const GenerateOrder = () => {
                                 sx={{ flex: 1 }}
                             />
                             <TextField
+                                label="Purchase Cost"
+                                placeholder="Purchase Cost"
+                                type="number"
+                                value={form.purchaseCost}
+                                onChange={handleChange("purchaseCost")}
+                                onWheel={(e) => e.target.blur()}
+                                inputProps={{ min: 0 }}
+                                fullWidth
+                                size="small"
+                                sx={{ flex: 1 }}
+                            />
+                            <TextField
                                 label="Sub Total"
                                 placeholder="Sub Total"
                                 value={form.subTotal}
@@ -2974,6 +3050,15 @@ const GenerateOrder = () => {
                             />
                         </Box>
                         <Box>
+                            <TextField
+                                label="Vendor Name"
+                                placeholder="Vendor Name"
+                                value={form.vendorName}
+                                onChange={handleChange("vendorName")}
+                                fullWidth
+                                size="small"
+                                sx={{ mb: 2 }}
+                            />
                             <TextField
                                 label="Description"
                                 value={form.description}

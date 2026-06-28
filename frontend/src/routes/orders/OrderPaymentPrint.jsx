@@ -16,6 +16,9 @@ const OrderPaymentPrint = forwardRef((props, ref) => {
                 : order.orderNo || "-";
             const billing = order.billingAddress || {};
             const shipping = order.shippingAddress || {};
+            const schedule = order.orderPaymentDetails?.find((item) => String(item.id) === String(payment.paymentId));
+            const balanceAmount = Number(schedule?.dueAmount) || 0;
+            const receiptNumber = `RCP-${order.orderNo || order.id}-${payment.id || payment.paymentId}`;
 
             const printWindow = window.open("", "_blank");
 
@@ -246,6 +249,22 @@ const OrderPaymentPrint = forwardRef((props, ref) => {
             page-break-inside: avoid;
         }
 
+        .signature-area {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 50px;
+            page-break-inside: avoid;
+        }
+
+        .signature-line {
+            width: 220px;
+            border-top: 1px solid #334155;
+            padding-top: 8px;
+            text-align: center;
+            color: #475569;
+            font-weight: 600;
+        }
+
         .section-title {
             font-size: 19px;
             font-weight: bold;
@@ -300,7 +319,8 @@ const OrderPaymentPrint = forwardRef((props, ref) => {
                             </div>
 
                             <div class="payment-meta">
-                                <div><strong>Order No:</strong> ${formattedOrderNo}</div>
+                                <div><strong>Receipt Number:</strong> ${receiptNumber}</div>
+                                <div><strong>Enquiry / Order Ref:</strong> ${formattedOrderNo}</div>
                                 <div><strong>Payment ID:</strong> ${payment.paymentId}</div>
                                 <div><strong>Payment Date:</strong> ${payment.payDate}</div>
                                 ${order.gstinNo ? `<div><strong>GSTIN:</strong> ${order.gstinNo}</div>` : ""}
@@ -380,15 +400,20 @@ const OrderPaymentPrint = forwardRef((props, ref) => {
 
                     <div class="amount-box">
                         <div class="label">Total Amount Paid</div>
+                        <div class="label" style="margin-top:12px">Balance Amount: <strong>INR ${balanceAmount.toLocaleString("en-IN")}</strong></div>
                         <div class="amount">₹ ${payment.amount}</div>
                     </div>
 
                     <div class="appreciation-box">
                         <strong>Thank you for your payment.</strong><br/>
-                        This is a system generated receipt and does not require a signature.
+                        This receipt confirms the payment recorded against the referenced order.
                         Please keep this receipt for future reference.
                         <br/><br/>
                         <strong>For any queries regarding this payment, please contact our customer service team.</strong>
+                    </div>
+
+                    <div class="signature-area">
+                        <div class="signature-line">Authorized Signature</div>
                     </div>
 
                 </div>

@@ -643,7 +643,7 @@ import { getOrders } from "../../redux/actions/order";
 import { Button } from "@material-tailwind/react";
 import { CircularProgress, Alert, Snackbar, Modal, Box, Typography, IconButton, MenuItem, TextField } from "@mui/material";
 import { RiSecurePaymentFill } from "react-icons/ri";
-import { File, X, Search, Printer } from "lucide-react";
+import { File, X, Search, Printer, Download, Mail } from "lucide-react";
 import { addOrderPayment, getOrderPayments } from "../../redux/actions/orderPayment";
 import OrderPaymentPrint from "./OrderPaymentPrint";
 import { getCompanySetup } from "../../redux/actions/companySetup";
@@ -972,7 +972,7 @@ const OrderPayment = () => {
                             className="flex items-center gap-2 rounded-full bg-[#053054] px-1 py-2 text-xs capitalize md:px-3 md:text-base lg:px-3 lg:text-base"
                         >
                             <RiSecurePaymentFill size={20} />
-                            Add Payment
+                            Receive Payment
                         </Button>
                     </div>
                 </div>
@@ -1290,9 +1290,27 @@ const OrderPayment = () => {
                                                         setTimeout(() => paymentPrintRef.current?.print(), 300);
                                                     }}
                                                     className="text-orange-500 transition-transform hover:scale-110"
+                                                    title="Print receipt"
                                                 >
                                                     <Printer size={18} />
                                                 </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setPrintPayment(p);
+                                                        setTimeout(() => paymentPrintRef.current?.print(), 300);
+                                                    }}
+                                                    className="text-blue-600 transition-transform hover:scale-110"
+                                                    title="Download receipt as PDF"
+                                                >
+                                                    <Download size={18} />
+                                                </button>
+                                                <a
+                                                    href={`mailto:${order.email || ""}?subject=${encodeURIComponent(`Payment receipt for order ${order.orderNo}`)}&body=${encodeURIComponent(`Dear ${order.customerPerson},\n\nPayment of ₹${p.amount} was received on ${p.payDate}. Receipt reference: RCP-${order.orderNo}-${p.id}.\n\nRegards,\n${companySetup?.companyName || "Accounts Team"}`)}`}
+                                                    className="text-indigo-600 transition-transform hover:scale-110"
+                                                    title="Email receipt"
+                                                >
+                                                    <Mail size={18} />
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>

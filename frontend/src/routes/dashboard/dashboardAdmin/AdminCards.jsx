@@ -55,16 +55,34 @@ const AdminDashboardCards = ({ dashData = {} }) => {
 
     const primaryMetrics = [
         {
-            label: "Enquiries",
+            label: "Total business",
+            value: formatCurrency(dashData.totalBusiness),
+            detail: "Lifetime order value",
+            icon: ShoppingBag,
+            path: "/orders",
+            accent: "from-emerald-500 to-teal-600",
+            iconBg: "bg-emerald-50 text-emerald-600",
+        },
+        {
+            label: "Total enquiries",
             value: formatNumber(dashData.totalCustomers),
             detail: "Customer conversations",
             icon: UsersRound,
-            path: "/enquiry",
+            path: "/enquiries",
             accent: "from-blue-500 to-indigo-600",
             iconBg: "bg-blue-50 text-blue-600",
         },
         {
-            label: "Active leads",
+            label: "Total customers",
+            value: formatNumber(dashData.totalConvertedCustomers),
+            detail: "Customers with converted orders",
+            icon: UserPlus,
+            path: "/customer",
+            accent: "from-cyan-500 to-blue-600",
+            iconBg: "bg-cyan-50 text-cyan-700",
+        },
+        {
+            label: "Total active leads",
             value: formatNumber(dashData.totalLeads),
             detail: "Opportunities in pipeline",
             icon: Target,
@@ -73,20 +91,20 @@ const AdminDashboardCards = ({ dashData = {} }) => {
             iconBg: "bg-violet-50 text-violet-600",
         },
         {
-            label: "Orders",
-            value: formatNumber(dashData.totalOrders),
-            detail: `${formatNumber(dashData.totalQuotations)} quotations created`,
-            icon: ShoppingBag,
-            path: "/orders",
-            accent: "from-emerald-500 to-teal-600",
-            iconBg: "bg-emerald-50 text-emerald-600",
+            label: "Payment received this month",
+            value: formatCurrency(dashData.currentMonthPaymentReceived),
+            detail: `${currentMonth} ${currentYear} collections`,
+            icon: CircleDollarSign,
+            path: "/reports",
+            accent: "from-violet-500 to-purple-600",
+            iconBg: "bg-violet-50 text-violet-600",
         },
         {
-            label: "Revenue this month",
-            value: formatCurrency(dashData.currentMonthRevenue),
-            detail: `${currentMonth} ${currentYear} performance`,
-            icon: CircleDollarSign,
-            path: "/orders",
+            label: "Outstanding balance",
+            value: formatCurrency(dashData.totalOutstandingBalance),
+            detail: "Pending scheduled payments",
+            icon: ReceiptIndianRupee,
+            path: "/reports",
             accent: "from-amber-500 to-orange-600",
             iconBg: "bg-amber-50 text-amber-600",
         },
@@ -105,14 +123,14 @@ const AdminDashboardCards = ({ dashData = {} }) => {
             value: formatNumber(dashData.missedFollowups),
             icon: CalendarX2,
             path: "/followup",
-            tone: "text-rose-700 bg-rose-50 border-rose-100",
+            tone: "text-slate-700 bg-slate-100 border-slate-200",
         },
         {
             label: "Overdue invoices",
             value: formatNumber(dashData.overdueInvoices),
             icon: TriangleAlert,
             path: "/invoice",
-            tone: "text-orange-700 bg-orange-50 border-orange-100",
+            tone: "text-slate-700 bg-slate-50 border-slate-200",
         },
         {
             label: "Quotations",
@@ -124,7 +142,7 @@ const AdminDashboardCards = ({ dashData = {} }) => {
     ];
 
     const quickActions = [
-        { label: "New enquiry", icon: UserPlus, path: "/enquiry" },
+        { label: "New enquiry", icon: UserPlus, path: "/enquiries/new" },
         { label: "Create lead", icon: Plus, path: "/leads" },
         { label: "New quotation", icon: FileText, path: "/quotations" },
         { label: "Record order", icon: ReceiptIndianRupee, path: "/orders" },
@@ -195,7 +213,7 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                 </div>
             </section>
 
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {primaryMetrics.map((metric) => {
                     const Icon = metric.icon;
                     return (

@@ -113,7 +113,7 @@
 // export default Leads;
 
 import { Button } from "@material-tailwind/react";
-import { File, PencilLine, Trash, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { File, PencilLine, Trash, X, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { MdOutlineLeaderboard } from "react-icons/md";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -140,6 +140,7 @@ import { getLeadStatus } from "../../redux/actions/leadStatus";
 import { clearSnackbar } from "../../redux/actions/commonActions";
 import { FaWhatsapp } from "react-icons/fa";
 import { PhoneCall } from "lucide-react";
+import { useSessionToggle } from "../../hooks/use-session-toggle";
 
 const Leads = () => {
     const navigate = useNavigate();
@@ -214,7 +215,7 @@ const Leads = () => {
     };
 
     // ===== FILTERS =====
-    const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState(() => JSON.parse(localStorage.getItem("crm:lead-filters") || "null") || ({
         fromDate: "",
         toDate: "",
         company: "",
@@ -223,7 +224,12 @@ const Leads = () => {
         assignedTo: [],
         status: "",
         stage: "",
-    });
+    }));
+    const [filtersOpen, setFiltersOpen] = useSessionToggle("crm:lead-filters-open", false);
+
+    useEffect(() => {
+        localStorage.setItem("crm:lead-filters", JSON.stringify(filters));
+    }, [filters]);
 
     const handleFilterChange = (key, value) => {
         setFilters((prev) => ({ ...prev, [key]: value }));
@@ -353,13 +359,11 @@ const Leads = () => {
 
                     {/* ===== FILTER BOX ===== */}
                     <div className="mt-3 rounded-lg border border-gray-300 bg-gray-50 p-3 shadow-sm">
-                        <Typography
-                            variant="subtitle1"
-                            className="mb-2 font-semibold text-[#053054]"
-                        >
-                            Filters
-                        </Typography>
-                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <button type="button" onClick={() => setFiltersOpen((open) => !open)} className="flex w-full items-center justify-between text-sm font-semibold text-slate-700" aria-expanded={filtersOpen}>
+                            <span className="flex items-center gap-2"><SlidersHorizontal size={17} className="text-indigo-600" />{filtersOpen ? "Hide Filters" : "Show Filters"}</span>
+                            <ChevronDown size={18} className={`transition ${filtersOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        {filtersOpen && <div className="crm-filter-panel mt-4 grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                             <TextField
                                 label="From Date"
                                 type="date"
@@ -481,7 +485,7 @@ const Leads = () => {
                                 className="w-full"
                                 loading={!employees?.length}
                             />
-                        </div>
+                        </div>}
                     </div>
 
                     {/* Show Entries Dropdown */}

@@ -48,12 +48,15 @@ import EditOrder from "./routes/orders/EditOrder";
 import ViewOrder from "./routes/orders/ViewOrder";
 import OrderPayment from "./routes/orders/OrderPayment";
 import OrderPaymentDetails from "./routes/orders/OrderPaymentDetails";
+import PaymentLookup from "./routes/payments/PaymentLookup";
+import VendorManager from "./routes/vendors/VendorManager";
 import Customer from "./routes/customer/Customer";
 import Invoice from "./routes/invoice/Invoice";
 import GenerateInvoice from "./routes/invoice/GenerateInvoice";
 import EditInvoice from "./routes/invoice/EditInvoice";
 import ViewInvoice from "./routes/invoice/ViewInvoice";
 import Reports from "./routes/reports/Reports";
+import Analytics from "./routes/analytics/Analytics";
 import Ticket from "./routes/tickets/Ticket";
 import GenerateTicket from "./routes/tickets/GenerateTicket";
 import UpdateTicket from "./routes/tickets/UpdateTicket";
@@ -434,6 +437,22 @@ function AppRoutes() {
                                               />
                                           ),
                                       },
+                                      {
+                                          path: "enquiries",
+                                          element: <PermissionRoute moduleName="Enquiry" element={<Enquiry />} />,
+                                      },
+                                      {
+                                          path: "enquiries/new",
+                                          element: <PermissionRoute moduleName="Enquiry" element={<CreateEnquiry />} />,
+                                      },
+                                      {
+                                          path: "enquiries/:id/edit",
+                                          element: <PermissionRoute moduleName="Enquiry" element={<EditEnquiry />} />,
+                                      },
+                                      {
+                                          path: "enquiries/:id",
+                                          element: <PermissionRoute moduleName="Enquiry" element={<ViewEnquiry />} />,
+                                      },
                                       ...(user?.role_name === "Super Admin"
                                           ? [
                                                 { path: "settings/master/roles", element: <Role /> },
@@ -668,6 +687,33 @@ function AppRoutes() {
                                           ),
                                       },
                                       {
+                                          path: "payments",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Orders"
+                                                  element={<PaymentLookup />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "vendors",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Master"
+                                                  element={<VendorManager mode="list" />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "vendors/add",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Master"
+                                                  element={<VendorManager mode="add" />}
+                                              />
+                                          ),
+                                      },
+                                      {
                                           path: "customer",
                                           element: (
                                               <PermissionRoute
@@ -727,6 +773,15 @@ function AppRoutes() {
                                               <PermissionRoute
                                                   moduleName="Reports"
                                                   element={<Reports />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "analytics",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Reports"
+                                                  element={<Analytics />}
                                               />
                                           ),
                                       },
