@@ -20,8 +20,22 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
     const { companySetup } = useSelector((state) => state.companySetup);
     const [logoUrl, setLogoUrl] = useState(logo);
 
-    const user = useMemo(() => JSON.parse(localStorage.getItem("user") || "{}"), []);
+    const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
     const dispatch = useDispatch();
+
+    useEffect(() => {
+        const syncUser = () => {
+            setUser(JSON.parse(localStorage.getItem("user") || "{}"));
+        };
+
+        window.addEventListener("sessionUserUpdated", syncUser);
+        window.addEventListener("storage", syncUser);
+
+        return () => {
+            window.removeEventListener("sessionUserUpdated", syncUser);
+            window.removeEventListener("storage", syncUser);
+        };
+    }, []);
 
     useEffect(() => {
         const fetchInitialData = async () => {

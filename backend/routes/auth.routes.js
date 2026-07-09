@@ -47,6 +47,8 @@ router.post(
   authController.signin
 );
 
+router.get("/refresh-session", auth, authController.refreshSession);
+
 // Select Package Route
 router.post("/select-package", auth, authController.selectPackage);
 

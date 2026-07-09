@@ -1,72 +1,3 @@
-// const db = require("../models");
-
-// const {
-//   modules: Modules,
-//   permissions: Permissions,
-//   rolePermissions: RolePermissions,
-//   roles: Roles,
-// } = db;
-
-// const DEFAULT_MODULES = [
-//   "Enquiry",
-//   "Leads",
-//   "API Leads",
-//   "Followup",
-//   "Quotations",
-//   "Orders",
-//   "Customer",
-//   "Invoice",
-//   "Reports",
-//   "Master",
-//   "Tickets",
-// ];
-// const DEFAULT_PERMISSIONS = ["view", "create", "edit", "delete", "print"];
-
-// const createDefaultModules = async (org_id) => {
-//   const superAdminRole = await Roles.findOne({
-//     where: { org_id, role_name: "Super Admin" },
-//   });
-
-//   if (!superAdminRole) return;
-
-//   for (const module_name of DEFAULT_MODULES) {
-//     const [module, created] = await Modules.findOrCreate({
-//       where: { org_id, module_name },
-//       defaults: { org_id, module_name, is_default: true },
-//     });
-
-//     // If permissions already exist, skip
-//     const existingPermissions = await Permissions.findAll({
-//       where: { org_id, module_id: module.id },
-//     });
-
-//     if (existingPermissions.length === 0) {
-//       const permissionRows = DEFAULT_PERMISSIONS.map((type) => ({
-//         org_id,
-//         module_id: module.id,
-//         permission_type: type,
-//         permission_code: `${module_name
-//           .toLowerCase()
-//           .replace(/\s+/g, "_")}_${type}`,
-//       }));
-
-//       const createdPermissions = await Permissions.bulkCreate(permissionRows, {
-//         returning: true,
-//       });
-
-//       const rolePermissionRows = createdPermissions.map((p) => ({
-//         org_id,
-//         role_id: superAdminRole.id,
-//         permission_id: p.id,
-//       }));
-
-//       await RolePermissions.bulkCreate(rolePermissionRows);
-//     }
-//   }
-// };
-
-// module.exports = { createDefaultModules };
-
 const db = require("../models");
 const { Op } = require("sequelize");
 
@@ -80,29 +11,56 @@ const DEFAULT_PERMISSIONS = ["view", "create", "edit", "delete", "print"];
 
 exports.createDefaultModules = async (org_id, package_id) => {
   try {
-    // 🧱 1️⃣ Get Super Admin role for this org
     const superAdminRole = await Roles.findOne({
       where: { org_id, role_name: "Super Admin" },
     });
 
     if (!superAdminRole) {
-      console.error("❌ Super Admin role not found for org:", org_id);
+      console.error("Super Admin role not found for org:", org_id);
       return;
     }
 
-    // 🧩 2️⃣ Fetch modules linked to the selected package
     const pkgModules = await PackageModules.findAll({
       where: { package_id },
       attributes: ["module"],
     });
+    const moduleNames = pkgModules.map((m) => m.module);
 
-    if (!pkgModules.length) {
-      console.warn("⚠️ No modules found for package:", package_id);
-      return;
+    const disallowedModules = await Modules.findAll({
+      where: {
+        org_id,
+        ...(moduleNames.length
+          ? { module_name: { [Op.notIn]: moduleNames } }
+          : {}),
+      },
+      attributes: ["id"],
+    });
+
+    if (disallowedModules.length) {
+      const disallowedPermissions = await Permissions.findAll({
+        where: {
+          org_id,
+          module_id: { [Op.in]: disallowedModules.map((module) => module.id) },
+        },
+        attributes: ["id"],
+      });
+
+      if (disallowedPermissions.length) {
+        await RolePermissions.destroy({
+          where: {
+            org_id,
+            permission_id: {
+              [Op.in]: disallowedPermissions.map((permission) => permission.id),
+            },
+          },
+        });
+      }
     }
 
-    // 🧠 3️⃣ Ensure each module exists per org
-    const moduleNames = pkgModules.map((m) => m.module);
+    if (!moduleNames.length) {
+      console.warn("No modules found for package:", package_id);
+      return;
+    }
 
     const existingModules = await Modules.findAll({
       where: { org_id, module_name: { [Op.in]: moduleNames } },
@@ -113,17 +71,14 @@ exports.createDefaultModules = async (org_id, package_id) => {
       (name) => !existingModuleNames.includes(name)
     );
 
-    // 🆕 4️⃣ Create missing modules for this org
     for (const modName of missingModules) {
       await Modules.create({ org_id, module_name: modName });
     }
 
-    // 🔄 5️⃣ Reload all org-specific modules
     const allModules = await Modules.findAll({
       where: { org_id, module_name: { [Op.in]: moduleNames } },
     });
 
-    // 🧾 6️⃣ Create default permissions for each module for this org
     for (const module of allModules) {
       const existingPermissions = await Permissions.findAll({
         where: { org_id, module_id: module.id },
@@ -143,7 +98,6 @@ exports.createDefaultModules = async (org_id, package_id) => {
           returning: true,
         });
 
-        // 7️⃣ Link permissions with Super Admin role
         const rolePermissionRows = createdPermissions.map((p) => ({
           org_id,
           role_id: superAdminRole.id,
@@ -151,13 +105,36 @@ exports.createDefaultModules = async (org_id, package_id) => {
         }));
 
         await RolePermissions.bulkCreate(rolePermissionRows);
+      } else {
+        const existingRolePermissionIds = await RolePermissions.findAll({
+          where: {
+            org_id,
+            role_id: superAdminRole.id,
+            permission_id: { [Op.in]: existingPermissions.map((p) => p.id) },
+          },
+          attributes: ["permission_id"],
+        });
+        const linkedPermissionIds = new Set(
+          existingRolePermissionIds.map((rp) => rp.permission_id)
+        );
+        const missingRolePermissions = existingPermissions
+          .filter((p) => !linkedPermissionIds.has(p.id))
+          .map((p) => ({
+            org_id,
+            role_id: superAdminRole.id,
+            permission_id: p.id,
+          }));
+
+        if (missingRolePermissions.length) {
+          await RolePermissions.bulkCreate(missingRolePermissions);
+        }
       }
     }
 
     console.log(
-      `✅ Default modules & permissions created for org_id=${org_id} (package=${package_id})`
+      `Default modules and permissions synced for org_id=${org_id} package=${package_id}`
     );
   } catch (error) {
-    console.error("❌ Error creating default modules:", error);
+    console.error("Error creating default modules:", error);
   }
 };

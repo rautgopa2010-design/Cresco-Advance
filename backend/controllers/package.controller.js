@@ -2,8 +2,10 @@ const { validationResult } = require("express-validator");
 const db = require("../models");
 const Package = db.package;
 const PackageModules = db.packageModules;
+const Register = db.register;
 const { sendErrorResponse } = require("../utility/sendErrorResponse");
 const { Op } = require("sequelize");
+const { createDefaultModules } = require("../utility/createDefaultModules");
 
 // ✅ Create Package
 exports.createPackage = async (req, res) => {
@@ -208,6 +210,52 @@ exports.updatePackage = async (req, res) => {
 
       return pkg;
     });
+
+    const assignedOrganizations = await Register.findAll({
+      where: { packageId: id },
+      attributes: [
+        "id",
+        "packageStartDate",
+        "paymentStatus",
+        "pkgUsers",
+        "packageDetails",
+      ],
+    });
+
+    await Promise.all(
+      assignedOrganizations.map(async (org) => {
+        const packageStartDate = org.packageStartDate || new Date();
+        const packageExpiryDate = new Date(packageStartDate);
+        packageExpiryDate.setDate(
+          packageExpiryDate.getDate() + Number(result.durationValue || 0)
+        );
+
+        await org.update({
+          packageStartDate,
+          packageExpiryDate,
+          packageDetails: {
+            packageName: result.packageName,
+            maxUsers: org.pkgUsers || result.maxUsers,
+            durationType: result.durationType,
+            durationValue: result.durationValue,
+            price: result.price,
+            total_package_amount: result.total_package_amount,
+            currency: result.currency,
+            symbol: result.symbol,
+            description: result.description,
+            isActive: result.isActive,
+          },
+          paymentStatus:
+            org.paymentStatus === "pending_payment"
+              ? "pending_payment"
+              : packageExpiryDate < new Date()
+                ? "expired"
+                : "active",
+        });
+
+        await createDefaultModules(org.id, id);
+      })
+    );
 
     res.status(200).json({
       message: "Package updated successfully.",

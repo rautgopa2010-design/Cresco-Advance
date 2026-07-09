@@ -1,9 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { BrowserRouter, useRoutes } from "react-router-dom";
 import { Provider } from "react-redux";
 import store from "./redux/store";
 import setAuthToken from "./utils/setAuthToken";
+import api from "./utils/api";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -134,11 +135,49 @@ const NotFound = () => <NotFoundPage />;
 function AppRoutes() {
     const location = useLocation();
     const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const [sessionVersion, setSessionVersion] = useState(0);
+    const user = useMemo(() => JSON.parse(localStorage.getItem("user") || "{}"), [sessionVersion]);
 
     if (token) {
         setAuthToken(token);
     }
+
+    useEffect(() => {
+        if (!token) return undefined;
+
+        let active = true;
+        const refreshSession = async () => {
+            try {
+                const res = await api.get("/auth/refresh-session");
+                const nextToken = res.data?.token;
+                const nextUser = res.data?.user;
+
+                if (!active || !nextUser) return;
+
+                if (nextToken) {
+                    localStorage.setItem("token", nextToken);
+                    setAuthToken(nextToken);
+                }
+
+                const serializedUser = JSON.stringify(nextUser);
+                if (localStorage.getItem("user") !== serializedUser) {
+                    localStorage.setItem("user", serializedUser);
+                    setSessionVersion((version) => version + 1);
+                    window.dispatchEvent(new Event("sessionUserUpdated"));
+                }
+            } catch {
+                // Existing API interceptor handles auth failures.
+            }
+        };
+
+        refreshSession();
+        const intervalId = window.setInterval(refreshSession, 30000);
+
+        return () => {
+            active = false;
+            window.clearInterval(intervalId);
+        };
+    }, [token, location.pathname]);
 
     const excludedRoutes = ["/signin", "/signup", "/forgot-password", "/verify-token", "/reset-password", "/choose-package", "/payment"];
 

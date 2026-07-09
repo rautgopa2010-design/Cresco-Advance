@@ -6,6 +6,6 @@ module.exports = {
   PASSWORD: process.env.DB_PASSWORD,
   DB: process.env.DB_NAME,
   dialect: process.env.DB_DIALECT,
-  port: 3307,
+  port: Number(process.env.DB_PORT || 3306),
   tablePrefix: process.env.DB_TABLE_PREFIX || "",
 };

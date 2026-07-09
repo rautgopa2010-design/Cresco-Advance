@@ -327,8 +327,23 @@ exports.generateAuthResponse = async (user) => {
 
   // Build permissions map
   const permissionsMap = {};
+  const packageModules = await PackageModules.findAll({
+    where: { package_id: registerData.packageId },
+    attributes: ["id", "module", "package_id"],
+  });
+  const packageModuleNames = new Set(
+    packageModules.map((pkgModule) => pkgModule.module)
+  );
+
   role.rolePermissionList.forEach(({ permission }) => {
     const modName = permission.module.module_name;
+    if (
+      role.role_name !== "Super Provider Admin" &&
+      registerData.packageId &&
+      !packageModuleNames.has(modName)
+    ) {
+      return;
+    }
     const type = permission.permission_type;
     if (!permissionsMap[modName]) permissionsMap[modName] = {};
     permissionsMap[modName][type] = true;
@@ -362,12 +377,6 @@ exports.generateAuthResponse = async (user) => {
   const profile = await Profile.findOne({
     where: { user_id: user.id },
     attributes: ["salutation", "firstName", "lastName"],
-  });
-
-  // Package modules
-  const packageModules = await PackageModules.findAll({
-    where: { package_id: registerData.packageId },
-    attributes: ["id", "module", "package_id"],
   });
 
   const currencyRes = await Currency.findOne({
@@ -850,6 +859,25 @@ exports.signin = async (req, res) => {
   } catch (error) {
     console.error("Login Error:", error);
     return sendErrorResponse(res, 500, "Login failed");
+  }
+};
+
+exports.refreshSession = async (req, res) => {
+  try {
+    const user = await Users.findOne({
+      where: { id: req.user.id, isDeleted: false },
+    });
+
+    if (!user) return sendErrorResponse(res, 404, "User not found");
+
+    const authResponse = await exports.generateAuthResponse(user);
+    return res.status(200).json({
+      message: "Session refreshed",
+      ...authResponse,
+    });
+  } catch (error) {
+    console.error("Refresh Session Error:", error);
+    return sendErrorResponse(res, 500, "Failed to refresh session");
   }
 };
 
