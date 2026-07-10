@@ -11,6 +11,37 @@ import { GiTargetShot } from "react-icons/gi";
 import { BsBorderStyle } from "react-icons/bs";
 import { AiFillBank } from "react-icons/ai";
 
+export const hrmsModuleNames = [
+    "HRMS",
+    "Employees",
+    "Departments",
+    "Designations",
+    "Attendance",
+    "Shift Management",
+    "Attendance Regularization",
+    "Leaves",
+    "Leave Requests",
+    "Leave Balance",
+    "Holidays",
+    "Holiday Calendar",
+    "Payroll",
+    "Salary Structure",
+    "Salary Slips",
+    "Payslips",
+    "Recruitment",
+    "Employee Documents",
+    "Performance",
+    "Goals",
+    "Appraisal",
+    "Performance Review",
+    "HR Reports",
+    "HR Settings",
+    "Company",
+    "Users",
+    "Roles",
+    "Permissions",
+];
+
 // Provider Admin mode Links
 export const providerAdminNavbarLinks = [
     {
@@ -145,6 +176,61 @@ export const adminNavbarLinks = [
                     { label: "Company Setup", icon: MdOutlineSettingsAccessibility, path: "/settings/company-setup" },
                 ],
             },
+        ],
+    },
+];
+
+export const hrmsNavbarLinks = [
+    {
+        title: "EMPLOYEES",
+        links: [
+            { label: "Dashboard", moduleName: "HRMS", icon: Home, path: "/hrms" },
+            { label: "Employees", icon: User, path: "/hrms/employees" },
+            { label: "Departments", icon: Building2, path: "/hrms/departments" },
+            { label: "Designations", icon: CircleDot, path: "/hrms/designations" },
+            { label: "Employee Documents", icon: Dot, path: "/hrms/employee-documents" },
+        ],
+    },
+    {
+        title: "ATTENDANCE",
+        links: [
+            { label: "Attendance", icon: CircleDot, path: "/hrms/attendance" },
+            { label: "Shift Management", icon: CircleDot, path: "/hrms/shift-management" },
+            { label: "Attendance Regularization", icon: CircleDot, path: "/hrms/attendance-regularization" },
+        ],
+    },
+    {
+        title: "LEAVE",
+        links: [
+            { label: "Leave Requests", icon: CircleDot, path: "/hrms/leave-requests" },
+            { label: "Leave Balance", icon: CircleDot, path: "/hrms/leave-balance" },
+            { label: "Holiday Calendar", icon: CircleDot, path: "/hrms/holiday-calendar" },
+        ],
+    },
+    {
+        title: "PAYROLL",
+        links: [
+            { label: "Salary Structure", icon: CreditCard, path: "/hrms/salary-structure" },
+            { label: "Payroll", icon: CreditCard, path: "/hrms/payroll" },
+            { label: "Payslips", icon: Dot, path: "/hrms/payslips" },
+        ],
+    },
+    {
+        title: "PERFORMANCE",
+        links: [
+            { label: "Goals", icon: MdOutlineLeaderboard, path: "/hrms/goals" },
+            { label: "Appraisal", icon: MdOutlineLeaderboard, path: "/hrms/appraisal" },
+            { label: "Performance Review", icon: MdOutlineLeaderboard, path: "/hrms/performance-review" },
+            { label: "Recruitment", icon: UserRound, path: "/hrms/recruitment" },
+        ],
+    },
+    {
+        title: "SETTINGS",
+        links: [
+            { label: "Company", icon: Building2, path: "/hrms/company" },
+            { label: "Users", icon: UserRound, path: "/hrms/users" },
+            { label: "Roles", icon: CircleDot, path: "/hrms/roles" },
+            { label: "Permissions", icon: Settings, path: "/hrms/permissions" },
         ],
     },
 ];

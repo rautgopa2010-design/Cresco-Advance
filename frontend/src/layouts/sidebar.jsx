@@ -1,7 +1,7 @@
 import React, { forwardRef, useRef, useState, useEffect, useMemo } from "react";
 import { Link, NavLink } from "react-router-dom";
 import PropTypes from "prop-types";
-import { adminNavbarLinks, helpDeskNavbarLinks, providerAdminNavbarLinks } from "@/constants";
+import { adminNavbarLinks, helpDeskNavbarLinks, hrmsNavbarLinks, providerAdminNavbarLinks } from "@/constants";
 import logo from "@/assets/logo.jpg";
 import { cn } from "@/utils/cn";
 import { filterLinksByPermission } from "@/utils/permissionHelper";
@@ -39,7 +39,7 @@ const cloneWithIcon = (item) => ({
     children: item.children?.map((child) => cloneWithIcon(child)),
 });
 
-export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, ref) => {
+export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, activeWorkspace }, ref) => {
     const [tooltip, setTooltip] = useState({ label: "", x: 0, y: 0, show: false });
     const [openAccordions, setOpenAccordions] = useState({});
     const [openNestedAccordions, setOpenNestedAccordions] = useState({});
@@ -87,13 +87,18 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
         }
     }, [companySetup]);
 
+    const isProviderAdmin = user?.user_type === "provider";
+    const isHrmsWorkspace = activeWorkspace === "hrms" && !helpDeskMode;
+    const shouldUseCrmSections = !isProviderAdmin && !helpDeskMode && !isHrmsWorkspace;
+
     const linksToRender = useMemo(() => {
-        const isProviderAdmin = user?.user_type === "provider";
         let links;
-        if (isProviderAdmin) links = providerAdminNavbarLinks;
-        else links = helpDeskMode ? helpDeskNavbarLinks : adminNavbarLinks;
+        if (isHrmsWorkspace) links = hrmsNavbarLinks;
+        else if (isProviderAdmin) links = providerAdminNavbarLinks;
+        else if (helpDeskMode) links = helpDeskNavbarLinks;
+        else links = adminNavbarLinks;
         return filterLinksByPermission(links, user.permissions, isProviderAdmin, user?.role_name);
-    }, [user, helpDeskMode]);
+    }, [isProviderAdmin, user, helpDeskMode, isHrmsWorkspace]);
 
     const shouldHideRestrictedItem = (label) =>
         (label === "Incentive Payment" ||
@@ -106,6 +111,10 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
         !(user?.role_name === "Super Admin" || user?.role_name === "Super Provider Admin");
 
     const sidebarSections = useMemo(() => {
+        if (!shouldUseCrmSections) {
+            return linksToRender;
+        }
+
         const sections = {
             SALES: [],
             OPERATIONS: [],
@@ -159,7 +168,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
         return Object.entries(sections)
             .map(([title, links]) => ({ title, links }))
             .filter((section) => section.links.length > 0);
-    }, [linksToRender, user?.role_name]);
+    }, [linksToRender, shouldUseCrmSections, user?.role_name]);
 
     const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.name || "User";
     const initials = displayName
@@ -551,4 +560,5 @@ Sidebar.propTypes = {
     collapsed: PropTypes.bool,
     setCollapsed: PropTypes.func,
     helpDeskMode: PropTypes.bool,
+    activeWorkspace: PropTypes.string,
 };

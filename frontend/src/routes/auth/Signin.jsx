@@ -58,7 +58,7 @@ const Signin = () => {
                 if (user?.user_type === "company" && user?.role_name === "Super Admin" && !user?.packageId) {
                     navigate("/choose-package");
                 } else {
-                    navigate("/");
+                    navigate("/apps");
                 }
             }, 500);
 

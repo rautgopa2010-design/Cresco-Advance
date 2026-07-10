@@ -9,27 +9,12 @@ import { clearSnackbar } from "../../../../redux/actions/commonActions";
 import { createPackage } from "../../../../redux/actions/package";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import { availablePackageModules, packageModuleGroups } from "./packageModules";
 
 const ProviderCreatePackage = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { currency } = useSelector((state) => state.currency);
-
-    // Hardcoded modules for demonstration; in a real app, fetch these dynamically via Redux action
-    const availableModules = [
-        { id: 1, name: "Enquiry" },
-        { id: 2, name: "Leads" },
-        { id: 3, name: "API Leads" },
-        { id: 4, name: "Followup" },
-        { id: 5, name: "Quotations" },
-        { id: 6, name: "Orders" },
-        { id: 7, name: "Customer" },
-        { id: 8, name: "Invoice" },
-        { id: 9, name: "Reports" },
-        { id: 10, name: "Incentive" },
-        { id: 11, name: "Master" },
-        { id: 12, name: "Tickets" },
-    ];
 
     const [form, setForm] = useState({
         packageName: "",
@@ -145,9 +130,18 @@ const ProviderCreatePackage = () => {
         setErrors({ ...errors, modules: false });
     };
 
+    const handleSelectGroup = (modules) => () => {
+        setForm((prev) => {
+            const moduleNames = modules.map((module) => module.name);
+            const merged = Array.from(new Set([...prev.modules, ...moduleNames]));
+            return { ...prev, modules: merged };
+        });
+        setErrors({ ...errors, modules: false });
+    };
+
     // Select all modules
     const handleSelectAll = () => {
-        setForm((prev) => ({ ...prev, modules: availableModules.map((m) => m.name) }));
+        setForm((prev) => ({ ...prev, modules: availablePackageModules.map((m) => m.name) }));
         setErrors({ ...errors, modules: false });
     };
 
@@ -184,7 +178,7 @@ const ProviderCreatePackage = () => {
             return;
         }
 
-        const payload = { ...form, totalPackageAmount};
+        const payload = { ...form, totalPackageAmount };
 
         // console.log(payload);
         // return;
@@ -336,8 +330,11 @@ const ProviderCreatePackage = () => {
 
                     {/* New: Modules Selection with Checkboxes */}
                     <Box>
-                        <div className="mb-2 text-sm font-medium text-gray-700">Modules * (Select accessible modules for this package)</div>
-                        <Box className="flex gap-2 mb-2">
+                        <div className="mb-1 text-sm font-semibold text-gray-800">Product Modules *</div>
+                        <div className="mb-3 text-xs text-gray-500">
+                            Select CRM, HRMS, or Support modules to create CRM-only, HRMS-only, or combined packages.
+                        </div>
+                        <Box className="mb-3 flex flex-wrap gap-2">
                             <MuiButton size="small" variant="outlined" onClick={handleSelectAll}>
                                 Select All
                             </MuiButton>
@@ -345,19 +342,35 @@ const ProviderCreatePackage = () => {
                                 Deselect All
                             </MuiButton>
                         </Box>
-                        <Box className="max-h-40 overflow-y-auto space-y-1">
-                            {availableModules.map((module) => (
-                                <FormControlLabel
-                                    key={module.id}
-                                    control={
-                                        <Checkbox
-                                            checked={form.modules.includes(module.name)}
-                                            onChange={handleModuleToggle(module.name)}
-                                            size="small"
-                                        />
-                                    }
-                                    label={module.name}
-                                />
+                        <Box className="grid gap-4 lg:grid-cols-3">
+                            {packageModuleGroups.map((group) => (
+                                <div key={group.title} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                                    <div className="mb-3 flex items-start justify-between gap-3">
+                                        <div>
+                                            <div className="text-sm font-bold text-[#053054]">{group.title}</div>
+                                            <div className="mt-1 text-xs leading-5 text-slate-500">{group.description}</div>
+                                        </div>
+                                        <MuiButton size="small" variant="text" onClick={handleSelectGroup(group.modules)}>
+                                            Select
+                                        </MuiButton>
+                                    </div>
+                                    <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
+                                        {group.modules.map((module) => (
+                                            <FormControlLabel
+                                                key={module.id}
+                                                className="w-full rounded-lg px-1 hover:bg-white"
+                                                control={
+                                                    <Checkbox
+                                                        checked={form.modules.includes(module.name)}
+                                                        onChange={handleModuleToggle(module.name)}
+                                                        size="small"
+                                                    />
+                                                }
+                                                label={<span className="text-sm text-slate-700">{module.name}</span>}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             ))}
                         </Box>
                         {errors.modules && <div className="text-red-500 text-sm mt-1">Please select at least one module.</div>}

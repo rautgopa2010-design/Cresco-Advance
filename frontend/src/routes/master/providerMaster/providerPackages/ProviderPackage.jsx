@@ -89,6 +89,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getPackages, deletePackage } from "../../../../redux/actions/package";
 import { CircularProgress } from "@mui/material";
+import { getModuleGroupTitle, packageModuleGroups } from "./packageModules";
 
 const ProviderPackage = () => {
     const navigate = useNavigate();
@@ -105,6 +106,21 @@ const ProviderPackage = () => {
 
     const handleDelete = (id) => {
         dispatch(deletePackage(id));
+    };
+
+    const getGroupedModules = (modules = []) => {
+        const grouped = {};
+        packageModuleGroups.forEach((group) => {
+            grouped[group.title] = [];
+        });
+
+        modules.forEach((moduleItem) => {
+            const title = getModuleGroupTitle(moduleItem.module);
+            if (!grouped[title]) grouped[title] = [];
+            grouped[title].push(moduleItem);
+        });
+
+        return Object.entries(grouped).filter(([, items]) => items.length > 0);
     };
 
     return (
@@ -182,14 +198,23 @@ const ProviderPackage = () => {
                                             <>
                                                 <strong className="text-sm">Modules Included:</strong>
 
-                                                <div className="mt-2 flex flex-wrap gap-2">
-                                                    {pkg.modules.map((m) => (
-                                                        <span
-                                                            key={m.id}
-                                                            className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#053054] shadow"
-                                                        >
-                                                            {m.module}
-                                                        </span>
+                                                <div className="mt-2 space-y-3">
+                                                    {getGroupedModules(pkg.modules).map(([title, modules]) => (
+                                                        <div key={title}>
+                                                            <div className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-100">
+                                                                {title}
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {modules.map((m) => (
+                                                                    <span
+                                                                        key={m.id}
+                                                                        className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#053054] shadow"
+                                                                    >
+                                                                        {m.module}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     ))}
                                                 </div>
                                             </>

@@ -15,6 +15,8 @@ import NotFoundPage from "./routes/auth/NotFoundPage";
 
 // Pages
 import DashboardWrapper from "./routes/dashboard/DashboardWrapper";
+import HRMSDashboard from "./routes/hrms/HRMSDashboard";
+import ApplicationLauncher from "./routes/suite/ApplicationLauncher";
 import Salutations from "./routes/master/Salutations";
 import LeadStatus from "./routes/master/LeadStatus";
 import LeadStage from "./routes/master/LeadStage";
@@ -239,6 +241,10 @@ function AppRoutes() {
             {
                 element: <ProtectedRoute />,
                 children: [
+                    {
+                        path: "/apps",
+                        element: <ApplicationLauncher />,
+                    },
                     {
                         path: "/",
                         element: <AppLayout />,
@@ -881,6 +887,8 @@ function AppRoutes() {
                                       { path: "profile/:id", element: <Profile /> },
                                       { path: "profile/edit-profile/:id", element: <EditProfile /> },
                                   ]),
+                            { path: "hrms", element: <HRMSDashboard /> },
+                            { path: "hrms/:section", element: <HRMSDashboard /> },
                             { path: "*", element: <NotFound /> },
                         ],
                     },

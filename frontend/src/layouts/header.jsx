@@ -223,7 +223,7 @@
 //     setHelpDeskMode: PropTypes.func,
 // };
 
-import { ChevronsLeft, Mail, Phone, UserRound, LogOut, KeyRound } from "lucide-react";
+import { AppWindow, ArrowRight, ChevronsLeft, Grid3X3, KeyRound, LockKeyhole, LogOut, Mail, Phone, UserRound } from "lucide-react";
 import PropTypes from "prop-types";
 import { Button } from "@material-tailwind/react";
 import { SiHelpdesk } from "react-icons/si";
@@ -235,8 +235,9 @@ import { logoutUser } from "@/redux/actions/auth";
 import { IMAGE_BASE_URL } from "@/utils/api";
 import { getProfile } from "../redux/actions/profile";
 import NotificationBell from "./NotificationBell";
+import { getFutureBusinessApps, getUserBusinessApps, rememberBusinessApp } from "@/utils/businessSuite";
 
-export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode }) => {
+export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode, activeWorkspace, setActiveWorkspace, hasCrmAccess, hasHrmsAccess }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
@@ -251,7 +252,9 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode 
     const { profile } = useSelector((state) => state.profile);
 
     const [showDropdown, setShowDropdown] = useState(false);
+    const [showAppSwitcher, setShowAppSwitcher] = useState(false);
     const dropdownRef = useRef();
+    const appSwitcherRef = useRef();
 
     // ------------------ Support Info Logic ------------------
     let supportEmail = "";
@@ -285,6 +288,14 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode 
 
     const handleProfileClick = () => {
         setShowDropdown((prev) => !prev);
+        setShowAppSwitcher(false);
+    };
+
+    const handleOpenApplication = (app) => {
+        setShowAppSwitcher(false);
+        rememberBusinessApp(app.id);
+        setActiveWorkspace(app.id);
+        navigate(app.path);
     };
 
     const handleLogout = () => {
@@ -303,6 +314,9 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode 
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setShowDropdown(false);
             }
+            if (appSwitcherRef.current && !appSwitcherRef.current.contains(event.target)) {
+                setShowAppSwitcher(false);
+            }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
@@ -318,6 +332,8 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode 
     const hasTicketsModule = user?.packageModules?.some(
         (mod) => mod.module === "Tickets"
     ) ?? false;
+    const availableApps = getUserBusinessApps(user);
+    const futureApps = getFutureBusinessApps();
 
     return (
         <header className="relative z-10 flex h-[60px] items-center justify-between border-b border-slate-200 bg-white/95 px-3 shadow-sm backdrop-blur-xl transition-colors sm:px-5">
@@ -345,6 +361,98 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode 
             </div>
 
             <div className="relative flex items-center gap-x-1 md:gap-x-3 lg:gap-x-3">
+                <div className="relative" ref={appSwitcherRef}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setShowAppSwitcher((current) => !current);
+                            setShowDropdown(false);
+                        }}
+                        className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:text-blue-700 hover:shadow-md"
+                        title="Application Launcher"
+                    >
+                        <Grid3X3 size={20} />
+                    </button>
+
+                    {showAppSwitcher && (
+                        <div className="absolute right-0 z-50 mt-3 w-[min(92vw,360px)] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-300/50">
+                            <div className="bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-800 px-5 py-4 text-white">
+                                <div className="flex items-center gap-3">
+                                    <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15">
+                                        <AppWindow size={21} />
+                                    </span>
+                                    <div>
+                                        <p className="text-sm font-black">Applications</p>
+                                        <p className="text-xs text-blue-100">CRESCO Business Suite</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="max-h-[68vh] overflow-y-auto p-3">
+                                <div className="grid gap-2">
+                                    {availableApps.map((app) => {
+                                        const Icon = app.icon;
+                                        const isActive = activeWorkspace === app.id;
+                                        return (
+                                            <button
+                                                key={app.id}
+                                                type="button"
+                                                onClick={() => handleOpenApplication(app)}
+                                                className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md ${
+                                                    isActive ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white hover:border-slate-300"
+                                                }`}
+                                            >
+                                                <span className={`flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${app.gradient} text-white`}>
+                                                    <Icon size={22} />
+                                                </span>
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="block text-sm font-black text-slate-900">{app.name}</span>
+                                                    <span className="line-clamp-1 text-xs text-slate-500">{app.description}</span>
+                                                </span>
+                                                <ArrowRight size={16} className="text-slate-400" />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-3 border-t border-slate-100 pt-3">
+                                    <p className="px-2 pb-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">Future Apps</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {futureApps.slice(0, 4).map((app) => {
+                                            const Icon = app.icon;
+                                            return (
+                                                <div key={app.id} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2.5">
+                                                    <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${app.gradient} text-white`}>
+                                                        <Icon size={16} />
+                                                    </span>
+                                                    <span className="min-w-0 flex-1">
+                                                        <span className="block truncate text-xs font-black text-slate-700">{app.name}</span>
+                                                        <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
+                                                            <LockKeyhole size={10} />
+                                                            Soon
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowAppSwitcher(false);
+                                        navigate("/apps?choose=1", { state: { forceChoose: true } });
+                                    }}
+                                    className="mt-3 flex h-10 w-full items-center justify-center rounded-2xl bg-slate-100 text-xs font-black text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
+                                >
+                                    Open full launcher
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 {/* Notification Bell - Add this */}
                 <NotificationBell />
 
@@ -450,4 +558,8 @@ Header.propTypes = {
     setCollapsed: PropTypes.func,
     helpDeskMode: PropTypes.bool,
     setHelpDeskMode: PropTypes.func,
+    activeWorkspace: PropTypes.string,
+    setActiveWorkspace: PropTypes.func,
+    hasCrmAccess: PropTypes.bool,
+    hasHrmsAccess: PropTypes.bool,
 };
