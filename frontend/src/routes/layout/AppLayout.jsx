@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
 import { useMediaQuery } from "@uidotdev/usehooks";
 import { useClickOutside } from "@/hooks/use-click-outside";
@@ -11,8 +11,10 @@ import { cn } from "@/utils/cn";
 import { useEffect, useRef, useState } from "react";
 
 const AppLayout = () => {
+    const location = useLocation();
     const isDesktopDevice = useMediaQuery("(min-width: 768px)");
     const [collapsed, setCollapsed] = useState(!isDesktopDevice);
+    const isDashboardPage = location.pathname === "/";
 
     // Read from localStorage or default to false
     const [helpDeskMode, setHelpDeskMode] = useState(() => {
@@ -57,10 +59,17 @@ const AppLayout = () => {
                     helpDeskMode={helpDeskMode}
                     setHelpDeskMode={setHelpDeskMode}
                 />
-                <main className="h-[calc(100vh-66px-66px)] overflow-y-auto overflow-x-hidden p-3 sm:p-5 md:h-[calc(100vh-72px-72px)] lg:h-[calc(100vh-61px-61px)] lg:p-6">
+                <main
+                    className={cn(
+                        "overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6",
+                        isDashboardPage
+                            ? "h-[calc(100vh-66px)] md:h-[calc(100vh-72px)] lg:h-[calc(100vh-61px)]"
+                            : "h-[calc(100vh-66px-66px)] md:h-[calc(100vh-72px-72px)] lg:h-[calc(100vh-61px-61px)]",
+                    )}
+                >
                     <Outlet context={{ helpDeskMode }} />
                 </main>
-                <Footer />
+                {!isDashboardPage && <Footer />}
             </div>
         </div>
     );

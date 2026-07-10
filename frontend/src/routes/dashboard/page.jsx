@@ -4,7 +4,32 @@ import { useDispatch, useSelector } from "react-redux";
 import { getDashboardData } from "../../redux/actions/dashboard";
 import Cards from "./dashboardAdmin/AdminCards";
 import HelpdeskCards from "./dashboardHelpdesk/HelpdeskCards";
-import { CircularProgress } from "@mui/material";
+
+const SkeletonBlock = ({ className = "" }) => (
+    <div className={`relative overflow-hidden rounded-3xl bg-white shadow-sm ${className}`}>
+        <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.8s_infinite] bg-gradient-to-r from-transparent via-white/70 to-transparent" />
+    </div>
+);
+
+const DashboardSkeleton = () => (
+    <div className="mx-auto flex w-full max-w-[1520px] flex-col gap-6">
+        <SkeletonBlock className="h-64 bg-gradient-to-br from-blue-100 to-indigo-100" />
+        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, index) => (
+                <SkeletonBlock key={index} className="h-56" />
+            ))}
+        </div>
+        <div className="grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
+            <SkeletonBlock className="h-96" />
+            <SkeletonBlock className="h-96" />
+        </div>
+        <div className="grid gap-6 xl:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+                <SkeletonBlock key={index} className="h-80" />
+            ))}
+        </div>
+    </div>
+);
 
 const DashboardPage = () => {
     const dispatch = useDispatch();
@@ -17,11 +42,7 @@ const DashboardPage = () => {
 
     // Show full-screen centered loader while data is loading
     if (dashLoading) {
-        return (
-            <div className="flex h-full min-h-[420px] w-full items-center justify-center">
-                <CircularProgress size={60} thickness={5} />
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     // Once loaded, render the appropriate dashboard

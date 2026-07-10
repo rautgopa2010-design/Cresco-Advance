@@ -9,6 +9,35 @@ import { IMAGE_BASE_URL } from "@/utils/api";
 import { getCompanySetup } from "../redux/actions/companySetup";
 import { clearSnackbar } from "../redux/actions/commonActions";
 import { useDispatch, useSelector } from "react-redux";
+import { BarChart3, BriefcaseBusiness, ChevronDown, Circle, CreditCard, FileText, Home, Landmark, Layers3, LayoutDashboard, ReceiptText, Settings, Target, UserRound, UsersRound } from "lucide-react";
+
+const iconByLabel = {
+    Dashboard: LayoutDashboard,
+    Enquiries: UserRound,
+    Leads: BarChart3,
+    "API Leads": BarChart3,
+    Followup: Target,
+    Quotations: FileText,
+    Orders: BriefcaseBusiness,
+    Payment: CreditCard,
+    Vendor: Landmark,
+    Customer: UsersRound,
+    Invoice: ReceiptText,
+    Reports: FileText,
+    Analytics: BarChart3,
+    Incentive: Target,
+    Settings,
+    Master: Layers3,
+};
+
+const salesLabels = new Set(["Dashboard", "Enquiries", "Leads", "Customer", "Followup", "Quotations"]);
+const operationsLabels = new Set(["Orders", "Payment", "Vendor", "Invoice", "Reports", "Analytics", "Incentive"]);
+
+const cloneWithIcon = (item) => ({
+    ...item,
+    icon: iconByLabel[item.label] || item.icon || Circle,
+    children: item.children?.map((child) => cloneWithIcon(child)),
+});
 
 export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, ref) => {
     const [tooltip, setTooltip] = useState({ label: "", x: 0, y: 0, show: false });
@@ -66,11 +95,86 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
         return filterLinksByPermission(links, user.permissions, isProviderAdmin, user?.role_name);
     }, [user, helpDeskMode]);
 
+    const shouldHideRestrictedItem = (label) =>
+        (label === "Incentive Payment" ||
+            label === "Landing Setup" ||
+            label === "Bank Setup" ||
+            label === "Company Setup" ||
+            label === "Assign Incentive" ||
+            label === "Landing Page" ||
+            label === "Roles") &&
+        !(user?.role_name === "Super Admin" || user?.role_name === "Super Provider Admin");
+
+    const sidebarSections = useMemo(() => {
+        const sections = {
+            SALES: [],
+            OPERATIONS: [],
+            MASTER: [],
+            SETTINGS: [],
+        };
+
+        linksToRender.forEach((group) => {
+            group.links.forEach((rawLink) => {
+                const link = cloneWithIcon(rawLink);
+
+                if (link.label === "Settings" && Array.isArray(link.children)) {
+                    const settingsChildren = [];
+
+                    link.children.forEach((child) => {
+                        if (child.label === "Master" && Array.isArray(child.children)) {
+                            sections.MASTER.push(cloneWithIcon({ ...child, defaultOpen: false, showArrow: true }));
+                            return;
+                        }
+
+                        if (!shouldHideRestrictedItem(child.label)) {
+                            settingsChildren.push(cloneWithIcon(child));
+                        }
+                    });
+
+                    if (settingsChildren.length) {
+                        sections.SETTINGS.push({
+                            ...link,
+                            children: settingsChildren,
+                            defaultOpen: false,
+                            showArrow: true,
+                        });
+                    }
+                    return;
+                }
+
+                if (salesLabels.has(link.label)) {
+                    sections.SALES.push(link);
+                    return;
+                }
+
+                if (operationsLabels.has(link.label)) {
+                    sections.OPERATIONS.push(link);
+                    return;
+                }
+
+                sections.SETTINGS.push(link);
+            });
+        });
+
+        return Object.entries(sections)
+            .map(([title, links]) => ({ title, links }))
+            .filter((section) => section.links.length > 0);
+    }, [linksToRender, user?.role_name]);
+
+    const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.name || "User";
+    const initials = displayName
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join("")
+        .toUpperCase() || "U";
+
     // Initialize accordions with defaultOpen flag
     useEffect(() => {
         const initial = {};
         const nested = {};
-        linksToRender.forEach((group) => {
+        sidebarSections.forEach((group) => {
             group.links.forEach((link) => {
                 if (link.isAccordion && link.defaultOpen) {
                     initial[link.label] = true;
@@ -86,7 +190,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
         });
         setOpenAccordions(initial);
         setOpenNestedAccordions(nested);
-    }, [linksToRender]);
+    }, [sidebarSections]);
 
     const toggleAccordion = (label) => {
         setOpenAccordions((prev) => ({
@@ -136,7 +240,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
         <aside
             ref={ref}
             className={cn(
-                "crm-sidebar fixed z-[100] flex h-full w-[268px] flex-col overflow-x-visible border-r border-slate-200 bg-white shadow-[10px_0_30px_rgba(15,23,42,0.06)]",
+                "crm-sidebar fixed z-[100] flex h-full w-[268px] flex-col overflow-x-visible border-r border-slate-200 bg-white shadow-[10px_0_30px_rgba(15,23,42,0.06)] transition-[width,left] duration-300 ease-in-out",
                 collapsed ? "md:w-[82px] md:items-center" : "md:w-[268px]",
                 collapsed ? "max-md:-left-full" : "max-md:left-0",
             )}
@@ -182,7 +286,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
             </Link>
 
             {!collapsed && (
-                <div className="mx-4 mb-3 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-3">
+                <div className="mx-4 mb-3 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-3 shadow-sm">
                     <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-500">CRM Workspace</p>
                     <p className="mt-1 truncate text-sm font-semibold text-slate-800">
                         {user?.role_name || (helpDeskMode ? "Helpdesk" : "Sales CRM")}
@@ -190,14 +294,14 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                 </div>
             )}
 
-            <nav className="flex w-full flex-col gap-y-2 overflow-y-auto overflow-x-hidden px-3 pb-5 pt-2 [scrollbar-width:_thin]">
-                {linksToRender.map((group, gIndex) => (
+            <nav className="flex w-full flex-1 flex-col gap-y-5 overflow-y-auto overflow-x-hidden px-3 pb-5 pt-2 [scrollbar-color:_#cbd5e1_transparent] [scrollbar-width:_thin]">
+                {sidebarSections.map((group, gIndex) => (
                     <div
                         key={group.title || `group-${gIndex}`}
-                        className={cn("sidebar-group", collapsed && "md:items-center")}
+                        className={cn("sidebar-group gap-y-1.5", collapsed && "md:items-center")}
                     >
                         {!collapsed && group.title && (
-                            <p className="sidebar-group-title px-2 text-xs font-bold uppercase text-gray-400">{group.title}</p>
+                            <p className="sidebar-group-title px-3 pb-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-400">{group.title}</p>
                         )}
 
                         {group.links.map((link, lIndex) => {
@@ -213,8 +317,8 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                     {/* Accordion header – only toggle, do NOT close sidebar */}
                                     <div
                                         className={cn(
-                                            "sidebar-item group relative flex cursor-pointer items-center gap-3 rounded-xl p-2.5 text-slate-700",
-                                            collapsed && "md:w-[52px] md:justify-center",
+                                            "sidebar-item group relative flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-slate-700",
+                                            collapsed && "md:h-11 md:w-11 md:justify-center md:px-0",
                                         )}
                                         onClick={() => {
                                             if (link.showArrow) toggleAccordion(link.label);
@@ -236,10 +340,10 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                         }}
                                     >
                                         <link.icon
-                                            size={22}
+                                            size={21}
                                             className="flex-shrink-0"
                                         />
-                                        {!collapsed && <p className="whitespace-nowrap font-semibold">{link.label}</p>}
+                                        {!collapsed && <p className="whitespace-nowrap text-sm font-bold">{link.label}</p>}
                                         {!collapsed && link.showArrow && <span className="ml-auto">{openAccordions[link.label] ? "▲" : "▼"}</span>}
                                     </div>
 
@@ -251,7 +355,10 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                     ? `${contentRefs.current[link.label].current?.scrollHeight}px`
                                                     : `0px`,
                                         }}
-                                        className="ml-4 overflow-hidden border-l border-slate-100 pl-3 transition-all duration-500 ease-in-out"
+                                        className={cn(
+                                            "overflow-hidden transition-all duration-500 ease-in-out",
+                                            collapsed ? "md:hidden" : "ml-5 border-l border-slate-100 pl-3",
+                                        )}
                                     >
                                         <div className="flex flex-col gap-1 py-1">
                                             {link.children.map((child, cIndex) => {
@@ -288,17 +395,17 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                         >
                                                             {/* Nested group header – toggle only */}
                                                             <div
-                                                                className="sidebar-item flex cursor-pointer items-center gap-2 rounded-xl p-2 text-slate-700"
+                                                                className="sidebar-item flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-slate-700"
                                                                 onClick={() => {
                                                                     toggleNestedAccordion(child.label);
                                                                     // → NO close here either
                                                                 }}
                                                             >
                                                                 <child.icon
-                                                                    size={20}
+                                                                    size={18}
                                                                     className="text-slate-500"
                                                                 />
-                                                                <p className="whitespace-nowrap font-semibold">{child.label}</p>
+                                                                <p className="whitespace-nowrap text-sm font-bold">{child.label}</p>
                                                                 <span className="ml-auto">{openNestedAccordions[child.label] ? "▼" : "▲"}</span>
                                                             </div>
 
@@ -331,7 +438,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                                                 to={subItem.path}
                                                                                 className={({ isActive }) =>
                                                                                     cn(
-                                                                                        "sidebar-item group relative ml-1 flex items-center gap-2 rounded-xl p-2",
+                                                                                        "sidebar-item group relative ml-1 flex items-center gap-2 rounded-xl px-3 py-2.5",
                                                                                         isActive
                                                                                             ? "active text-slate-900"
                                                                                             : "text-slate-600",
@@ -340,10 +447,10 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                                                 onClick={handleMobileNavigation} // ← close only here
                                                                             >
                                                                                 <subItem.icon
-                                                                                    size={18}
+                                                                                    size={17}
                                                                                     className="text-slate-500"
                                                                                 />
-                                                                                <p className="whitespace-nowrap font-medium">{subItem.label}</p>
+                                                                                <p className="whitespace-nowrap text-sm font-semibold">{subItem.label}</p>
                                                                             </NavLink>
                                                                         );
                                                                     })}
@@ -359,7 +466,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                         to={child.path}
                                                         className={({ isActive }) =>
                                                             cn(
-                                                                "sidebar-item group relative ml-1 flex items-center gap-2 rounded-xl p-2",
+                                                                "sidebar-item group relative ml-1 flex items-center gap-2 rounded-xl px-3 py-2.5",
                                                                 isActive
                                                                     ? "active text-slate-900"
                                                                     : "text-slate-600",
@@ -368,10 +475,10 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                                         onClick={handleMobileNavigation} // ← close only on navigation
                                                     >
                                                         <child.icon
-                                                            size={20}
+                                                            size={17}
                                                             className="flex-shrink-0 text-slate-500"
                                                         />
-                                                        <p className="whitespace-nowrap font-medium">{child.label}</p>
+                                                        <p className="whitespace-nowrap text-sm font-semibold">{child.label}</p>
                                                     </NavLink>
                                                 );
                                             })}
@@ -384,8 +491,8 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                     to={link.path}
                                     className={({ isActive }) =>
                                         cn(
-                                            "sidebar-item group relative flex items-center gap-3 rounded-xl p-2.5",
-                                            collapsed && "md:w-[52px] md:justify-center",
+                                            "sidebar-item group relative flex items-center gap-3 rounded-xl px-3 py-2.5",
+                                            collapsed && "md:h-11 md:w-11 md:justify-center md:px-0",
                                             isActive ? "active text-slate-900" : "text-slate-700",
                                         )
                                     }
@@ -406,16 +513,36 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode }, re
                                     }}
                                 >
                                     <link.icon
-                                        size={22}
+                                        size={21}
                                         className="flex-shrink-0"
                                     />
-                                    {!collapsed && <p className="whitespace-nowrap font-semibold">{link.label}</p>}
+                                    {!collapsed && <p className="whitespace-nowrap text-sm font-bold">{link.label}</p>}
                                 </NavLink>
                             );
                         })}
                     </div>
                 ))}
             </nav>
+
+            <div className={cn("border-t border-slate-100 p-3", collapsed && "md:flex md:justify-center")}>
+                <div
+                    className={cn(
+                        "flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-sm",
+                        collapsed && "md:size-12 md:justify-center md:rounded-2xl md:p-0",
+                    )}
+                >
+                    <div className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-sm font-extrabold text-white">
+                        {initials}
+                        <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white bg-green-500" />
+                    </div>
+                    {!collapsed && (
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-extrabold text-slate-800">{displayName}</p>
+                            <p className="truncate text-xs font-semibold text-slate-500">{user?.role_name || "Online"}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
         </aside>
     );
 });

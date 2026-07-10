@@ -8,8 +8,25 @@
     body {
         font-family: "Inter", sans-serif;
         color: #0f172a;
-        background: #f5f7fb;
+        background: #f8fafc;
         @apply [scrollbar-color:_#cbd5e1_transparent] dark:[scrollbar-color:_#334155_transparent];
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    100% {
+        transform: translateX(100%);
     }
 }
 
@@ -105,10 +122,10 @@
 }
 
 .crm-sidebar .sidebar-item.active {
-    color: #0f172a !important;
-    background: linear-gradient(135deg, #eef6ff, #f8fbff) !important;
-    border-color: #bfdbfe;
-    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+    color: #1d4ed8 !important;
+    background: linear-gradient(135deg, #eff6ff, #ffffff) !important;
+    border-color: #93c5fd;
+    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.14);
 }
 
 .crm-sidebar .sidebar-item.active::before {
@@ -140,12 +157,13 @@
 }
 
 .crm-sidebar nav::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 .crm-sidebar nav::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background: #cbd5e1;
+    border: 2px solid #fff;
 }
 
 .crm-sidebar nav::-webkit-scrollbar-track {
