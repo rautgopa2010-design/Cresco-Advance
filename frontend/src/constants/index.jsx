@@ -235,6 +235,24 @@ export const hrmsNavbarLinks = [
     },
 ];
 
+export const providerHrmsNavbarLinks = [
+    {
+        title: "CRESCO HRMS PLATFORM",
+        links: [
+            { label: "Dashboard", icon: Home, path: "/hrms/provider" },
+            { label: "Organizations", icon: Building2, path: "/hrms/provider/organizations" },
+            { label: "Plans & Subscriptions", icon: CreditCard, path: "/hrms/provider/plans-subscriptions" },
+            { label: "HRMS Modules", icon: CircleDot, path: "/hrms/provider/modules" },
+            { label: "Organization Admins", icon: UserRound, path: "/hrms/provider/organization-admins" },
+            { label: "Role Templates", icon: UserRound, path: "/hrms/provider/role-templates" },
+            { label: "Implementation", icon: MdOutlineLeaderboard, path: "/hrms/provider/implementation" },
+            { label: "Support", icon: TbReportAnalytics, path: "/hrms/provider/support" },
+            { label: "Reports", icon: TbReportAnalytics, path: "/hrms/provider/reports" },
+            { label: "Settings", icon: Settings, path: "/hrms/provider/settings" },
+        ],
+    },
+];
+
 // HelpDesk mode Links
 export const helpDeskNavbarLinks = [
     {

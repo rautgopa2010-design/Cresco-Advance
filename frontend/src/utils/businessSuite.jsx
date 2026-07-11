@@ -42,13 +42,13 @@ export const BUSINESS_APPS = [
     {
         id: "hrms",
         name: "HRMS",
-        path: "/hrms",
+        path: "/hrms/provider",
         icon: UsersRound,
         status: "active",
         gradient: "from-emerald-500 via-teal-500 to-cyan-500",
         accent: "text-emerald-700",
-        description: "Manage employees, attendance, leave, payroll, performance and recruitment.",
-        features: ["Employees", "Attendance", "Leave", "Payroll", "Performance", "Recruitment"],
+        description: "Manage HRMS tenants, subscriptions, module access, onboarding and service operations.",
+        features: ["Organizations", "Subscriptions", "Modules", "Onboarding", "Support", "Reports"],
         moduleNames: hrmsModuleNames,
     },
     {
@@ -112,9 +112,11 @@ export const BUSINESS_APPS = [
 export const hasPackageModule = (user, moduleNames = []) =>
     user?.packageModules?.some((moduleItem) => moduleNames.includes(moduleItem.module));
 
+export const isSuperProviderUser = (user) => user?.user_type === "provider" || user?.role_name === "Super Provider Admin";
+
 export const canAccessBusinessApp = (user, app) => {
     if (!user || app.status !== "active") return false;
-    if (user?.user_type === "provider") return ["crm", "hrms"].includes(app.id);
+    if (isSuperProviderUser(user)) return ["crm", "hrms"].includes(app.id);
     if (user?.role_name === "Super Admin") return true;
     return hasPackageModule(user, app.moduleNames);
 };

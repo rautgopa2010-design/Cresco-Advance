@@ -9,7 +9,7 @@ import { Footer } from "@/layouts/footer";
 
 import { cn } from "@/utils/cn";
 import { useEffect, useRef, useState } from "react";
-import { getUserBusinessApps, rememberBusinessApp } from "@/utils/businessSuite";
+import { getUserBusinessApps, isSuperProviderUser, rememberBusinessApp } from "@/utils/businessSuite";
 
 const AppLayout = () => {
     const location = useLocation();
@@ -18,6 +18,7 @@ const AppLayout = () => {
     const isDashboardPage = location.pathname === "/";
     const isHrmsRoute = location.pathname.startsWith("/hrms");
     const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
+    const isProviderAdmin = isSuperProviderUser(user);
     const availableApps = getUserBusinessApps(user);
     const hasCrmAccess = availableApps.some((app) => app.id === "crm");
     const hasHrmsAccess = availableApps.some((app) => app.id === "hrms");
@@ -49,7 +50,7 @@ const AppLayout = () => {
     }, []);
 
     useEffect(() => {
-        if (user?.user_type === "provider" && !isHrmsRoute && activeWorkspace === "hrms") {
+        if (isProviderAdmin && !isHrmsRoute && activeWorkspace === "hrms") {
             setActiveWorkspace("crm");
             rememberBusinessApp("crm");
             return;
@@ -69,7 +70,7 @@ const AppLayout = () => {
             setActiveWorkspace("hrms");
             rememberBusinessApp("hrms");
         }
-    }, [activeWorkspace, hasCrmAccess, hasHrmsAccess, isHrmsRoute, user?.user_type]);
+    }, [activeWorkspace, hasCrmAccess, hasHrmsAccess, isHrmsRoute, isProviderAdmin]);
 
     const handleWorkspaceChange = (workspace) => {
         setActiveWorkspace(workspace);

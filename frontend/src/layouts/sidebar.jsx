@@ -1,10 +1,11 @@
 import React, { forwardRef, useRef, useState, useEffect, useMemo } from "react";
 import { Link, NavLink } from "react-router-dom";
 import PropTypes from "prop-types";
-import { adminNavbarLinks, helpDeskNavbarLinks, hrmsNavbarLinks, providerAdminNavbarLinks } from "@/constants";
+import { adminNavbarLinks, helpDeskNavbarLinks, hrmsNavbarLinks, providerAdminNavbarLinks, providerHrmsNavbarLinks } from "@/constants";
 import logo from "@/assets/logo.jpg";
 import { cn } from "@/utils/cn";
 import { filterLinksByPermission } from "@/utils/permissionHelper";
+import { isSuperProviderUser } from "@/utils/businessSuite";
 import { IMAGE_BASE_URL } from "@/utils/api";
 import { getCompanySetup } from "../redux/actions/companySetup";
 import { clearSnackbar } from "../redux/actions/commonActions";
@@ -87,13 +88,13 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
         }
     }, [companySetup]);
 
-    const isProviderAdmin = user?.user_type === "provider";
+    const isProviderAdmin = isSuperProviderUser(user);
     const isHrmsWorkspace = activeWorkspace === "hrms" && !helpDeskMode;
     const shouldUseCrmSections = !isProviderAdmin && !helpDeskMode && !isHrmsWorkspace;
 
     const linksToRender = useMemo(() => {
         let links;
-        if (isHrmsWorkspace) links = hrmsNavbarLinks;
+        if (isHrmsWorkspace) links = isProviderAdmin ? providerHrmsNavbarLinks : hrmsNavbarLinks;
         else if (isProviderAdmin) links = providerAdminNavbarLinks;
         else if (helpDeskMode) links = helpDeskNavbarLinks;
         else links = adminNavbarLinks;
@@ -296,9 +297,11 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
 
             {!collapsed && (
                 <div className="mx-4 mb-3 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-3 shadow-sm">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-500">CRM Workspace</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-500">
+                        {isHrmsWorkspace && isProviderAdmin ? "CRESCO HRMS PLATFORM" : "CRM Workspace"}
+                    </p>
                     <p className="mt-1 truncate text-sm font-semibold text-slate-800">
-                        {user?.role_name || (helpDeskMode ? "Helpdesk" : "Sales CRM")}
+                        {isHrmsWorkspace && isProviderAdmin ? "Super Admin" : user?.role_name || (helpDeskMode ? "Helpdesk" : "Sales CRM")}
                     </p>
                 </div>
             )}

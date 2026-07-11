@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Grid3X3, LockKeyhole, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Grid3X3, LockKeyhole, MoreHorizontal, Sparkles } from "lucide-react";
 import {
     getDefaultBusinessApp,
     getFutureBusinessApps,
@@ -70,6 +70,123 @@ const ApplicationLauncher = () => {
                         ))}
                     </div>
                 </div>
+            </main>
+        );
+    }
+
+    if (isCrescoSuperMaster) {
+        const superMasterApps = apps.slice(0, 2);
+        const shortDescription = {
+            crm: "Leads, customers, orders and sales performance.",
+            hrms: "Employees, attendance, payroll and recruitment.",
+        };
+        const sharedItems = ["Single login", "Profile", "Roles and permissions", "Theme"];
+
+        return (
+            <main className="min-h-screen overflow-hidden bg-[#f5f7fb] px-4 py-6 text-slate-950 sm:px-8 lg:px-12">
+                <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.16),transparent_34%),radial-gradient(circle_at_top_right,rgba(34,197,94,0.10),transparent_28%),linear-gradient(180deg,#eef4ff_0%,#f8fafc_48%,#f5f7fb_100%)]" />
+                <section className="mx-auto max-w-5xl">
+                    <motion.div
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35 }}
+                        className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#2563eb] via-[#1d4ed8] to-[#312e81] px-6 py-9 text-white shadow-2xl shadow-blue-200/70 sm:px-9"
+                    >
+                        <button
+                            type="button"
+                            className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-blue-50 transition hover:bg-white/20 hover:text-white"
+                            aria-label="More options"
+                        >
+                            <MoreHorizontal size={20} />
+                        </button>
+                        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.18),transparent_34%,rgba(34,197,94,0.14))]" />
+                        <div className="relative">
+                            <p className="text-sm font-black uppercase tracking-wide text-blue-100">Super Master Workspace</p>
+                            <h1 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">Select an application</h1>
+                            <p className="mt-2 text-base font-semibold text-blue-100 sm:text-lg">One secure login across CRM, HRMS, and future Cresco apps.</p>
+                        </div>
+                    </motion.div>
+
+                    <div className="mt-8 grid gap-6 md:grid-cols-2">
+                        {superMasterApps.map((app, index) => {
+                            const Icon = app.icon;
+                            const isHrms = app.id === "hrms";
+                            const cardAccent = isHrms ? "border-t-emerald-500" : "border-t-blue-600";
+                            const iconClass = isHrms ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600";
+                            const badgeClass = isHrms ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700";
+
+                            return (
+                                <motion.button
+                                    key={app.id}
+                                    type="button"
+                                    initial={{ opacity: 0, y: 18 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.35, delay: index * 0.08 }}
+                                    whileHover={{ y: -5, scale: 1.01 }}
+                                    onClick={() => openApp(app)}
+                                    className={`group relative min-h-[300px] rounded-[22px] border border-slate-200 border-t-4 ${cardAccent} bg-white px-7 py-8 text-center shadow-xl shadow-slate-200/80 transition hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-200/60`}
+                                >
+                                    {isHrms && (
+                                        <span className={`absolute right-5 top-5 rounded-xl px-4 py-1.5 text-sm font-black ${badgeClass}`}>
+                                            New
+                                        </span>
+                                    )}
+
+                                    <span
+                                        className={`mx-auto flex size-[76px] items-center justify-center rounded-full ${iconClass} shadow-lg shadow-slate-100 transition group-hover:scale-105`}
+                                    >
+                                        <Icon size={34} />
+                                    </span>
+                                    <h2 className="mt-10 text-3xl font-black tracking-tight text-slate-950">{app.name}</h2>
+                                    <p className="mx-auto mt-3 max-w-[290px] text-base font-semibold leading-6 text-slate-500">
+                                        {shortDescription[app.id] || app.description}
+                                    </p>
+                                    <span className="mx-auto mt-7 flex h-[46px] w-full max-w-[354px] items-center justify-center rounded-xl bg-[#2563eb] text-lg font-black text-white shadow-lg shadow-blue-200 transition group-hover:bg-[#1d4ed8]">
+                                        Open {app.name}
+                                    </span>
+                                </motion.button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="mt-8 grid gap-6 md:grid-cols-2">
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, delay: 0.18 }}
+                            className="rounded-[22px] border border-slate-200 bg-white px-6 py-6 shadow-xl shadow-slate-200/70"
+                        >
+                            <h3 className="text-lg font-black text-slate-900">Shared across apps</h3>
+                            <div className="mt-4 flex flex-wrap gap-3">
+                                {sharedItems.map((item) => (
+                                    <span key={item} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-black text-slate-600">
+                                        {item}
+                                    </span>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, delay: 0.24 }}
+                            className="rounded-[22px] border border-slate-200 bg-white px-6 py-6 shadow-xl shadow-slate-200/70"
+                        >
+                            <h3 className="text-lg font-black text-slate-900">Coming soon</h3>
+                            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-3">
+                                {futureApps.slice(0, 3).map((app) => {
+                                    const Icon = app.icon;
+                                    return (
+                                        <span key={app.id} className="inline-flex items-center gap-1.5 text-base font-bold text-slate-500">
+                                            <Icon size={16} />
+                                            {app.name}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    </div>
+                </section>
             </main>
         );
     }
