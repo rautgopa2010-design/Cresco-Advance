@@ -236,6 +236,7 @@ import { IMAGE_BASE_URL } from "@/utils/api";
 import { getProfile } from "../redux/actions/profile";
 import NotificationBell from "./NotificationBell";
 import { getFutureBusinessApps, getUserBusinessApps, rememberBusinessApp } from "@/utils/businessSuite";
+import { fetchPlatformConfig } from "@/utils/platformConfig";
 
 export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode, activeWorkspace, setActiveWorkspace, hasCrmAccess, hasHrmsAccess }) => {
     const dispatch = useDispatch();
@@ -253,6 +254,7 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode,
 
     const [showDropdown, setShowDropdown] = useState(false);
     const [showAppSwitcher, setShowAppSwitcher] = useState(false);
+    const [, setConfigVersion] = useState(0);
     const dropdownRef = useRef();
     const appSwitcherRef = useRef();
 
@@ -322,6 +324,13 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode,
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
+    }, []);
+
+    useEffect(() => {
+        const syncConfig = () => setConfigVersion((current) => current + 1);
+        window.addEventListener("platformConfigUpdated", syncConfig);
+        fetchPlatformConfig().finally(syncConfig);
+        return () => window.removeEventListener("platformConfigUpdated", syncConfig);
     }, []);
 
     // ------------------ Profile Image / Avatar Logic ------------------

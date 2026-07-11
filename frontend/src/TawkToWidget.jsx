@@ -1,33 +1,72 @@
-import { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+
+const hideTawkWidget = () => {
+    if (window.Tawk_API?.hideWidget) {
+        window.Tawk_API.hideWidget();
+    }
+
+    document.querySelectorAll("iframe[src*='tawk.to'], iframe[title*='chat'], #tawkchat-container").forEach((element) => {
+        element.style.display = "none";
+        element.style.visibility = "hidden";
+    });
+};
+
+const showTawkWidget = () => {
+    document.querySelectorAll("iframe[src*='tawk.to'], iframe[title*='chat'], #tawkchat-container").forEach((element) => {
+        element.style.display = "";
+        element.style.visibility = "";
+    });
+
+    if (window.Tawk_API?.showWidget) {
+        window.Tawk_API.showWidget();
+    }
+};
 
 const TawkToWidget = () => {
     const location = useLocation();
     const tawkLoaded = useRef(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem("token")));
     
-    // Only show on marketing and landing pages
-    const shouldShowWidget = location.pathname.startsWith('/marketing-website') || 
-                            location.pathname.startsWith('/landing/');
+    useEffect(() => {
+        const syncAuthState = () => setIsLoggedIn(Boolean(localStorage.getItem("token")));
+
+        window.addEventListener("storage", syncAuthState);
+        window.addEventListener("sessionUserUpdated", syncAuthState);
+        window.addEventListener("authStateChanged", syncAuthState);
+
+        return () => {
+            window.removeEventListener("storage", syncAuthState);
+            window.removeEventListener("sessionUserUpdated", syncAuthState);
+            window.removeEventListener("authStateChanged", syncAuthState);
+        };
+    }, []);
+
+    const isPublicMarketingRoute = location.pathname.startsWith("/marketing-website") || location.pathname.startsWith("/landing/");
+    const shouldShowWidget = isPublicMarketingRoute && !isLoggedIn;
 
     useEffect(() => {
         if (!shouldShowWidget) {
-            // Hide widget if it exists
-            if (window.Tawk_API && window.Tawk_API.hideWidget) {
-                window.Tawk_API.hideWidget();
-            }
+            hideTawkWidget();
             return;
         }
 
         // Show and load widget only if not already loaded
         if (tawkLoaded.current) {
-            if (window.Tawk_API && window.Tawk_API.showWidget) {
-                window.Tawk_API.showWidget();
-            }
+            showTawkWidget();
             return;
         }
 
         window.Tawk_API = window.Tawk_API || {};
         window.Tawk_LoadStart = new Date();
+        window.Tawk_API.onLoad = () => {
+            if (localStorage.getItem("token")) {
+                hideTawkWidget();
+                return;
+            }
+
+            showTawkWidget();
+        };
 
         window.Tawk_API.customStyle = {
             visibility: {

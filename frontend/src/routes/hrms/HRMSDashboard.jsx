@@ -13,6 +13,7 @@ import {
     UserCog,
 } from "lucide-react";
 import { isSuperProviderUser } from "@/utils/businessSuite";
+import { isHrmsFeatureEnabled } from "@/utils/platformConfig";
 
 const summaryCards = [
     { label: "Total Organizations", value: "24", helper: "All HRMS customers", icon: Building2, tone: "bg-blue-50 text-blue-600", border: "border-t-blue-600" },
@@ -495,6 +496,7 @@ const ReservedPortal = ({ type }) => (
 const HRMSDashboard = () => {
     const location = useLocation();
     const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!isHrmsFeatureEnabled()) return <Navigate to="/" replace />;
     if (location.pathname.startsWith("/hrms/organization")) return <ReservedPortal type="Organization Admin" />;
     if (location.pathname.startsWith("/hrms/employee")) return <ReservedPortal type="Employee Self Service" />;
     if (!isSuperProviderUser(user) && location.pathname.startsWith("/hrms/provider")) return <Navigate to="/hrms/organization" replace />;

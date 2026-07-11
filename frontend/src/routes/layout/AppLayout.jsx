@@ -10,6 +10,7 @@ import { Footer } from "@/layouts/footer";
 import { cn } from "@/utils/cn";
 import { useEffect, useRef, useState } from "react";
 import { getUserBusinessApps, isSuperProviderUser, rememberBusinessApp } from "@/utils/businessSuite";
+import { fetchPlatformConfig } from "@/utils/platformConfig";
 
 const AppLayout = () => {
     const location = useLocation();
@@ -18,6 +19,7 @@ const AppLayout = () => {
     const isDashboardPage = location.pathname === "/";
     const isHrmsRoute = location.pathname.startsWith("/hrms");
     const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
+    const [, setConfigVersion] = useState(0);
     const isProviderAdmin = isSuperProviderUser(user);
     const availableApps = getUserBusinessApps(user);
     const hasCrmAccess = availableApps.some((app) => app.id === "crm");
@@ -47,6 +49,13 @@ const AppLayout = () => {
             window.removeEventListener("sessionUserUpdated", syncUser);
             window.removeEventListener("storage", syncUser);
         };
+    }, []);
+
+    useEffect(() => {
+        const syncConfig = () => setConfigVersion((current) => current + 1);
+        window.addEventListener("platformConfigUpdated", syncConfig);
+        fetchPlatformConfig().finally(syncConfig);
+        return () => window.removeEventListener("platformConfigUpdated", syncConfig);
     }, []);
 
     useEffect(() => {

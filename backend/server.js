@@ -105,6 +105,8 @@ const bankDetailsRoutes = require("./routes/bankDetails.routes");
 app.use("/api/bank-details", bankDetailsRoutes);
 const tAndCAndDecRoutes = require("./routes/tAndCAndDec.routes");
 app.use("/api/t-and-c-and-dec", tAndCAndDecRoutes);
+const platformConfigRoutes = require("./routes/platformConfig.routes");
+app.use("/api/platform-config", platformConfigRoutes);
 
 // ✅ Serve static uploads folder
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

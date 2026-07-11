@@ -10,6 +10,7 @@ import {
     sharedSuiteCapabilities,
     suiteTrustItems,
 } from "@/utils/businessSuite";
+import { fetchPlatformConfig } from "@/utils/platformConfig";
 import logo from "@/assets/logo.jpg";
 
 const getGreeting = () => {
@@ -34,8 +35,9 @@ const ApplicationLauncher = () => {
     const query = new URLSearchParams(location.search);
     const forceChoose = query.get("choose") === "1" || location.state?.forceChoose;
     const [loading, setLoading] = useState(true);
+    const [configVersion, setConfigVersion] = useState(0);
 
-    const apps = useMemo(() => getUserBusinessApps(user), [user]);
+    const apps = useMemo(() => getUserBusinessApps(user), [user, configVersion]);
     const futureApps = useMemo(() => getFutureBusinessApps(), []);
     const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.name || "User";
     const isCrescoSuperMaster = user?.user_type === "provider" || user?.role_name === "Super Provider Admin";
@@ -43,6 +45,13 @@ const ApplicationLauncher = () => {
     useEffect(() => {
         const timer = window.setTimeout(() => setLoading(false), 350);
         return () => window.clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        const syncConfig = () => setConfigVersion((current) => current + 1);
+        window.addEventListener("platformConfigUpdated", syncConfig);
+        fetchPlatformConfig().finally(syncConfig);
+        return () => window.removeEventListener("platformConfigUpdated", syncConfig);
     }, []);
 
     useEffect(() => {
@@ -75,7 +84,7 @@ const ApplicationLauncher = () => {
     }
 
     if (isCrescoSuperMaster) {
-        const superMasterApps = apps.slice(0, 2);
+        const superMasterApps = apps;
         const shortDescription = {
             crm: "Leads, customers, orders and sales performance.",
             hrms: "Employees, attendance, payroll and recruitment.",
@@ -103,11 +112,11 @@ const ApplicationLauncher = () => {
                         <div className="relative">
                             <p className="text-sm font-black uppercase tracking-wide text-blue-100">Super Master Workspace</p>
                             <h1 className="mt-2 text-3xl font-black tracking-tight text-white sm:text-4xl">Select an application</h1>
-                            <p className="mt-2 text-base font-semibold text-blue-100 sm:text-lg">One secure login across CRM, HRMS, and future Cresco apps.</p>
+                            <p className="mt-2 text-base font-semibold text-blue-100 sm:text-lg">One secure login across CRM and future Cresco apps.</p>
                         </div>
                     </motion.div>
 
-                    <div className="mt-8 grid gap-6 md:grid-cols-2">
+                    <div className={`mt-8 grid gap-6 ${superMasterApps.length > 1 ? "md:grid-cols-2" : "mx-auto max-w-xl"}`}>
                         {superMasterApps.map((app, index) => {
                             const Icon = app.icon;
                             const isHrms = app.id === "hrms";

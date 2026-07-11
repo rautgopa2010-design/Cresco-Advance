@@ -253,7 +253,6 @@ export default function MarketingLayout() {
     );
     const location = useLocation();
     const gtagLoaded = useRef(false);
-    const tawkLoaded = useRef(false);
     const conversionTracked = useRef(false); // Track if conversion already fired
 
     // Check if current path is marketing website
@@ -315,40 +314,6 @@ export default function MarketingLayout() {
         // Optional: Log for debugging
         console.log("Conversion tracked for AW-18027859516/WW8sCMmI94scELycrZRD");
     }, [isMarketingRoute, isConversionPage]);
-
-    // 4. Tawk.to implementation (keep as is, but remove the script removal logic)
-    useEffect(() => {
-        if (!isMarketingRoute) {
-            // Just hide the widget, don't remove scripts
-            if (window.Tawk_API && window.Tawk_API.hideWidget) {
-                window.Tawk_API.hideWidget();
-            }
-            return;
-        }
-
-        if (tawkLoaded.current) return;
-        if (window.Tawk_API) return;
-
-        window.Tawk_API = window.Tawk_API || {};
-        window.Tawk_LoadStart = new Date();
-
-        window.Tawk_API.customStyle = {
-            visibility: {
-                desktop: { position: "bl" },
-                mobile: { position: "bl" },
-            },
-        };
-
-        const script = document.createElement("script");
-        script.async = true;
-        script.src = "https://embed.tawk.to/69d00d197231721c37fdd5ed/1jlab6bsl";
-        script.charset = "UTF-8";
-        script.setAttribute("crossorigin", "*");
-        script.id = "tawk-widget-script";
-
-        document.body.appendChild(script);
-        tawkLoaded.current = true;
-    }, [isMarketingRoute]);
 
     useEffect(() => {
         if (theme === "dark") {

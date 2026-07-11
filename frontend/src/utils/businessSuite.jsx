@@ -11,6 +11,7 @@ import {
     UsersRound,
 } from "lucide-react";
 import { hrmsModuleNames } from "@/constants";
+import { isHrmsFeatureEnabled } from "./platformConfig";
 
 export const CRM_MODULE_NAMES = [
     "Enquiry",
@@ -116,6 +117,7 @@ export const isSuperProviderUser = (user) => user?.user_type === "provider" || u
 
 export const canAccessBusinessApp = (user, app) => {
     if (!user || app.status !== "active") return false;
+    if (app.id === "hrms" && !isHrmsFeatureEnabled()) return false;
     if (isSuperProviderUser(user)) return ["crm", "hrms"].includes(app.id);
     if (user?.role_name === "Super Admin") return true;
     return hasPackageModule(user, app.moduleNames);
