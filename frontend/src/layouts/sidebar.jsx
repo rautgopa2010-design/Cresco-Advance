@@ -132,7 +132,15 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
 
                     link.children.forEach((child) => {
                         if (child.label === "Master" && Array.isArray(child.children)) {
-                            sections.MASTER.push(cloneWithIcon({ ...child, defaultOpen: false, showArrow: true }));
+                            sections.MASTER.push(
+                                cloneWithIcon({
+                                    ...child,
+                                    isAccordion: true,
+                                    isGroup: false,
+                                    defaultOpen: false,
+                                    showArrow: true,
+                                }),
+                            );
                             return;
                         }
 

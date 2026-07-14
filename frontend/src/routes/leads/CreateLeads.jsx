@@ -3817,13 +3817,14 @@ const CreateLeads = () => {
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_auto_28rem] xl:items-end">
                     {/* Search Section */}
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-10">
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                         {businessMode === "B2B" ? (
                             <>
                                 {/* Search by Company */}
-                                <div className="flex-none items-center gap-2 space-y-3 md:flex-none lg:flex lg:space-y-0">
-                                    <div className="text-nowrap text-xs font-medium text-[#433C50] md:text-sm lg:text-base">Search by Company</div>
+                                <div className="space-y-2">
+                                    <div className="text-nowrap text-sm font-black text-slate-700">Search by Company</div>
                                     <Autocomplete
                                         disablePortal
                                         options={companyOptions}
@@ -3848,13 +3849,13 @@ const CreateLeads = () => {
                                                 error={businessMode === "B2B" && errors.selectedCompany}
                                             />
                                         )}
-                                        className="w-56 md:w-72 lg:w-80"
+                                        className="w-full"
                                     />
                                 </div>
 
                                 {/* Select Customer */}
-                                <div className="flex-none items-center gap-2 space-y-3 md:flex-none lg:flex lg:space-y-0">
-                                    <div className="text-nowrap text-xs font-medium text-[#433C50] md:text-sm lg:text-base">Select Customer</div>
+                                <div className="space-y-2">
+                                    <div className="text-nowrap text-sm font-black text-slate-700">Select Customer</div>
                                     <Autocomplete
                                         disablePortal
                                         options={availableCustomerNames}
@@ -3872,15 +3873,15 @@ const CreateLeads = () => {
                                                 disabled={availableCustomerNames.length === 0}
                                             />
                                         )}
-                                        className="w-56 md:w-72 lg:w-64"
+                                        className="w-full"
                                     />
                                 </div>
                             </>
                         ) : (
                             <>
                                 {/* B2C: Search by Customer */}
-                                <div className="flex-none items-center gap-2 space-y-3 md:flex-none lg:flex lg:space-y-0">
-                                    <div className="text-nowrap text-xs font-medium text-[#433C50] md:text-sm lg:text-base">Search by Customer</div>
+                                <div className="space-y-2">
+                                    <div className="text-nowrap text-sm font-black text-slate-700">Search by Customer</div>
                                     <Autocomplete
                                         disablePortal
                                         options={customerNameOptions}
@@ -3906,20 +3907,20 @@ const CreateLeads = () => {
                                                 error={errors.selectedCustomer}
                                             />
                                         )}
-                                        className="w-56 md:w-72 lg:w-80"
+                                        className="w-full"
                                     />
                                 </div>
 
                                 {/* B2C: Company Name (optional) */}
-                                <div className="flex-none items-center gap-2 space-y-3 md:flex-none lg:flex lg:space-y-0">
-                                    <div className="text-nowrap text-xs font-medium text-[#433C50] md:text-sm lg:text-base">Company Name</div>
+                                <div className="space-y-2">
+                                    <div className="text-nowrap text-sm font-black text-slate-700">Company Name</div>
                                     <TextField
                                         label="Company Name"
                                         size="small"
                                         value={selectedCompany}
                                         onChange={(e) => setSelectedCompany(e.target.value)}
                                         fullWidth
-                                        className="w-56 md:w-72 lg:w-64"
+                                        className="w-full"
                                     />
                                 </div>
                             </>
@@ -3927,13 +3928,14 @@ const CreateLeads = () => {
                     </div>
 
                     {/* Date and Assign */}
-                    <div className="items-center justify-between space-y-5 md:flex md:space-y-0 lg:flex lg:space-y-0">
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[12rem_1fr] xl:col-span-2">
                         <TextField
                             type="date"
                             size="small"
                             label="Date"
                             value={form.date}
                             onChange={handleDateChange}
+                            fullWidth
                         />
                         <Autocomplete
                             multiple
@@ -3975,7 +3977,7 @@ const CreateLeads = () => {
                                     size="small"
                                 />
                             )}
-                            className="w-full md:w-64 lg:w-96"
+                            className="w-full"
                             loading={loading} // optional: if employees are loading
                             LoadingIndicator={
                                 <CircularProgress
@@ -3984,6 +3986,7 @@ const CreateLeads = () => {
                                 />
                             }
                         />
+                    </div>
                     </div>
                     </section>
 

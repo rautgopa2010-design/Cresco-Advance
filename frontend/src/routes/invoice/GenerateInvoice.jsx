@@ -1200,7 +1200,7 @@ import { clearSnackbar } from "../../redux/actions/commonActions";
 import { createInvoice, getInvoices } from "../../redux/actions/invoice";
 import { Alert, Box, FormControlLabel, Radio, RadioGroup, Snackbar, TextField, CircularProgress, Autocomplete, Checkbox } from "@mui/material";
 import { Button } from "@material-tailwind/react";
-import { Search, PencilLine, Trash } from "lucide-react";
+import { ArrowLeft, Building2, CalendarDays, FileText, Mail, MapPin, PencilLine, Phone, ReceiptText, Search, Trash, UserRound } from "lucide-react";
 import { LiaFileInvoiceSolid } from "react-icons/lia";
 import { getPrefix } from "../../redux/actions/prefix";
 import ReactQuill from "react-quill";
@@ -2538,32 +2538,57 @@ const GenerateInvoice = () => {
                     <CircularProgress />
                 </div>
             ) : (
-                <div className="card space-y-1">
-                    <div className="flex items-center justify-between text-nowrap">
-                        <div className="text-base font-semibold text-[#433C50] md:text-lg">Generate Invoice :</div>
-                        <Button
-                            onClick={() => navigate(-1)}
-                            variant="gradient"
-                            className="rounded-full bg-slate-300 px-4 py-1 text-base capitalize text-[#433C50]"
-                        >
-                            Back
-                        </Button>
-                    </div>
+                <div className="mx-auto flex w-full max-w-[1520px] flex-col gap-6 pb-8">
+                    <section className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-[#2563EB] via-[#1d4ed8] to-[#053054] p-6 text-white shadow-2xl shadow-blue-200/70 md:p-8">
+                        <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+                        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                            <div>
+                                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-50">
+                                    <ReceiptText size={14} />
+                                    CRM Invoice
+                                </div>
+                                <h1 className="text-3xl font-black leading-tight tracking-normal md:text-[34px]">Generate Invoice</h1>
+                                <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-blue-50/90 md:text-base">
+                                    Create an invoice from an order, review customer details, confirm billing and shipping address, then generate the invoice.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={() => navigate(-1)}
+                                variant="filled"
+                                className="flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-black capitalize text-white shadow-xl shadow-slate-950/10 transition hover:scale-[1.02] hover:bg-white/20"
+                            >
+                                <ArrowLeft size={18} />
+                                Back
+                            </Button>
+                        </div>
+                    </section>
+
                     {/* search by order for Invoice Generate or manually Invoice Generate */}
-                    <div>
+                    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/70 md:p-5">
+                        <div className="mb-4 flex items-center gap-3 border-b border-slate-100 pb-4">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                                <Search size={20} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-950">Invoice Source</h2>
+                                <p className="mt-0.5 text-sm font-semibold text-slate-500">Search an existing order and pull customer details.</p>
+                            </div>
+                        </div>
                         <RadioGroup
                             value={invoiceType}
                             onChange={(e) => setInvoiceType(e.target.value)}
                         >
-                            <div className="flex-none gap-0 space-y-3 md:flex-none md:gap-0 md:space-y-3 lg:flex lg:gap-20 lg:space-y-0">
-                                <div className="flex-none items-center gap-2 space-y-1 md:flex-none md:space-y-1 lg:flex lg:space-y-0">
+                            <div className="grid gap-4 lg:grid-cols-[220px_minmax(280px,360px)_120px_minmax(190px,240px)] lg:items-start">
+                                <div className="flex h-10 items-center rounded-2xl bg-slate-50 px-3">
                                     <FormControlLabel
                                         value="order"
                                         control={<Radio size="small" />}
-                                        label="Search by Order No :"
+                                        label="Search by Order No"
+                                        sx={{ margin: 0, "& .MuiFormControlLabel-label": { fontWeight: 700, color: "#0f172a" } }}
                                     />
-                                    {invoiceType === "order" && (
-                                        <div className="flex gap-5">
+                                </div>
+                                {invoiceType === "order" && (
+                                    <>
                                             {/* <TextField
                                                 label="Order Number *"
                                                 type="text"
@@ -2628,20 +2653,29 @@ const GenerateInvoice = () => {
                                                     }
                                                 }}
                                                 error={errors.orderNo}
-                                                className="w-56 md:w-72 lg:w-64"
+                                                fullWidth
                                                 inputProps={{
                                                     style: { textTransform: "uppercase" },
                                                 }}
                                             />
                                             <Button
                                                 onClick={handleOrderSearch}
-                                                className="bg-green-500 px-1.5 py-1.5 text-white md:px-2 md:py-0 lg:px-2 lg:py-0"
+                                                className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-black capitalize text-white shadow-lg shadow-emerald-100 transition hover:-translate-y-0.5 hover:bg-emerald-600"
                                             >
                                                 <Search size={20} />
+                                                Search
                                             </Button>
-                                        </div>
-                                    )}
-                                </div>
+                                    </>
+                                )}
+                                <TextField
+                                    type="date"
+                                    size="small"
+                                    label="Date"
+                                    value={form.date}
+                                    onChange={handleChange("date")}
+                                    InputLabelProps={{ shrink: true }}
+                                    fullWidth
+                                />
 
                                 {/* <div>
                                     <FormControlLabel
@@ -2652,17 +2686,19 @@ const GenerateInvoice = () => {
                                 </div> */}
                             </div>
                         </RadioGroup>
-                    </div>
-                    <div>
-                        <TextField
-                            type="date"
-                            size="small"
-                            label="Date"
-                            value={form.date}
-                            onChange={handleChange("date")}
-                            InputLabelProps={{ shrink: true }}
-                        />
-                    </div>
+                    </section>
+
+                    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/70 md:p-6">
+                        <div className="mb-5 flex items-start gap-4">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                                <Building2 size={22} />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black text-slate-950">Customer Information</h2>
+                                <p className="mt-1 text-sm font-semibold text-slate-500">Company, contact, email and mobile details for the invoice.</p>
+                            </div>
+                        </div>
+
                     {invoiceType === "order" ? (
                         <div className="flex w-full flex-col gap-4 lg:flex-row">
                             <TextField
@@ -3006,6 +3042,7 @@ const GenerateInvoice = () => {
                             />
                         </Box>
                     </div>
+                    </section>
 
                     {/* Product Details */}
                     {/* <div className="space-y-4">
@@ -3452,10 +3489,24 @@ const GenerateInvoice = () => {
                     </div> */}
 
                     {/* Address Info */}
-                    <div className="flex-none gap-4 md:flex lg:flex">
+                    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/70 md:p-6">
+                        <div className="mb-5 flex items-start gap-4">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600">
+                                <MapPin size={22} />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black text-slate-950">Billing & Shipping Address</h2>
+                                <p className="mt-1 text-sm font-semibold text-slate-500">Confirm address information before generating the invoice.</p>
+                            </div>
+                        </div>
+
+                    <div className="grid gap-5 xl:grid-cols-2">
                         {/* Billing Address */}
-                        <div className="w-full space-y-4 md:w-1/2 lg:w-1/2">
-                            <p className="-mb-1 font-semibold text-[#433C50]">Billing Address</p>
+                        <div className="w-full space-y-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+                            <p className="-mb-1 flex items-center gap-2 font-black text-slate-800">
+                                <MapPin size={17} className="text-blue-600" />
+                                Billing Address
+                            </p>
                             <Box className="flex w-full flex-col gap-4 lg:flex-row">
                                 <TextField
                                     label="Street *"
@@ -3528,8 +3579,11 @@ const GenerateInvoice = () => {
                         </div>
 
                         {/* Shipping Address */}
-                        <div className="mt-3 w-full space-y-4 md:mt-0 md:w-1/2 lg:mt-0 lg:w-1/2">
-                            <p className="-mb-1 font-semibold text-[#433C50]">Shipping Address</p>
+                        <div className="w-full space-y-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+                            <p className="-mb-1 flex items-center gap-2 font-black text-slate-800">
+                                <MapPin size={17} className="text-emerald-600" />
+                                Shipping Address
+                            </p>
 
                             <Box className="flex w-full flex-col gap-4 lg:flex-row">
                                 <TextField
@@ -3609,7 +3663,7 @@ const GenerateInvoice = () => {
                     </div>
 
                     {/* Checkbox to copy billing address */}
-                    <div className="mt-4">
+                    <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/60 px-4 py-3">
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -3633,10 +3687,19 @@ const GenerateInvoice = () => {
                             label="Shipping address is same as billing address"
                         />
                     </div>
+                    </section>
 
                     {/* Terms And Conditions */}
-                    <Box>
-                        <div className="mb-2 text-sm font-medium text-gray-700">Terms and Conditions</div>
+                    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/70 md:p-6">
+                        <div className="mb-5 flex items-start gap-4">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                                <FileText size={22} />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black text-slate-950">Terms and Conditions</h2>
+                                <p className="mt-1 text-sm font-semibold text-slate-500">Add invoice terms, payment conditions or delivery notes.</p>
+                            </div>
+                        </div>
                         <ReactQuill
                             value={form.termsAndConditions}
                             onChange={(value) => {
@@ -3644,12 +3707,16 @@ const GenerateInvoice = () => {
                             }}
                             theme="snow"
                             placeholder="Enter invoice terms and conditions..."
-                            className={`bg-white`}
+                            className="rounded-2xl bg-white"
                         />
-                    </Box>
+                    </section>
 
                     {/* Submit Button */}
-                    <div className="flex justify-end">
+                    <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/70 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm font-black text-slate-900">Ready to generate invoice?</p>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">Review customer and address details before submitting.</p>
+                        </div>
                         {/* <Button
                             onClick={handleSubmit}
                             variant="gradient"
@@ -3662,7 +3729,7 @@ const GenerateInvoice = () => {
                             onClick={handleSubmit}
                             variant="gradient"
                             disabled={isSubmittingSuccessfully || initialLoad} // optional: also disable if globally loading
-                            className={`flex items-center gap-2 rounded bg-[#053054] px-1 py-2 text-xs capitalize md:px-3 md:text-base lg:px-3 lg:text-base ${isSubmittingSuccessfully ? "cursor-not-allowed bg-[#053054]/70 opacity-70" : "bg-[#053054] hover:bg-[#053054]/90"} transition-all`}
+                            className={`flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black capitalize text-white shadow-lg shadow-slate-300 md:text-base ${isSubmittingSuccessfully ? "cursor-not-allowed bg-[#053054]/70 opacity-70" : "bg-[#053054] hover:-translate-y-0.5 hover:bg-[#053054]/90"} transition-all`}
                         >
                             {isSubmittingSuccessfully ? (
                                 <>

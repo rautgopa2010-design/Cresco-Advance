@@ -139,6 +139,9 @@ function AppRoutes() {
     const token = localStorage.getItem("token");
     const [sessionVersion, setSessionVersion] = useState(0);
     const user = useMemo(() => JSON.parse(localStorage.getItem("user") || "{}"), [sessionVersion]);
+    const isProviderUser =
+        user?.user_type === "provider" ||
+        String(user?.role_name || "").toLowerCase() === "super provider admin";
 
     if (token) {
         setAuthToken(token);
@@ -250,7 +253,7 @@ function AppRoutes() {
                         element: <AppLayout />,
                         children: [
                             { index: true, element: <DashboardWrapper /> },
-                            ...(user?.user_type === "provider"
+                            ...(isProviderUser
                                 ? [
                                       { path: "provider/escalated-tickets", element: <EscalatedTickets /> },
                                       { path: "provider/registered-customers", element: <RegisteredCustomers /> },
