@@ -1355,7 +1355,25 @@
 // export default Enquiry;
 
 import { Button } from "@material-tailwind/react";
-import { File, PencilLine, Trash, UserRound, X, ChevronLeft, ChevronRight, BadgePlus, SlidersHorizontal, ChevronDown } from "lucide-react";
+import {
+    BadgePlus,
+    Building2,
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    Download,
+    File,
+    FileSpreadsheet,
+    Mail,
+    PencilLine,
+    SlidersHorizontal,
+    Trash,
+    UploadCloud,
+    UserCheck,
+    UserRound,
+    UsersRound,
+    X,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -1756,6 +1774,11 @@ const Enquiry = () => {
     const totalPages = Math.ceil(filteredCustomers.length / rowsPerPage);
     const startIndex = (currentPage - 1) * rowsPerPage;
     const currentCustomers = filteredCustomers.slice(startIndex, startIndex + rowsPerPage);
+    const assignedCount = customers.filter((cus) => Array.isArray(cus.assignedTo) ? cus.assignedTo.length > 0 : Boolean(cus.assignedTo)).length;
+    const unassignedCount = Math.max(customers.length - assignedCount, 0);
+    const uniqueCompanies = new Set(customers.map((cus) => (cus.companyName || "").trim()).filter(Boolean)).size;
+    const visibleStart = filteredCustomers.length === 0 ? 0 : startIndex + 1;
+    const visibleEnd = Math.min(startIndex + rowsPerPage, filteredCustomers.length);
 
     const handleRowsPerPageChange = (e) => {
         const value = e.target.value;
@@ -1968,36 +1991,98 @@ const Enquiry = () => {
                     <CircularProgress />
                 </div>
             ) : (
-                <div className="card">
-                    {/* HEADER */}
-                    <div className="flex items-center justify-between text-nowrap">
-                        <div className="text-xs font-semibold text-[#433C50] md:text-lg lg:text-lg">Enquiry Detail's :</div>
-                        <Button
-                            onClick={handleCreateClick}
-                            variant="gradient"
-                            className="flex items-center gap-2 rounded-full bg-[#053054] px-1 py-2 text-xs capitalize md:px-3 md:text-base lg:px-3 lg:text-base"
-                        >
-                            <UserRound size={20} />
-                            Create New Enquiry
-                        </Button>
-                    </div>
+                <div className="mx-auto flex w-full max-w-[1520px] flex-col gap-6 pb-8">
+                    <section className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-[#2563EB] via-[#1d4ed8] to-[#053054] p-6 text-white shadow-2xl shadow-blue-200/70 md:p-8">
+                        <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+                        <div className="pointer-events-none absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl" />
+                        <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                            <div>
+                                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-50">
+                                    <UsersRound size={14} />
+                                    CRM Enquiries
+                                </div>
+                                <h1 className="text-3xl font-black leading-tight tracking-normal md:text-[34px]">Enquiry Detail's</h1>
+                                <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-blue-50/90 md:text-base">
+                                    Track enquiries, import customer data, assign ownership, and follow up faster from one focused workspace.
+                                </p>
+                            </div>
+                            <div className="flex flex-col gap-3 sm:flex-row">
+                                {selectedCustomerIds.length > 0 && (
+                                    <Button
+                                        variant="filled"
+                                        className="flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/15 px-5 py-3 text-sm font-bold capitalize text-white shadow-none backdrop-blur transition hover:bg-white/20"
+                                        onClick={handleBulkAssignOpen}
+                                    >
+                                        <UserCheck size={18} />
+                                        Bulk Assign ({selectedCustomerIds.length})
+                                    </Button>
+                                )}
+                                <Button
+                                    onClick={handleCreateClick}
+                                    variant="filled"
+                                    className="flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black capitalize text-[#053054] shadow-xl shadow-slate-950/10 transition hover:scale-[1.02]"
+                                >
+                                    <UserRound size={20} />
+                                    Create New Enquiry
+                                </Button>
+                            </div>
+                        </div>
+                    </section>
 
-                    <div className="mt-4 rounded-lg border-2 border-dashed border-gray-400 bg-gray-50 p-6 text-center">
-                        <div className="mb-4 text-lg font-medium text-gray-700">Import Customers from Excel</div>
+                    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        {[
+                            { label: "Total enquiries", value: customers.length, icon: UsersRound, tone: "from-blue-500 to-blue-700", helper: "All enquiry records" },
+                            { label: "Visible after filters", value: filteredCustomers.length, icon: SlidersHorizontal, tone: "from-cyan-500 to-blue-600", helper: "Current list result" },
+                            { label: "Assigned enquiries", value: assignedCount, icon: UserCheck, tone: "from-emerald-500 to-teal-600", helper: "Owned by team members" },
+                            { label: "Companies", value: uniqueCompanies, icon: Building2, tone: "from-violet-500 to-indigo-600", helper: `${unassignedCount} unassigned` },
+                        ].map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <div
+                                    key={item.label}
+                                    className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-100"
+                                >
+                                    <div className="mb-5 flex items-start justify-between">
+                                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${item.tone} text-white shadow-lg shadow-blue-100`}>
+                                            <Icon size={22} />
+                                        </div>
+                                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-600">Live</span>
+                                    </div>
+                                    <p className="text-sm font-bold text-slate-500">{item.label}</p>
+                                    <div className="mt-2 text-4xl font-black tracking-normal text-slate-950">{item.value}</div>
+                                    <p className="mt-2 text-xs font-semibold text-slate-400">{item.helper}</p>
+                                </div>
+                            );
+                        })}
+                    </section>
 
-                        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70">
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="flex items-start gap-4 text-left">
+                                <div className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                                    <FileSpreadsheet size={26} />
+                                </div>
+                                <div>
+                                    <div className="text-xl font-black text-slate-900">Import Customers from Excel</div>
+                                    <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-500">
+                                        Upload enquiry data in bulk using the sample format, then assign records to your team for faster follow-up.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row lg:flex-none">
                             {/* Download Template */}
                             <button
                                 onClick={handleDownloadTemplate}
-                                className="flex items-center gap-2 text-nowrap rounded-lg border border-blue-600 bg-white px-5 py-2.5 text-sm text-blue-700 hover:bg-blue-50 md:text-sm lg:text-base"
+                                className="flex items-center justify-center gap-2 text-nowrap rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-black text-blue-700 transition hover:-translate-y-0.5 hover:bg-blue-100 md:text-sm lg:text-base"
                             >
-                                <File size={18} />
+                                <Download size={18} />
                                 Download Sample Excel
                             </button>
 
                             {/* Upload File */}
-                            <label className="flex cursor-pointer items-center gap-2 text-nowrap rounded-lg bg-[#053054] px-5 py-2.5 text-sm text-white hover:bg-[#04243f] md:text-sm lg:text-base">
-                                <File size={18} />
+                            <label className="flex cursor-pointer items-center justify-center gap-2 text-nowrap rounded-2xl bg-[#053054] px-5 py-3 text-sm font-black text-white shadow-lg shadow-slate-300/70 transition hover:-translate-y-0.5 hover:bg-[#04243f] md:text-sm lg:text-base">
+                                <UploadCloud size={18} />
                                 Import Excel File
                                 <input
                                     type="file"
@@ -2006,34 +2091,37 @@ const Enquiry = () => {
                                     onChange={handleFileUpload}
                                 />
                             </label>
+                            </div>
                         </div>
 
-                        <p className="mt-3 text-sm text-gray-500">Supported format: .xlsx, .xls • Max size: 5MB</p>
-                    </div>
+                        <p className="mt-5 rounded-2xl bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-500">Supported format: .xlsx, .xls - Max size: 5MB</p>
+                    </section>
 
-                    <div className="flex items-center justify-between px-2 py-3">
+                    <div className="flex items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-lg shadow-slate-200/50">
                         <div className="flex items-center gap-4">
                             {selectedCustomerIds.length > 0 && (
                                 <Button
                                     variant="gradient"
-                                    className="bg-[#2563EB] px-4 py-2 text-sm capitalize"
+                                    className="rounded-2xl bg-[#2563EB] px-4 py-2 text-sm font-bold capitalize"
                                     onClick={handleBulkAssignOpen}
                                 >
                                     Bulk Assign ({selectedCustomerIds.length})
                                 </Button>
                             )}
                         </div>
-                        <span className="text-xs text-gray-500">...</span>
+                        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-500">
+                            {filteredCustomers.length} visible
+                        </span>
                     </div>
 
                     {/* ===== Filter Box ===== */}
-                    <div className="mt-3 rounded-lg border border-gray-300 bg-gray-50 p-3 shadow-sm">
-                        <button type="button" onClick={() => setFiltersOpen((open) => !open)} className="flex w-full items-center justify-between text-sm font-semibold text-slate-700" aria-expanded={filtersOpen}>
-                            <span className="flex items-center gap-2"><SlidersHorizontal size={17} className="text-indigo-600" />{filtersOpen ? "Hide Filters" : "Show Filters"}</span>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/60">
+                        <button type="button" onClick={() => setFiltersOpen((open) => !open)} className="flex w-full items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-blue-50" aria-expanded={filtersOpen}>
+                            <span className="flex items-center gap-2"><SlidersHorizontal size={17} className="text-blue-600" />{filtersOpen ? "Hide Filters" : "Show Filters"}</span>
                             <ChevronDown size={18} className={`transition ${filtersOpen ? "rotate-180" : ""}`} />
                         </button>
 
-                        {filtersOpen && <div className="crm-filter-panel mt-4 grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {filtersOpen && <div className="crm-filter-panel mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                             {/* ✅ Date Filters */}
                             <TextField
                                 label="From Date"
@@ -2114,15 +2202,15 @@ const Enquiry = () => {
                         </div>}
                     </div>
 
-                    <div className="card-body p-0">
+                    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
                         {/* Show Entries Dropdown */}
-                        <div className="flex items-center justify-between px-2 py-2">
+                        <div className="flex flex-col gap-3 border-b border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-700">Show</span>
+                                <span className="text-sm font-bold text-slate-600">Show</span>
                                 <select
                                     value={rowsPerPage === filteredCustomers.length ? "All" : rowsPerPage}
                                     onChange={handleRowsPerPageChange}
-                                    className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700 outline-none focus:border-[#053054]"
+                                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-[#2563EB] focus:bg-white"
                                 >
                                     <option value={5}>5</option>
                                     <option value={20}>20</option>
@@ -2130,15 +2218,15 @@ const Enquiry = () => {
                                     <option value={100}>100</option>
                                     <option value="All">All</option>
                                 </select>
-                                <span className="text-sm text-gray-700">entries</span>
+                                <span className="text-sm font-bold text-slate-600">entries</span>
                             </div>
-                            <span className="text-xs text-gray-500">
+                            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-700">
                                 Page {currentPage} of {Math.ceil(filteredCustomers.length / rowsPerPage) || 1}
                             </span>
                         </div>
 
                         {/* Table */}
-                        <div className="relative w-full flex-shrink-0 overflow-auto rounded-none [scrollbar-width:_thin]">
+                        <div className="relative w-full flex-shrink-0 overflow-auto [scrollbar-width:_thin]">
                             <table className="table">
                                 <thead className="table-header text-nowrap bg-[#053054] text-white">
                                     <tr className="table-row">
@@ -2167,9 +2255,25 @@ const Enquiry = () => {
                                         <tr>
                                             <td
                                                 colSpan="7"
-                                                className="py-4 text-center text-gray-400"
+                                                className="px-4 py-14 text-center"
                                             >
-                                                No customers data added yet.
+                                                <div className="mx-auto flex max-w-md flex-col items-center">
+                                                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                                        <Mail size={30} />
+                                                    </div>
+                                                    <div className="text-xl font-black text-slate-900">No enquiries yet.</div>
+                                                    <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+                                                        Create your first enquiry or import customers from Excel to start tracking leads.
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleCreateClick}
+                                                        className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[#053054] px-5 py-3 text-sm font-black text-white shadow-lg shadow-slate-300/80 transition hover:-translate-y-0.5 hover:bg-[#04243f]"
+                                                    >
+                                                        <UserRound size={18} />
+                                                        Create New Enquiry
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ) : (
@@ -2179,7 +2283,7 @@ const Enquiry = () => {
                                             return (
                                                 <tr
                                                     key={cus.id}
-                                                    className="table-row"
+                                                    className="table-row transition hover:bg-blue-50/60"
                                                 >
                                                     {/* <td className="table-cell border border-gray-300">{startIndex + index + 1}</td> */}
                                                     <td className="table-cell border border-gray-300">
@@ -2207,48 +2311,53 @@ const Enquiry = () => {
                                                             : "-"}
                                                     </td>
                                                     <td className="table-cell border border-gray-300">
-                                                        <div className="flex items-center gap-x-4">
+                                                        <div className="flex items-center gap-x-2">
                                                             <button
-                                                                className="text-orange-500"
+                                                                className="rounded-xl bg-orange-50 p-2 text-orange-500 transition hover:-translate-y-0.5 hover:bg-orange-100"
                                                                 onClick={() => handleAddContacts(cus.id)}
                                                                 title="Add Contacts"
                                                             >
-                                                                <BadgePlus size={20} />
+                                                                <BadgePlus size={18} />
                                                             </button>
                                                             <button
-                                                                className="text-blue-500"
+                                                                className="rounded-xl bg-blue-50 p-2 text-blue-600 transition hover:-translate-y-0.5 hover:bg-blue-100"
                                                                 onClick={() => handleEditClick(cus.id)}
+                                                                title="Edit"
                                                             >
-                                                                <PencilLine size={20} />
+                                                                <PencilLine size={18} />
                                                             </button>
                                                             <button
-                                                                className="text-red-500"
+                                                                className="rounded-xl bg-red-50 p-2 text-red-600 transition hover:-translate-y-0.5 hover:bg-red-100"
                                                                 onClick={() => handleDeleteClick(cus.id)}
+                                                                title="Delete"
                                                             >
-                                                                <Trash size={20} />
+                                                                <Trash size={18} />
                                                             </button>
                                                             <button
-                                                                className="text-purple-500"
+                                                                className="rounded-xl bg-violet-50 p-2 text-violet-600 transition hover:-translate-y-0.5 hover:bg-violet-100"
                                                                 onClick={() => handleViewClick(cus.id)}
+                                                                title="View"
                                                             >
-                                                                <File size={20} />
+                                                                <File size={18} />
                                                             </button>
                                                             <button
-                                                                className="text-blue-600"
+                                                                className="rounded-xl bg-cyan-50 p-2 text-cyan-700 transition hover:-translate-y-0.5 hover:bg-cyan-100"
                                                                 onClick={() => handleCallClick(cus.mobile)}
+                                                                title="Call"
                                                             >
-                                                                <PhoneCall size={22} />
+                                                                <PhoneCall size={18} />
                                                             </button>
                                                             <button
-                                                                className="text-green-600"
+                                                                className="rounded-xl bg-emerald-50 p-2 text-emerald-600 transition hover:-translate-y-0.5 hover:bg-emerald-100"
                                                                 onClick={() =>
                                                                     handleWhatsAppClick(
                                                                         cus.mobile,
                                                                         `${cus.salutation || ""} ${cus.firstName || ""} ${cus.middleName || ""} ${cus.lastName || ""}`.trim(),
                                                                     )
                                                                 }
+                                                                title="WhatsApp"
                                                             >
-                                                                <FaWhatsapp size={22} />
+                                                                <FaWhatsapp size={18} />
                                                             </button>
                                                         </div>
                                                     </td>
@@ -2263,9 +2372,9 @@ const Enquiry = () => {
 
                     {/* ✅ Pagination Controls */}
                     {filteredCustomers.length > rowsPerPage && (
-                        <div className="mt-4 flex items-center justify-between">
-                            <span className="text-sm text-gray-500">
-                                Showing {startIndex + 1} - {Math.min(startIndex + rowsPerPage, filteredCustomers.length)} of{" "}
+                        <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-lg shadow-slate-200/50 sm:flex-row sm:items-center sm:justify-between">
+                            <span className="text-sm font-bold text-slate-500">
+                                Showing {visibleStart} - {visibleEnd} of{" "}
                                 {filteredCustomers.length}
                             </span>
                             <div className="flex items-center gap-3">
@@ -2273,12 +2382,12 @@ const Enquiry = () => {
                                     variant="text"
                                     disabled={currentPage === 1}
                                     onClick={() => setCurrentPage((prev) => prev - 1)}
-                                    className="flex items-center rounded-full"
+                                    className="flex items-center rounded-full border border-slate-200"
                                 >
                                     <ChevronLeft />
                                 </IconButton>
 
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#053054] font-semibold text-white">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#053054] font-black text-white shadow-lg shadow-slate-300">
                                     {currentPage}
                                 </div>
 
@@ -2286,7 +2395,7 @@ const Enquiry = () => {
                                     variant="text"
                                     disabled={currentPage === totalPages}
                                     onClick={() => setCurrentPage((prev) => prev + 1)}
-                                    className="flex items-center rounded-full"
+                                    className="flex items-center rounded-full border border-slate-200"
                                 >
                                     <ChevronRight />
                                 </IconButton>

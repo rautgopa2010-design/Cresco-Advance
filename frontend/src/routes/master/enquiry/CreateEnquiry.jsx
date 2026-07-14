@@ -1439,7 +1439,7 @@ import { clearSnackbar } from "../../../redux/actions/commonActions";
 import { TextField, InputAdornment, Box, Snackbar, Alert, Chip, Checkbox, FormControlLabel, Autocomplete, CircularProgress } from "@mui/material";
 import { Button } from "@material-tailwind/react";
 import { useNavigate } from "react-router-dom";
-import { Search, UserRound } from "lucide-react";
+import { ArrowLeft, Building2, CheckCircle2, MapPin, Phone, Search, Sparkles, UserCheck, UserRound } from "lucide-react";
 import { CUSTOMER_ERROR } from "../../../redux/types";
 import { usePincodeLookup } from "../../../hooks/use-pincode-lookup";
 
@@ -1720,21 +1720,40 @@ const CreateEnquiry = () => {
                     <CircularProgress />
                 </div>
             ) : (
-                <div className="card space-y-2">
-                    <div className="flex items-center justify-between text-nowrap">
-                        <div className="text-base font-semibold text-[#433C50] md:text-lg lg:text-lg">Create New Enquiry :</div>
-                        <Button
-                            onClick={() => navigate(-1)}
-                            variant="gradient"
-                            className="rounded-full bg-slate-300 px-4 py-1 text-base capitalize text-[#433C50]"
-                        >
-                            Back
-                        </Button>
-                    </div>
-                    <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
+                <div className="mx-auto flex w-full max-w-[1520px] flex-col gap-6 pb-8">
+                    <section className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-[#2563EB] via-[#1d4ed8] to-[#053054] p-6 text-white shadow-2xl shadow-blue-200/70 md:p-8">
+                        <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+                        <div className="pointer-events-none absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl" />
+                        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                            <div>
+                                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-50">
+                                    <Sparkles size={14} />
+                                    CRM Enquiries
+                                </div>
+                                <h1 className="text-3xl font-black leading-tight tracking-normal md:text-[34px]">Create New Enquiry</h1>
+                                <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-blue-50/90 md:text-base">
+                                    Capture customer details, assign ownership, and prepare the enquiry for follow-up in a clean step-by-step form.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={() => navigate(-1)}
+                                variant="filled"
+                                className="flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/15 px-5 py-3 text-sm font-black capitalize text-white shadow-none backdrop-blur transition hover:bg-white/20"
+                            >
+                                <ArrowLeft size={18} />
+                                Back
+                            </Button>
+                        </div>
+                    </section>
+
+                    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/70">
+                        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
                         {/* Search Label and Field */}
-                        <div className="flex items-center gap-2">
-                            <div className="text-nowrap text-xs font-medium text-[#433C50] md:text-sm lg:text-base">Search by Mobile No :</div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <div className="flex items-center gap-2 text-nowrap text-sm font-black text-slate-700 md:text-base">
+                                <Phone size={18} className="text-blue-600" />
+                                Search by Mobile No
+                            </div>
                             <TextField
                                 variant="outlined"
                                 placeholder="Search..."
@@ -1800,7 +1819,19 @@ const CreateEnquiry = () => {
                                 }
                             />
                         </Box>
-                    </div>
+                        </div>
+                    </section>
+
+                    <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70">
+                        <div className="mb-5 flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                                <UserRound size={22} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900">Customer Information</h2>
+                                <p className="text-sm font-medium text-slate-500">Basic identity, contact, company and source details.</p>
+                            </div>
+                        </div>
                     <Box className="flex w-full flex-col gap-4 lg:flex-row">
                         <Autocomplete
                             options={salutations.map((option) => option.salutation)}
@@ -2012,7 +2043,19 @@ const CreateEnquiry = () => {
                             }}
                         />
                     </Box>
-                    <div className="gap-4 md:flex lg:flex">
+                    </section>
+
+                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70">
+                        <div className="mb-5 flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                                <MapPin size={22} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900">Address Details</h2>
+                                <p className="text-sm font-medium text-slate-500">Billing and shipping information with pincode-based location lookup.</p>
+                            </div>
+                        </div>
+                    <div className="gap-5 md:flex lg:flex">
                         {/* <div className="w-full space-y-4 md:w-1/2 lg:w-1/2">
                             <p className="-mb-1 font-semibold text-[#433C50]">Billing Address</p>
                             <Box className="flex w-full flex-col gap-4 lg:flex-row">
@@ -2086,8 +2129,11 @@ const CreateEnquiry = () => {
                                 />
                             </Box>
                         </div> */}
-                        <div className="w-full space-y-4 md:w-1/2 lg:w-1/2">
-                            <p className="-mb-1 font-semibold text-[#433C50]">Billing Address</p>
+                        <div className="w-full space-y-4 rounded-3xl border border-slate-200 bg-slate-50/70 p-4 md:w-1/2 lg:w-1/2">
+                            <p className="flex items-center gap-2 font-black text-slate-800">
+                                <Building2 size={18} className="text-blue-600" />
+                                Billing Address
+                            </p>
                             <Box className="flex w-full flex-col gap-4 lg:flex-row">
                                 <TextField
                                     label="Street *"
@@ -2250,8 +2296,11 @@ const CreateEnquiry = () => {
                                 />
                             </Box>
                         </div> */}
-                        <div className="w-full space-y-4 md:w-1/2 lg:w-1/2">
-                            <p className="-mb-1 font-semibold text-[#433C50]">Shipping Address</p>
+                        <div className="mt-5 w-full space-y-4 rounded-3xl border border-slate-200 bg-slate-50/70 p-4 md:mt-0 md:w-1/2 lg:w-1/2">
+                            <p className="flex items-center gap-2 font-black text-slate-800">
+                                <MapPin size={18} className="text-emerald-600" />
+                                Shipping Address
+                            </p>
                             <Box className="flex w-full flex-col gap-4 lg:flex-row">
                                 <TextField
                                     label="Street *"
@@ -2342,7 +2391,7 @@ const CreateEnquiry = () => {
                             </Box>
                         </div>
                     </div>
-                    <span>
+                    <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3">
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -2380,12 +2429,23 @@ const CreateEnquiry = () => {
                             }
                             label="Shipping address is same as billing address"
                         />
-                    </span>
-                    <div className="flex justify-end">
+                    </div>
+                    </section>
+
+                    <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-xl shadow-slate-200/70 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3">
+                            <div className="flex h-10 w-10 flex-none items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                                <CheckCircle2 size={20} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-black text-slate-900">Ready to save enquiry</p>
+                                <p className="text-xs font-semibold text-slate-500">Please verify required fields before creating the enquiry.</p>
+                            </div>
+                        </div>
                         <Button
                             onClick={handleSubmit}
-                            variant="gradient"
-                            className="flex items-center gap-2 rounded bg-[#053054] px-1 py-2 text-xs capitalize md:px-3 md:text-base lg:px-3 lg:text-base"
+                            variant="filled"
+                            className="flex items-center justify-center gap-2 rounded-2xl bg-[#053054] px-6 py-3 text-sm font-black capitalize text-white shadow-lg shadow-slate-300/80 transition hover:-translate-y-0.5 hover:bg-[#04243f] md:text-base"
                         >
                             <UserRound size={20} />
                             Create Enquiry

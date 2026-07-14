@@ -2900,7 +2900,7 @@ import { getProduct } from "../../redux/actions/product";
 import { createLead } from "../../redux/actions/leadAndFollowup";
 import { clearSnackbar } from "../../redux/actions/commonActions";
 import { Alert, Autocomplete, Box, Chip, Snackbar, TextField, CircularProgress, FormControlLabel, Checkbox } from "@mui/material";
-import { CirclePlus, CircleMinus, File, Trash, X } from "lucide-react";
+import { ArrowLeft, Building2, CheckCircle2, CircleMinus, CirclePlus, File, MapPin, PackageSearch, Search, Sparkles, Trash, TrendingUp, UploadCloud, UserCheck, X } from "lucide-react";
 import { MdOutlineLeaderboard } from "react-icons/md";
 import { useLocation } from "react-router-dom";
 import { FaFilePdf, FaFileExcel } from "react-icons/fa";
@@ -3746,21 +3746,36 @@ const CreateLeads = () => {
                     <CircularProgress />
                 </div>
             ) : (
-                <div className="card space-y-4">
-                    <div className="flex items-center justify-between text-nowrap">
-                        <div className="text-base font-semibold text-[#433C50] md:text-lg">Create New Lead :</div>
+                <div className="mx-auto flex w-full max-w-[1520px] flex-col gap-6 pb-8">
+                    <section className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-[#2563EB] via-[#1d4ed8] to-[#053054] p-6 text-white shadow-2xl shadow-blue-200/70 md:p-8">
+                        <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+                        <div className="pointer-events-none absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl" />
+                        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                            <div>
+                                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-50">
+                                    <Sparkles size={14} />
+                                    CRM Leads
+                                </div>
+                                <h1 className="text-3xl font-black leading-tight tracking-normal md:text-[34px]">Create New Lead</h1>
+                                <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-blue-50/90 md:text-base">
+                                    Convert customer interest into a managed opportunity with product details, follow-up planning, and expected revenue.
+                                </p>
+                            </div>
                         <Button
                             onClick={() => navigate(-1)}
-                            variant="gradient"
-                            className="rounded-full bg-slate-300 px-4 py-1 text-base capitalize text-[#433C50]"
+                                variant="filled"
+                                className="flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/15 px-5 py-3 text-sm font-black capitalize text-white shadow-none backdrop-blur transition hover:bg-white/20"
                         >
+                                <ArrowLeft size={18} />
                             Back
                         </Button>
-                    </div>
+                        </div>
+                    </section>
 
                     {/* Business Type Selector */}
-                    <div className="mb-6 flex items-center gap-8">
-                        <div className="flex items-center gap-2">
+                    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/70">
+                    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                        <div className={`flex items-center gap-2 rounded-2xl border px-4 py-3 transition ${businessMode === "B2B" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
                             <input
                                 type="radio"
                                 id="b2b"
@@ -3776,12 +3791,12 @@ const CreateLeads = () => {
                             />
                             <label
                                 htmlFor="b2b"
-                                className="cursor-pointer text-sm font-medium text-[#433C50]"
+                                className="cursor-pointer text-sm font-black"
                             >
                                 B2B (Business to Business)
                             </label>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className={`flex items-center gap-2 rounded-2xl border px-4 py-3 transition ${businessMode === "B2C" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
                             <input
                                 type="radio"
                                 id="b2c"
@@ -3795,7 +3810,7 @@ const CreateLeads = () => {
                             />
                             <label
                                 htmlFor="b2c"
-                                className="cursor-pointer text-sm font-medium text-[#433C50]"
+                                className="cursor-pointer text-sm font-black"
                             >
                                 B2C (Business to Consumer)
                             </label>
@@ -3970,8 +3985,19 @@ const CreateLeads = () => {
                             }
                         />
                     </div>
+                    </section>
 
                     {/* Company Info */}
+                    <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70">
+                        <div className="mb-5 flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                                <Building2 size={22} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900">Customer Information</h2>
+                                <p className="text-sm font-medium text-slate-500">Company, customer person, contact and assignment details.</p>
+                            </div>
+                        </div>
                     <div className="flex w-full flex-col gap-4 lg:flex-row">
                         <TextField
                             label="Company Name"
@@ -4030,12 +4056,26 @@ const CreateLeads = () => {
                             }}
                         />
                     </div>
+                    </section>
 
                     {/* Address Info */}
-                    <div className="flex-none gap-4 md:flex lg:flex">
+                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70">
+                        <div className="mb-5 flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                                <MapPin size={22} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900">Address Details</h2>
+                                <p className="text-sm font-medium text-slate-500">Billing and shipping information for this lead.</p>
+                            </div>
+                        </div>
+                    <div className="flex-none gap-5 md:flex lg:flex">
                         {/* Billing Address */}
-                        <div className="w-full space-y-4 md:w-1/2 lg:w-1/2">
-                            <p className="-mb-1 font-semibold text-[#433C50]">Billing Address</p>
+                        <div className="w-full space-y-4 rounded-3xl border border-slate-200 bg-slate-50/70 p-4 md:w-1/2 lg:w-1/2">
+                            <p className="flex items-center gap-2 font-black text-slate-800">
+                                <Building2 size={18} className="text-blue-600" />
+                                Billing Address
+                            </p>
                             <Box className="flex w-full flex-col gap-4 lg:flex-row">
                                 <TextField
                                     label="Street"
@@ -4102,8 +4142,11 @@ const CreateLeads = () => {
                         </div>
 
                         {/* Shipping Address */}
-                        <div className="mt-3 w-full space-y-4 md:mt-0 md:w-1/2 lg:mt-0 lg:w-1/2">
-                            <p className="-mb-1 font-semibold text-[#433C50]">Shipping Address</p>
+                        <div className="mt-5 w-full space-y-4 rounded-3xl border border-slate-200 bg-slate-50/70 p-4 md:mt-0 md:w-1/2 lg:mt-0 lg:w-1/2">
+                            <p className="flex items-center gap-2 font-black text-slate-800">
+                                <MapPin size={18} className="text-emerald-600" />
+                                Shipping Address
+                            </p>
                             <Box className="flex w-full flex-col gap-4 lg:flex-row">
                                 <TextField
                                     label="Street"
@@ -4170,7 +4213,7 @@ const CreateLeads = () => {
                         </div>
                     </div>
                     {/* Checkbox to copy billing address */}
-                    <div className="mt-4">
+                    <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3">
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -4195,13 +4238,25 @@ const CreateLeads = () => {
                         />
                     </div>
 
+                    </section>
+
                     {/* Product Details */}
+                    <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70">
+                        <div className="mb-2 flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                                <PackageSearch size={22} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900">Product Details</h2>
+                                <p className="text-sm font-medium text-slate-500">Select product interest for this lead.</p>
+                            </div>
+                        </div>
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                            <p className="font-semibold text-[#433C50]">Product Details</p>
+                        <div className="flex items-center justify-end gap-2">
+                            <span className="text-sm font-bold text-slate-500">Add product</span>
                             <CirclePlus
-                                size={20}
-                                className="cursor-pointer text-blue-500"
+                                size={22}
+                                className="cursor-pointer rounded-full bg-blue-50 p-0.5 text-blue-600 transition hover:scale-110 hover:bg-blue-100"
                                 onClick={handleAddProduct}
                             />
                         </div>
@@ -4320,10 +4375,19 @@ const CreateLeads = () => {
                             </Box>
                         ))}
                     </div>
+                    </section>
 
                     {/* Lead Details */}
-                    <div className="space-y-4">
-                        <p className="font-semibold text-[#433C50]">Lead Details</p>
+                    <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70">
+                        <div className="mb-5 flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                                <TrendingUp size={22} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900">Lead Details</h2>
+                                <p className="text-sm font-medium text-slate-500">Pipeline stage, source, follow-up, expected amount and closing plan.</p>
+                            </div>
+                        </div>
                         <Box className="flex w-full flex-col gap-4 lg:flex-row">
                             {/* Lead Source */}
                             <Autocomplete
@@ -4407,8 +4471,6 @@ const CreateLeads = () => {
                                 sx={{ flex: 2 }}
                             />
                         </Box>
-                    </div>
-
                     {/* Description */}
                     <Box>
                         <TextField
@@ -4426,8 +4488,19 @@ const CreateLeads = () => {
                             }}
                         />
                     </Box>
+                    </section>
 
                     {/* File Upload Section */}
+                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70">
+                        <div className="mb-5 flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                                <UploadCloud size={22} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900">Lead Attachments</h2>
+                                <p className="text-sm font-medium text-slate-500">Upload supporting documents, images, PDFs or sheets.</p>
+                            </div>
+                        </div>
                     <Box mt={2}>
                         <input
                             type="file"
@@ -4438,8 +4511,8 @@ const CreateLeads = () => {
                             style={{ display: "none" }}
                         />
                         <Button
-                            variant="gradient"
-                            className="bg-green-500"
+                            variant="filled"
+                            className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black capitalize text-white shadow-lg shadow-emerald-100 transition hover:-translate-y-0.5 hover:bg-emerald-700"
                             onClick={() => fileInputRef.current.click()}
                         >
                             Upload Files
@@ -4560,14 +4633,24 @@ const CreateLeads = () => {
                             </div>
                         )}
                     </Box>
+                    </section>
 
                     {/* Submit Button */}
-                    <div className="flex justify-end">
+                    <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-xl shadow-slate-200/70 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-start gap-3">
+                            <div className="flex h-10 w-10 flex-none items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                                <CheckCircle2 size={20} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-black text-slate-900">Ready to generate lead</p>
+                                <p className="text-xs font-semibold text-slate-500">Please verify required fields before generating the lead.</p>
+                            </div>
+                        </div>
                         <Button
                             onClick={handleSubmit}
                             disabled={loading || isSuccessProcessing} // Disable during API call or success processing
                             variant="gradient"
-                            className={`flex items-center gap-2 rounded px-1 py-2 text-xs capitalize md:px-3 md:text-base lg:px-3 lg:text-base ${
+                            className={`flex items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-black capitalize text-white shadow-lg shadow-slate-300/80 transition md:text-base ${
                                 isSuccessProcessing
                                     ? "cursor-not-allowed bg-[#053054]/70 opacity-70" // Blurred look on success
                                     : "bg-[#053054] hover:bg-[#053054]/90"
