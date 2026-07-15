@@ -269,7 +269,7 @@ const AdminDashboardCards = ({ dashData = {} }) => {
             amount: totalLeads,
             formatter: formatNumber,
             icon: Target,
-            path: "/leads",
+            path: "/leads/pipeline",
             color: "#8B5CF6",
             bg: "bg-violet-50 text-violet-600",
             series: quotationSeries,
@@ -346,6 +346,8 @@ const AdminDashboardCards = ({ dashData = {} }) => {
     const goalTarget = Math.max(totalBusiness + outstandingBalance, 1);
     const goalProgress = Math.min(Math.round((currentMonthRevenue / goalTarget) * 100), 100);
     const totalLeadSourceCount = leadSources.reduce((sum, item) => sum + item.count_leads, 0);
+    const pipelineValue = Math.max(outstandingBalance, currentMonthRevenue, totalBusiness);
+    const pipelineForecast = pipelineValue ? Math.round(pipelineValue * 0.45) : 0;
 
     const weekData = [
         followupDueToday,
@@ -580,6 +582,50 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                     );
                 })}
             </section>
+
+            <motion.button
+                type="button"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -4 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => navigate("/leads/pipeline")}
+                className="group overflow-hidden rounded-3xl border border-blue-100 bg-white/90 p-5 text-left shadow-[0_18px_45px_rgba(37,99,235,0.08)] backdrop-blur transition hover:border-blue-200 hover:shadow-[0_24px_60px_rgba(37,99,235,0.14)]"
+            >
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-start gap-4">
+                        <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-600/25">
+                            <Target size={25} />
+                        </span>
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-600">Sales Pipeline</p>
+                            <h2 className="mt-1 text-2xl font-black text-slate-950">Open Pipeline Board</h2>
+                            <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
+                                Click here to view and drag deals across New, Qualified, Proposal, Negotiation, Won and Lost stages.
+                            </p>
+                            <span className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition group-hover:bg-blue-700">
+                                Open Pipeline Board
+                                <ArrowRight size={17} />
+                            </span>
+                        </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[520px]">
+                        {[
+                            { label: "Open deals", value: formatNumber(totalLeads) },
+                            { label: "Pipeline value", value: formatCurrency(pipelineValue) },
+                            { label: "Forecast", value: formatCurrency(pipelineForecast) },
+                        ].map((item) => (
+                            <div key={item.label} className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                                <p className="text-[12px] font-bold uppercase tracking-wide text-slate-400">{item.label}</p>
+                                <p className="mt-1 truncate text-xl font-black text-slate-950">{item.value}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <span className="hidden size-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 transition group-hover:translate-x-1 lg:flex">
+                        <ArrowRight size={21} />
+                    </span>
+                </div>
+            </motion.button>
 
             <section className="grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
                 <Widget title="Monthly Revenue" subtitle={`Monthly revenue performance for ${currentYear}`} icon={Activity}>

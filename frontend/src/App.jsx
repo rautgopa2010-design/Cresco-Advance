@@ -37,6 +37,7 @@ import CreateEnquiry from "./routes/master/enquiry/CreateEnquiry";
 import EditEnquiry from "./routes/master/enquiry/EditEnquiry";
 import ViewEnquiry from "./routes/master/enquiry/ViewEnquiry";
 import Leads from "./routes/leads/Leads";
+import LeadPipeline from "./routes/leads/LeadPipeline";
 import CreateLeads from "./routes/leads/CreateLeads";
 import EditLeads from "./routes/leads/EditLeads";
 import ViewLeads from "./routes/leads/ViewLeads";
@@ -587,6 +588,15 @@ function AppRoutes() {
                                               <PermissionRoute
                                                   moduleName="Leads"
                                                   element={<Leads />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "leads/pipeline",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Leads"
+                                                  element={<LeadPipeline />}
                                               />
                                           ),
                                       },

@@ -32,6 +32,17 @@ router.put(
   leadController.updateLead
 );
 
+router.patch(
+  "/pipeline/:lead_id",
+  auth,
+  checkPermission("leads_edit"),
+  [
+    check("leadStage", "Lead stage is required").notEmpty(),
+    check("leadStatus", "Lead status is required").notEmpty(),
+  ],
+  leadController.updateLeadPipeline
+);
+
 router.delete(
   "/:lead_id",
   auth,

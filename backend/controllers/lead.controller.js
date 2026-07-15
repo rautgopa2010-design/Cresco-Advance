@@ -723,6 +723,45 @@ exports.deleteLead = async (req, res) => {
   }
 };
 
+exports.updateLeadPipeline = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return sendErrorResponse(res, 400, errors.array()[0].msg);
+  }
+
+  const { lead_id } = req.params;
+  const { leadStage, leadStatus } = req.body;
+  const org_id = req.user.org_id;
+
+  try {
+    const lead = await Lead.findOne({ where: { id: lead_id, org_id } });
+    if (!lead) return sendErrorResponse(res, 404, "Lead not found");
+
+    await lead.update({ leadStage, leadStatus });
+
+    const latestFollowup = await Followup.findOne({
+      where: { lead_id },
+      order: [["createdAt", "DESC"]],
+    });
+
+    if (latestFollowup) {
+      await latestFollowup.update({ leadStage, leadStatus });
+    }
+
+    return res.status(200).json({
+      message: "Pipeline stage updated successfully",
+      lead: {
+        id: lead.id,
+        leadStage,
+        leadStatus,
+      },
+    });
+  } catch (error) {
+    console.error("Update Lead Pipeline Error:", error);
+    return sendErrorResponse(res, 500, "Failed to update pipeline stage");
+  }
+};
+
 exports.deleteLeadFile = async (req, res) => {
   const { lead_id, filename } = req.params;
 

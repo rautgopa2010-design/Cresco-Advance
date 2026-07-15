@@ -99,6 +99,7 @@ export const adminNavbarLinks = [
                 defaultOpen: false,
                 children: [
                     { label: "Leads", path: "/leads", icon: Dot },
+                    { label: "Pipeline", path: "/leads/pipeline", icon: Dot },
                     { label: "API Leads", path: "/api-leads", icon: Dot },
                 ],
             },

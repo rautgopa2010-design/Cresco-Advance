@@ -64,6 +64,24 @@ export const updateLead = (lead_id, formData) => async (dispatch) => {
   }
 };
 
+export const updateLeadPipeline = (lead_id, data) => async (dispatch) => {
+  dispatch({ type: LEAD_LOADING });
+  try {
+    const res = await api.patch(`/lead/pipeline/${lead_id}`, data);
+    dispatch({ type: UPDATE_LEAD, payload: { lead_id, formData: data } });
+    dispatch({ type: LEAD_SUCCESS, payload: res.data.message });
+    return res.data;
+  } catch (err) {
+    console.error("Update Lead Pipeline Error:", err);
+    const message =
+      err.response?.data?.errors?.[0]?.msg ||
+      err.response?.data?.message ||
+      "Failed to update pipeline stage";
+    dispatch({ type: LEAD_ERROR, payload: message });
+    throw err;
+  }
+};
+
 export const deleteLead = (lead_id) => async (dispatch) => {
   dispatch({ type: LEAD_LOADING });
   try {
