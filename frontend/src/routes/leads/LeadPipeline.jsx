@@ -147,6 +147,14 @@ const LeadPipeline = () => {
                         <p className="mt-1 text-sm font-semibold text-slate-500">Drag a deal card to update its opportunity stage.</p>
                     </div>
                     <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+                        <button
+                            type="button"
+                            onClick={() => navigate("/leads/opportunities")}
+                            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700"
+                        >
+                            Manage Opportunities
+                            <ArrowRight size={17} />
+                        </button>
                         <div className="relative min-w-0 flex-1 lg:w-[360px]">
                             <Search
                                 size={18}
