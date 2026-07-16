@@ -583,6 +583,169 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                 })}
             </section>
 
+            <section className="grid gap-4 xl:grid-cols-3">
+                {[
+                    {
+                        title: "Pipeline Health",
+                        subtitle: "Track open deals by stage",
+                        value: formatNumber(totalLeads),
+                        label: "Open deals",
+                        detail: `${formatCurrency(pipelineValue)} total pipeline`,
+                        icon: Target,
+                        path: "/leads/pipeline",
+                        tone: "from-blue-600 to-indigo-700",
+                    },
+                    {
+                        title: "Opportunity Focus",
+                        subtitle: "Manage deal owners and next steps",
+                        value: formatNumber(totalLeads + totalQuotations),
+                        label: "Active opportunities",
+                        detail: "Review deal status and follow-up priority",
+                        icon: ClipboardList,
+                        path: "/leads/opportunities",
+                        tone: "from-violet-600 to-purple-700",
+                    },
+                    {
+                        title: "Revenue Forecast",
+                        subtitle: "Weighted forecast by pipeline stage",
+                        value: formatCurrency(pipelineForecast),
+                        label: "Expected revenue",
+                        detail: `${formatCurrency(currentMonthRevenue)} achieved this month`,
+                        icon: TrendingUp,
+                        path: "/leads/revenue-forecast",
+                        tone: "from-emerald-500 to-teal-700",
+                    },
+                ].map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <motion.button
+                            key={item.title}
+                            type="button"
+                            whileHover={{ y: -5 }}
+                            whileTap={{ scale: 0.99 }}
+                            onClick={() => navigate(item.path)}
+                            className="group overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-5 text-left shadow-[0_18px_45px_rgba(15,23,42,0.07)] backdrop-blur transition hover:shadow-[0_24px_60px_rgba(15,23,42,0.13)]"
+                        >
+                            <div className="flex items-start justify-between gap-4">
+                                <span className={`flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${item.tone} text-white shadow-lg`}>
+                                    <Icon size={24} />
+                                </span>
+                                <span className="flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+                                    Open
+                                    <ArrowRight size={13} className="transition group-hover:translate-x-1" />
+                                </span>
+                            </div>
+                            <p className="mt-5 text-xs font-black uppercase tracking-[0.18em] text-slate-400">{item.subtitle}</p>
+                            <h2 className="mt-1 text-xl font-black text-slate-950">{item.title}</h2>
+                            <p className="mt-4 text-[34px] font-black leading-none text-slate-950">{item.value}</p>
+                            <p className="mt-1 text-sm font-bold text-slate-500">{item.label}</p>
+                            <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">{item.detail}</p>
+                        </motion.button>
+                    );
+                })}
+            </section>
+
+            <section className="grid gap-6 xl:grid-cols-[1.25fr_.75fr]">
+                <Widget title="Revenue Snapshot" subtitle={`Monthly revenue performance for ${currentYear}`} icon={Activity}>
+                    {hasRevenueData ? (
+                        <Chart
+                            options={{
+                                ...chartBase,
+                                colors: ["#2563EB"],
+                                stroke: { curve: "smooth", width: 4 },
+                                fill: { type: "gradient", gradient: { opacityFrom: 0.35, opacityTo: 0.04 } },
+                                tooltip: { y: { formatter: (value) => formatCurrency(value) } },
+                            }}
+                            series={[{ name: "Revenue", data: revenueSeries }]}
+                            type="area"
+                            height={255}
+                        />
+                    ) : (
+                        <EmptyState compact icon={IndianRupee} title="Revenue chart will appear after first order." message="Once an order is created, monthly revenue trends and forecasting will appear here." actionLabel="Create order" onAction={() => navigate("/orders")} />
+                    )}
+                </Widget>
+
+                <Widget title="Needs Attention" subtitle="Only items that require action" icon={TriangleAlert}>
+                    <div className="space-y-3">
+                        {attentionItems.slice(0, 4).map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <button key={item.label} onClick={() => navigate(item.path)} className={`flex w-full items-center justify-between rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${item.tone}`}>
+                                    <span className="flex items-center gap-3">
+                                        <span className="flex size-10 items-center justify-center rounded-xl bg-white/80 shadow-sm">
+                                            <Icon size={19} />
+                                        </span>
+                                        <span className="text-sm font-extrabold">{item.label}</span>
+                                    </span>
+                                    <span className="text-2xl font-extrabold">{formatNumber(item.value)}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </Widget>
+            </section>
+
+            <section className="grid gap-6 xl:grid-cols-3">
+                <Widget title="Sales Funnel" subtitle="Enquiries to orders" icon={Target}>
+                    <div className="space-y-4">
+                        {funnelData.map((item) => (
+                            <div key={item.label}>
+                                <div className="mb-2 flex items-center justify-between text-sm">
+                                    <span className="font-bold text-slate-700">{item.label}</span>
+                                    <span className="font-extrabold text-slate-900">{formatNumber(item.value)}</span>
+                                </div>
+                                <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                                    <div className={`h-full rounded-full ${item.color} transition-all duration-700`} style={{ width: `${Math.max((item.value / maxFunnel) * 100, item.value ? 12 : 4)}%` }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Widget>
+
+                <Widget title="Lead Sources" subtitle="Where opportunities are coming from" icon={UsersRound}>
+                    {leadSources.length ? (
+                        <Chart
+                            options={{
+                                chart: { toolbar: { show: false }, animations: { enabled: true } },
+                                labels: leadSources.map((item) => item.leadSource || "Other"),
+                                colors: palette,
+                                legend: { position: "bottom", fontSize: "13px" },
+                                dataLabels: { enabled: false },
+                                plotOptions: { pie: { donut: { size: "70%", labels: { show: true, total: { show: true, label: "Leads", formatter: () => formatNumber(totalLeadSourceCount) } } } } },
+                            }}
+                            series={leadSources.map((item) => item.count_leads)}
+                            type="donut"
+                            height={230}
+                        />
+                    ) : (
+                        <EmptyState compact icon={UsersRound} title="No lead-source data yet." message="Create your first lead to begin tracking acquisition channels." actionLabel="Go to leads" onAction={() => navigate("/leads")} />
+                    )}
+                </Widget>
+
+                <Widget title="Weekly Performance" subtitle="Current CRM activity pulse" icon={CheckCircle2}>
+                    {weekData.some((value) => value > 0) ? (
+                        <Chart
+                            options={{
+                                chart: { type: "area", toolbar: { show: false }, animations: { enabled: true } },
+                                colors: ["#8B5CF6"],
+                                stroke: { curve: "smooth", width: 3 },
+                                fill: { type: "gradient", gradient: { opacityFrom: 0.28, opacityTo: 0.04 } },
+                                xaxis: { categories: ["Due", "Missed", "Quotes", "Orders", "Overdue", "Leads", "Customers"] },
+                                dataLabels: { enabled: false },
+                                grid: { borderColor: "#E2E8F0", strokeDashArray: 5 },
+                            }}
+                            series={[{ name: "Activity", data: weekData }]}
+                            type="area"
+                            height={230}
+                        />
+                    ) : (
+                        <EmptyState compact icon={CheckCircle2} title="No weekly activity yet." message="This summary will appear after leads, quotations, orders, or followups are created." actionLabel="Open reports" onAction={() => navigate("/reports")} />
+                    )}
+                </Widget>
+            </section>
+
+            {false && (
+            <>
             <motion.button
                 type="button"
                 initial={{ opacity: 0, y: 14 }}
@@ -880,6 +1043,8 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                     </div>
                 </div>
             </section>
+            </>
+            )}
             <div className="fixed bottom-6 right-6 z-40">
                 <div className="group relative">
                     <button className="flex size-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_18px_45px_rgba(37,99,235,0.35)] transition hover:-translate-y-1 hover:bg-blue-700 active:scale-95">

@@ -155,6 +155,13 @@ const LeadPipeline = () => {
                             Manage Opportunities
                             <ArrowRight size={17} />
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => navigate("/leads/revenue-forecast")}
+                            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        >
+                            Revenue Forecast
+                        </button>
                         <div className="relative min-w-0 flex-1 lg:w-[360px]">
                             <Search
                                 size={18}

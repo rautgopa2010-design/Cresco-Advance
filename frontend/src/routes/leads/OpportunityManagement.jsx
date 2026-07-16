@@ -149,6 +149,13 @@ const OpportunityManagement = () => {
                         </button>
                         <button
                             type="button"
+                            onClick={() => navigate("/leads/revenue-forecast")}
+                            className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white backdrop-blur transition hover:bg-white/15"
+                        >
+                            Revenue Forecast
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => navigate("/leads/create-leads")}
                             className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white backdrop-blur transition hover:bg-white/15"
                         >

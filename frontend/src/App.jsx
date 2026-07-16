@@ -39,6 +39,7 @@ import ViewEnquiry from "./routes/master/enquiry/ViewEnquiry";
 import Leads from "./routes/leads/Leads";
 import LeadPipeline from "./routes/leads/LeadPipeline";
 import OpportunityManagement from "./routes/leads/OpportunityManagement";
+import RevenueForecasting from "./routes/leads/RevenueForecasting";
 import CreateLeads from "./routes/leads/CreateLeads";
 import EditLeads from "./routes/leads/EditLeads";
 import ViewLeads from "./routes/leads/ViewLeads";
@@ -607,6 +608,15 @@ function AppRoutes() {
                                               <PermissionRoute
                                                   moduleName="Leads"
                                                   element={<OpportunityManagement />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "leads/revenue-forecast",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Leads"
+                                                  element={<RevenueForecasting />}
                                               />
                                           ),
                                       },
