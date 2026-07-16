@@ -40,6 +40,8 @@ import Leads from "./routes/leads/Leads";
 import LeadPipeline from "./routes/leads/LeadPipeline";
 import OpportunityManagement from "./routes/leads/OpportunityManagement";
 import RevenueForecasting from "./routes/leads/RevenueForecasting";
+import Automation from "./routes/leads/Automation";
+import AiSuggestions from "./routes/leads/AiSuggestions";
 import CreateLeads from "./routes/leads/CreateLeads";
 import EditLeads from "./routes/leads/EditLeads";
 import ViewLeads from "./routes/leads/ViewLeads";
@@ -617,6 +619,24 @@ function AppRoutes() {
                                               <PermissionRoute
                                                   moduleName="Leads"
                                                   element={<RevenueForecasting />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "leads/automation",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Leads"
+                                                  element={<Automation />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "leads/ai-suggestions",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Leads"
+                                                  element={<AiSuggestions />}
                                               />
                                           ),
                                       },

@@ -25,6 +25,7 @@ module.exports = (sequelize, DataTypes) => {
           'followup_reminder',
           'todays_followup',
           'missed_followup',
+          'followup_completed',
           'employee_created',
           'employee_deleted',
           'employee_role_changed',
@@ -42,7 +43,10 @@ module.exports = (sequelize, DataTypes) => {
           'order_created',
           'invoice_created',
           'password_changed',
-          'login_alert'
+          'login_alert',
+          'stale_deal_alert',
+          'auto_stage_suggestion',
+          'automation_digest'
         ),
         allowNull: false
       },

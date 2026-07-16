@@ -583,7 +583,7 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                 })}
             </section>
 
-            <section className="grid gap-4 xl:grid-cols-3">
+            <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
                 {[
                     {
                         title: "Pipeline Health",
@@ -614,6 +614,26 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                         icon: TrendingUp,
                         path: "/leads/revenue-forecast",
                         tone: "from-emerald-500 to-teal-700",
+                    },
+                    {
+                        title: "Automation",
+                        subtitle: "Smart reminders and alerts",
+                        value: formatNumber(followupDueToday + missedFollowups + totalLeads),
+                        label: "Signals monitored",
+                        detail: "Follow-up reminders, stale deals, and stage suggestions",
+                        icon: Zap,
+                        path: "/leads/automation",
+                        tone: "from-amber-500 to-orange-700",
+                    },
+                    {
+                        title: "AI Suggestions",
+                        subtitle: "Risk and next actions",
+                        value: formatNumber(totalLeads),
+                        label: "Deals analyzed",
+                        detail: "Deal risk, next action, follow-up, and probability guidance",
+                        icon: Sparkles,
+                        path: "/leads/ai-suggestions",
+                        tone: "from-fuchsia-600 to-violet-700",
                     },
                 ].map((item) => {
                     const Icon = item.icon;

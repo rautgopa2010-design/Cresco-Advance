@@ -1,6 +1,7 @@
 require("dotenv").config();
 require("./cron/checkSubscriptionExpiry");
 require("./cron/followupReminders");
+require("./cron/salesAutomation");
 const cors = require("cors");
 const express = require("express");
 const app = express();
@@ -107,6 +108,10 @@ const tAndCAndDecRoutes = require("./routes/tAndCAndDec.routes");
 app.use("/api/t-and-c-and-dec", tAndCAndDecRoutes);
 const platformConfigRoutes = require("./routes/platformConfig.routes");
 app.use("/api/platform-config", platformConfigRoutes);
+const automationRoutes = require("./routes/automation.routes");
+app.use("/api/automation", automationRoutes);
+const aiSuggestionsRoutes = require("./routes/aiSuggestions.routes");
+app.use("/api/ai-suggestions", aiSuggestionsRoutes);
 
 // ✅ Serve static uploads folder
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

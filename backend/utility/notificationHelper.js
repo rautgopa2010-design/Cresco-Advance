@@ -48,6 +48,11 @@ const NOTIFICATION_TYPES = {
     QUOTATION_CREATED: 'quotation_created',
     ORDER_CREATED: 'order_created',
     INVOICE_CREATED: 'invoice_created',
+
+    // Automation
+    STALE_DEAL_ALERT: 'stale_deal_alert',
+    AUTO_STAGE_SUGGESTION: 'auto_stage_suggestion',
+    AUTOMATION_DIGEST: 'automation_digest',
 };
 
 /**
