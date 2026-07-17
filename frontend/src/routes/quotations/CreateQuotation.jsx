@@ -1426,9 +1426,11 @@ useEffect(() => {
     };
 
     const buildProductSuggestions = (rows = product) =>
-        rows.flatMap((prod) =>
-            Array.isArray(prod.product)
-                ? prod.product.map((pName) => ({
+        rows.flatMap((prod) => {
+            const productNames = Array.isArray(prod.product) ? prod.product : prod.product ? [prod.product] : [];
+            return productNames
+                .filter(Boolean)
+                .map((pName) => ({
                       name: pName,
                       label: [pName, prod.brand, prod.productCategoryName, prod.productSubCategoryName].filter(Boolean).join(" / "),
                       productBrand: prod.brand || "",
@@ -1436,11 +1438,10 @@ useEffect(() => {
                       productSubCategory: prod.productSubCategoryName || "",
                       hsnCode: prod.hsnCode,
                       description: prod.description,
-                      unit: prod.productUnitName,
+                      unit: prod.productUnitName || prod.productUnit || prod.unit || "",
                       productPrice: prod.productPrice,
-                  }))
-                : [],
-        );
+                  }));
+        });
 
     const getProductOptions = () => {
         const base =
@@ -1503,20 +1504,21 @@ useEffect(() => {
                         item.productSubCategoryName === value,
                 );
 
-                const formatted = matchedProducts.flatMap((prod) =>
-                    Array.isArray(prod.product)
-                        ? prod.product.map((pName) => ({
+                const formatted = matchedProducts.flatMap((prod) => {
+                    const productNames = Array.isArray(prod.product) ? prod.product : prod.product ? [prod.product] : [];
+                    return productNames
+                        .filter(Boolean)
+                        .map((pName) => ({
                               name: pName,
                               productBrand: prod.brand || "",
                               productCategory: prod.productCategoryName || "",
                               productSubCategory: prod.productSubCategoryName || "",
                               hsnCode: prod.hsnCode,
                               description: prod.description,
-                              unit: prod.productUnitName,
+                              unit: prod.productUnitName || prod.productUnit || prod.unit || "",
                               productPrice: prod.productPrice,
-                          }))
-                        : [],
-                );
+                          }));
+                });
 
                 setFilteredProducts(formatted);
                 updatedForm.product = "";
@@ -1939,6 +1941,7 @@ useEffect(() => {
             discount: "",
             total: "",
         }));
+        setProductSearch("");
     };
 
     const handleResetProductDetails = () => {
@@ -2748,10 +2751,10 @@ useEffect(() => {
                             />
                             <Autocomplete
                                 disablePortal
+                                openOnFocus
                                 options={getProductOptions()}
                                 filterOptions={filterProductSuggestions}
                                 autoHighlight
-                                open={productSearch.trim().length > 0 && productSearch !== form.product}
                                 inputValue={productSearch}
                                 onInputChange={(event, newInputValue, reason) => {
                                     if (reason === "input") setProductSearch(newInputValue);
@@ -2759,7 +2762,7 @@ useEffect(() => {
                                 }}
                                 noOptionsText="No matching product found"
                                 getOptionLabel={(option) => (typeof option === "string" ? option : option?.name || "")}
-                                isOptionEqualToValue={(option, value) => option?.name === value?.name}
+                                isOptionEqualToValue={(option, value) => option?.name === (typeof value === "string" ? value : value?.name)}
                                 value={getProductOptions().find((prod) => prod.name === form.product) || null}
                                 onChange={(e, newValue) => handleChange("product")({ target: { value: newValue?.name || "", option: newValue } })}
                                 renderOption={(props, option) => (
@@ -2814,9 +2817,7 @@ useEffect(() => {
                                 fullWidth
                                 size="small"
                                 sx={{ flex: 1 }}
-                                InputProps={{
-                                    readOnly: true,
-                                }}
+                                helperText={!form.unit ? "Select a product or enter unit manually" : ""}
                             />
 
                             <TextField

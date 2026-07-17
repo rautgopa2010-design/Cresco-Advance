@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@material-tailwind/react";
-import { PencilLine, Trash, UserPlus, X } from "lucide-react";
+import { ListChecks, PencilLine, Plus, ShieldCheck, Tags, Trash, X } from "lucide-react";
 import { Modal, Box, Typography, IconButton, TextField, Snackbar, Alert, useMediaQuery, CircularProgress } from "@mui/material";
 import { getTicketService, createTicketService, updateTicketService, deleteTicketService } from "../../redux/actions/ticketService";
 import { clearSnackbar } from "../../redux/actions/commonActions";
@@ -23,7 +23,7 @@ const TicketService = () => {
     const { snackbarMessage, snackbarSeverity } = useSelector((state) => state.ticketService);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-    const ticketServiceList = useSelector((state) => state.ticketService.ticketService);
+    const ticketServiceList = useSelector((state) => state.ticketService.ticketService) || [];
 
     useEffect(() => {
         dispatch(clearSnackbar());
@@ -149,52 +149,86 @@ const TicketService = () => {
                     <CircularProgress />
                 </div>
             ) : (
-                <div className="card">
-                    <div className="flex items-center justify-between text-nowrap">
-                        <div className="text-base font-semibold text-[#433C50] md:text-lg lg:text-lg">Ticket Service :</div>
-                        <Button
-                            variant="gradient"
-                            className="flex items-center gap-2 rounded-full bg-[#053054] px-3 py-2 text-sm capitalize md:text-base lg:text-base"
-                            onClick={handleOpen}
-                        >
-                            <UserPlus size={20} />
-                            Create Ticket Service
-                        </Button>
+                <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+                    <div className="border-b border-slate-100 bg-gradient-to-br from-blue-50 via-white to-slate-50 p-5 md:p-6">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="flex items-start gap-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-200">
+                                    <Tags size={26} />
+                                </div>
+                                <div>
+                                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
+                                        <ShieldCheck size={13} />
+                                        Help Desk Master
+                                    </div>
+                                    <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900">Ticket Service</h2>
+                                    <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-500">
+                                        Manage the service categories used while creating and organizing support tickets.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div className="rounded-2xl border border-blue-100 bg-white px-4 py-3 shadow-sm">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Services</p>
+                                    <p className="text-2xl font-black text-blue-700">{ticketServiceList.length}</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="inline-flex items-center gap-2 rounded-full bg-[#053054] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-slate-300/60 transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#07436f] hover:shadow-xl md:text-base"
+                                    onClick={handleOpen}
+                                >
+                                    <Plus size={20} />
+                                    Create Ticket Service
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="card-body p-0">
-                        <div className="relative w-full flex-shrink-0 overflow-auto rounded-none [scrollbar-width:_thin]">
-                            <table className="table">
-                                <thead className="table-header text-nowrap bg-[#053054] text-white">
-                                    <tr className="table-row">
-                                        <th className="table-head border border-gray-300 capitalize">Sr. No.</th>
-                                        <th className="table-head border border-gray-300 capitalize">Ticket Service</th>
-                                        <th className="table-head border border-gray-300 capitalize">Date</th>
-                                        <th className="table-head border border-gray-300 capitalize">Action</th>
+                    <div className="p-5 md:p-6">
+                        <div className="mb-4 flex items-center justify-between">
+                            <div>
+                                <p className="text-base font-bold text-slate-900">Service Catalogue</p>
+                                <p className="text-sm text-slate-500">Create, update, or remove ticket service labels.</p>
+                            </div>
+                        </div>
+
+                        <div className="relative w-full flex-shrink-0 overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm [scrollbar-width:_thin]">
+                            <table className="min-w-full">
+                                <thead className="bg-[#053054] text-white">
+                                    <tr>
+                                        <th className="border-r border-white/10 px-5 py-4 text-left text-sm font-bold">Sr. No.</th>
+                                        <th className="border-r border-white/10 px-5 py-4 text-left text-sm font-bold">Ticket Service</th>
+                                        <th className="border-r border-white/10 px-5 py-4 text-left text-sm font-bold">Date</th>
+                                        <th className="px-5 py-4 text-left text-sm font-bold">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="table-body text-[#433C50]">
+                                <tbody className="divide-y divide-slate-100 text-slate-700">
                                     {ticketServiceList.map((ticketService, index) => (
                                         <tr
-                                            className="table-row"
+                                            className="transition-colors hover:bg-blue-50/50"
                                             key={index}
                                         >
-                                            <td className="table-cell border border-gray-300">{index + 1}</td>
-                                            <td className="table-cell border border-gray-300">{ticketService.ticketService}</td>
-                                            <td className="table-cell border border-gray-300">{ticketService.date}</td>
-                                            <td className="table-cell border border-gray-300">
-                                                <div className="flex items-center gap-x-4">
+                                            <td className="px-5 py-4 text-sm font-semibold text-slate-500">{index + 1}</td>
+                                            <td className="px-5 py-4">
+                                                <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700">
+                                                    <ListChecks size={15} />
+                                                    {ticketService.ticketService}
+                                                </span>
+                                            </td>
+                                            <td className="px-5 py-4 text-sm font-medium text-slate-500">{ticketService.date}</td>
+                                            <td className="px-5 py-4">
+                                                <div className="flex items-center gap-x-2">
                                                     <button
-                                                        className="text-blue-500"
+                                                        className="rounded-xl border border-blue-100 bg-blue-50 p-2 text-blue-600 transition-all hover:-translate-y-0.5 hover:bg-blue-600 hover:text-white"
                                                         onClick={() => handleEdit(ticketService)}
                                                     >
-                                                        <PencilLine size={20} />
+                                                        <PencilLine size={18} />
                                                     </button>
                                                     <button
-                                                        className="text-red-500"
+                                                        className="rounded-xl border border-red-100 bg-red-50 p-2 text-red-600 transition-all hover:-translate-y-0.5 hover:bg-red-600 hover:text-white"
                                                         onClick={() => handleDeleteClick(ticketService.id)}
                                                     >
-                                                        <Trash size={20} />
+                                                        <Trash size={18} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -204,9 +238,25 @@ const TicketService = () => {
                                         <tr>
                                             <td
                                                 colSpan="4"
-                                                className="py-4 text-center text-gray-400"
+                                                className="px-6 py-12 text-center"
                                             >
-                                                No Ticket Service Added Yet.
+                                                <div className="mx-auto flex max-w-sm flex-col items-center">
+                                                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                                                        <Tags size={28} />
+                                                    </div>
+                                                    <p className="text-base font-bold text-slate-900">No ticket service added yet</p>
+                                                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                                                        Add services like Technical Support, Billing, Implementation, or Customer Success.
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleOpen}
+                                                        className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#053054] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-slate-300/70"
+                                                    >
+                                                        <Plus size={16} />
+                                                        Add service
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     )}
@@ -223,10 +273,10 @@ const TicketService = () => {
                 onClose={handleClose}
             >
                 <Box sx={modalStyle}>
-                    <div className="mb-4 flex items-center justify-between">
+                    <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-3">
                         <Typography
                             variant="h6"
-                            className="font-semibold"
+                            className="font-bold text-slate-900"
                         >
                             {isEditMode ? "Update Ticket Service" : "Add Ticket Service"}
                         </Typography>
@@ -248,24 +298,24 @@ const TicketService = () => {
                         }}
                     />
 
-                    <div className="mt-4 flex justify-end gap-2">
+                    <div className="mt-5 flex justify-end gap-2">
                         <Button
                             variant="outlined"
-                            className="rounded border border-[#433C50] px-4 py-2 capitalize text-[#433C50]"
+                            className="rounded-lg border border-slate-300 px-4 py-2 capitalize text-slate-700"
                             onClick={handleClose}
                         >
                             Close
                         </Button>
                         {isEditMode ? (
                             <Button
-                                className="rounded bg-green-900 px-4 py-2 capitalize text-white"
+                                className="rounded-lg bg-green-700 px-4 py-2 capitalize text-white"
                                 onClick={handleUpdate}
                             >
                                 Update
                             </Button>
                         ) : (
                             <Button
-                                className="rounded bg-[#053054] px-4 py-2 capitalize text-white"
+                                className="rounded-lg bg-[#053054] px-4 py-2 capitalize text-white"
                                 onClick={handleAdd}
                             >
                                 Add

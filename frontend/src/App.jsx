@@ -42,6 +42,7 @@ import OpportunityManagement from "./routes/leads/OpportunityManagement";
 import RevenueForecasting from "./routes/leads/RevenueForecasting";
 import Automation from "./routes/leads/Automation";
 import AiSuggestions from "./routes/leads/AiSuggestions";
+import EmailInbox from "./routes/leads/EmailInbox";
 import CreateLeads from "./routes/leads/CreateLeads";
 import EditLeads from "./routes/leads/EditLeads";
 import ViewLeads from "./routes/leads/ViewLeads";
@@ -637,6 +638,15 @@ function AppRoutes() {
                                               <PermissionRoute
                                                   moduleName="Leads"
                                                   element={<AiSuggestions />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "leads/email-inbox",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Leads"
+                                                  element={<EmailInbox />}
                                               />
                                           ),
                                       },

@@ -104,6 +104,7 @@ export const adminNavbarLinks = [
                     { label: "Revenue Forecast", path: "/leads/revenue-forecast", icon: Dot },
                     { label: "Automation", path: "/leads/automation", icon: Dot },
                     { label: "AI Suggestions", path: "/leads/ai-suggestions", icon: Dot },
+                    { label: "Email Inbox", path: "/leads/email-inbox", icon: Dot },
                     { label: "API Leads", path: "/api-leads", icon: Dot },
                 ],
             },
