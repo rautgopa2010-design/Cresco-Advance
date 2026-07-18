@@ -56,8 +56,10 @@ import axios from "axios";
 import store from "../redux/store";
 import { USER_LOGOUT } from "../redux/types";
 
-export const API_BASE_URL = "http://localhost:8200/api";
-export const IMAGE_BASE_URL = "http://localhost:8200";
+const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:8200").replace(/\/api\/?$/, "").replace(/\/$/, "");
+
+export const API_BASE_URL = `${API_ORIGIN}/api`;
+export const IMAGE_BASE_URL = API_ORIGIN;
 
 // export const API_BASE_URL = "https://crescosoft.com/api";
 // export const IMAGE_BASE_URL = "https://crescosoft.com";

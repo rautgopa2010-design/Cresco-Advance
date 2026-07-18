@@ -195,7 +195,7 @@ const LeadPipeline = () => {
                     ))}
                 </div>
             ) : (
-                <div className="grid gap-4 overflow-x-auto pb-2 lg:grid-cols-3 xl:grid-cols-6">
+                <div className="flex gap-4 overflow-x-auto pb-2">
                     {PIPELINE_STAGES.map((stage) => {
                         const stageLeads = leadsByStage[stage.key] || [];
                         const stageValue = stageLeads.reduce((sum, lead) => sum + numberValue(lead.expectedAmount), 0);
@@ -206,21 +206,21 @@ const LeadPipeline = () => {
                                 key={stage.key}
                                 onDragOver={(event) => event.preventDefault()}
                                 onDrop={() => handleDrop(stage.key)}
-                                className={`flex min-h-[560px] min-w-[260px] flex-col rounded-3xl border ${stage.border} bg-slate-50/80 p-3 shadow-lg shadow-slate-200/70`}
+                                className={`flex min-h-[560px] w-[260px] shrink-0 flex-col rounded-3xl border ${stage.border} bg-slate-50/80 p-3 shadow-lg shadow-slate-200/70`}
                             >
                                 <div className={`rounded-2xl bg-gradient-to-r ${stage.color} p-4 text-white shadow-lg`}>
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-base font-black">{stage.key}</h3>
+                                        <h3 className="truncate text-base font-black">{stage.key}</h3>
                                         <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-black">{stage.probability}%</span>
                                     </div>
                                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold text-white/85">
-                                        <div>
+                                        <div className="min-w-0">
                                             <p>Deals</p>
                                             <p className="text-xl font-black text-white">{stageLeads.length}</p>
                                         </div>
-                                        <div>
+                                        <div className="min-w-0">
                                             <p>Forecast</p>
-                                            <p className="text-xl font-black text-white">{formatCurrency(forecastValue)}</p>
+                                            <p className="truncate text-xl font-black text-white">{formatCurrency(forecastValue)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -250,23 +250,23 @@ const LeadPipeline = () => {
                                                         />
                                                     </div>
 
-                                                    <div className="mt-4 rounded-2xl bg-blue-50 p-3">
+                                                    <div className="mt-4 min-w-0 rounded-2xl bg-blue-50 p-3">
                                                         <p className="text-xs font-bold uppercase tracking-wide text-blue-500">Expected amount</p>
-                                                        <p className="mt-1 text-xl font-black text-slate-950">{formatCurrency(lead.expectedAmount)}</p>
+                                                        <p className="mt-1 truncate text-xl font-black text-slate-950">{formatCurrency(lead.expectedAmount)}</p>
                                                     </div>
 
                                                     <div className="mt-4 space-y-2 text-xs font-semibold text-slate-600">
-                                                        <p className="flex items-center gap-2">
-                                                            <UserRound size={14} />
-                                                            {getAssignedName(lead)}
+                                                        <p className="flex min-w-0 items-center gap-2">
+                                                            <UserRound size={14} className="shrink-0" />
+                                                            <span className="truncate">{getAssignedName(lead)}</span>
                                                         </p>
-                                                        <p className="flex items-center gap-2">
-                                                            <CalendarDays size={14} />
-                                                            Close: {formatDate(lead.expectedClosingDate)}
+                                                        <p className="flex min-w-0 items-center gap-2">
+                                                            <CalendarDays size={14} className="shrink-0" />
+                                                            <span className="truncate">Close: {formatDate(lead.expectedClosingDate)}</span>
                                                         </p>
-                                                        <p className="flex items-center gap-2">
-                                                            <AlertCircle size={14} />
-                                                            Followup: {formatDate(latestFollowup?.nextFollowUpDate || lead.followupDate)}
+                                                        <p className="flex min-w-0 items-center gap-2">
+                                                            <AlertCircle size={14} className="shrink-0" />
+                                                            <span className="truncate">Followup: {formatDate(latestFollowup?.nextFollowUpDate || lead.followupDate)}</span>
                                                         </p>
                                                     </div>
 
