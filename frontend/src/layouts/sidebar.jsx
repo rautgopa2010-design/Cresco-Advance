@@ -10,13 +10,22 @@ import { IMAGE_BASE_URL } from "@/utils/api";
 import { getCompanySetup } from "../redux/actions/companySetup";
 import { clearSnackbar } from "../redux/actions/commonActions";
 import { useDispatch, useSelector } from "react-redux";
-import { BarChart3, BriefcaseBusiness, ChevronDown, Circle, CreditCard, FileText, Home, Landmark, Layers3, LayoutDashboard, ReceiptText, Settings, Target, UserRound, UsersRound } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, ChevronDown, Circle, CreditCard, FileText, Home, Landmark, Layers3, LayoutDashboard, Mail, MessageCircle, PhoneCall, ReceiptText, Settings, Target, TrendingUp, UserRound, UsersRound } from "lucide-react";
 
 const iconByLabel = {
     Dashboard: LayoutDashboard,
     Enquiries: UserRound,
     Leads: BarChart3,
     "API Leads": BarChart3,
+    Deals: BriefcaseBusiness,
+    Pipeline: BarChart3,
+    Opportunities: Target,
+    "Revenue Forecast": TrendingUp,
+    "Lead Scoring": TrendingUp,
+    Engagement: Mail,
+    "Email Inbox": Mail,
+    "Call Center": PhoneCall,
+    WhatsApp: MessageCircle,
     Followup: Target,
     Quotations: FileText,
     Orders: BriefcaseBusiness,
@@ -31,7 +40,8 @@ const iconByLabel = {
     Master: Layers3,
 };
 
-const salesLabels = new Set(["Dashboard", "Enquiries", "Leads", "Customer", "Followup", "Quotations"]);
+const salesLabels = new Set(["Dashboard", "Enquiries", "Leads", "Deals", "Customer", "Followup", "Quotations"]);
+const engagementLabels = new Set(["Engagement"]);
 const operationsLabels = new Set(["Orders", "Payment", "Vendor", "Invoice", "Reports", "Analytics", "Incentive"]);
 
 const cloneWithIcon = (item) => ({
@@ -118,6 +128,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
 
         const sections = {
             SALES: [],
+            ENGAGEMENT: [],
             OPERATIONS: [],
             MASTER: [],
             SETTINGS: [],
@@ -162,6 +173,11 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
 
                 if (salesLabels.has(link.label)) {
                     sections.SALES.push(link);
+                    return;
+                }
+
+                if (engagementLabels.has(link.label)) {
+                    sections.ENGAGEMENT.push(link);
                     return;
                 }
 

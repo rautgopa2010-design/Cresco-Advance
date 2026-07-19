@@ -98,14 +98,43 @@ export const adminNavbarLinks = [
                 showArrow: true,
                 defaultOpen: false,
                 children: [
-                    { label: "Leads", path: "/leads", icon: Dot },
-                    { label: "Pipeline", path: "/leads/pipeline", icon: Dot },
-                    { label: "Opportunities", path: "/leads/opportunities", icon: Dot },
-                    { label: "Revenue Forecast", path: "/leads/revenue-forecast", icon: Dot },
-                    { label: "Automation", path: "/leads/automation", icon: Dot },
-                    { label: "AI Suggestions", path: "/leads/ai-suggestions", icon: Dot },
-                    { label: "Email Inbox", path: "/leads/email-inbox", icon: Dot },
+                    { label: "Leads", moduleName: "Leads", path: "/leads", icon: Dot },
                     { label: "API Leads", path: "/api-leads", icon: Dot },
+                ],
+            },
+        ],
+    },
+    {
+        links: [
+            {
+                label: "Deals",
+                icon: MdOutlineLeaderboard,
+                isAccordion: true,
+                showArrow: true,
+                defaultOpen: false,
+                children: [
+                    { label: "Pipeline", moduleName: "Leads", path: "/leads/pipeline", icon: Dot },
+                    { label: "Opportunities", moduleName: "Leads", path: "/leads/opportunities", icon: Dot },
+                    { label: "Revenue Forecast", moduleName: "Leads", path: "/leads/revenue-forecast", icon: Dot },
+                    { label: "Lead Scoring", moduleName: "Leads", path: "/leads/scoring", icon: Dot },
+                ],
+            },
+        ],
+    },
+    {
+        links: [
+            {
+                label: "Engagement",
+                icon: UserRound,
+                isAccordion: true,
+                showArrow: true,
+                defaultOpen: false,
+                children: [
+                    { label: "Email Inbox", moduleName: "Leads", path: "/leads/email", icon: Dot },
+                    { label: "Call Center", moduleName: "Leads", path: "/leads/calls", icon: Dot },
+                    { label: "WhatsApp", moduleName: "Leads", path: "/leads/whatsapp", icon: Dot },
+                    { label: "Automation", moduleName: "Leads", path: "/leads/automation", icon: Dot },
+                    { label: "AI Suggestions", moduleName: "Leads", path: "/leads/ai-suggestions", icon: Dot },
                 ],
             },
         ],

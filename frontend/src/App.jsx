@@ -40,9 +40,12 @@ import Leads from "./routes/leads/Leads";
 import LeadPipeline from "./routes/leads/LeadPipeline";
 import OpportunityManagement from "./routes/leads/OpportunityManagement";
 import RevenueForecasting from "./routes/leads/RevenueForecasting";
+import LeadScoring from "./routes/leads/LeadScoring";
 import Automation from "./routes/leads/Automation";
 import AiSuggestions from "./routes/leads/AiSuggestions";
 import EmailInbox from "./routes/leads/EmailInbox";
+import CallIntegration from "./routes/leads/CallIntegration";
+import WhatsAppIntegration from "./routes/leads/WhatsAppIntegration";
 import CreateLeads from "./routes/leads/CreateLeads";
 import EditLeads from "./routes/leads/EditLeads";
 import ViewLeads from "./routes/leads/ViewLeads";
@@ -259,6 +262,16 @@ function AppRoutes() {
                         element: <AppLayout />,
                         children: [
                             { index: true, element: <DashboardWrapper /> },
+                            { path: "provider/settings/master/package", element: isProviderUser ? <ProviderPackage /> : <NotFound /> },
+                            { path: "provider/settings/master/package/edit-package/:id", element: isProviderUser ? <ProviderEditPackage /> : <NotFound /> },
+                            { path: "provider/settings/master/package/create-package", element: isProviderUser ? <ProviderCreatePackage /> : <NotFound /> },
+                            { path: "provider/settings/master/payment", element: isProviderUser ? <ProviderPayment /> : <NotFound /> },
+                            { path: "provider/settings/master/payment/details/:orgId", element: isProviderUser ? <ProviderPaymentDetails /> : <NotFound /> },
+                            { path: "settings/bank-setup", element: <BankDetails /> },
+                            { path: "settings/bank-setup/add-bank", element: <AddBankAccount /> },
+                            { path: "settings/bank-setup/edit-bank/:id", element: <EditBankAccount /> },
+                            { path: "settings/company-setup", element: <ViewCompanySetup /> },
+                            { path: "settings/company-setup/edit-company-setup/:id", element: <UpdateCompanySetup /> },
                             ...(isProviderUser
                                 ? [
                                       { path: "provider/escalated-tickets", element: <EscalatedTickets /> },
@@ -270,16 +283,6 @@ function AppRoutes() {
                                       { path: "settings/master/country", element: <Country /> },
                                       { path: "settings/master/country-code", element: <CountryCode /> },
                                       { path: "settings/master/currency", element: <Currency /> },
-                                      { path: "provider/settings/master/package", element: <ProviderPackage /> },
-                                      { path: "provider/settings/master/package/edit-package/:id", element: <ProviderEditPackage /> },
-                                      { path: "provider/settings/master/package/create-package", element: <ProviderCreatePackage /> },
-                                      { path: "provider/settings/master/payment", element: <ProviderPayment /> },
-                                      { path: "provider/settings/master/payment/details/:orgId", element: <ProviderPaymentDetails /> },
-                                      { path: "settings/bank-setup", element: <BankDetails /> },
-                                      { path: "settings/bank-setup/add-bank", element: <AddBankAccount /> },
-                                      { path: "settings/bank-setup/edit-bank/:id", element: <EditBankAccount /> },
-                                      { path: "settings/company-setup", element: <ViewCompanySetup /> },
-                                      { path: "settings/company-setup/edit-company-setup/:id", element: <UpdateCompanySetup /> },
                                       { path: "profile/:id", element: <Profile /> },
                                       { path: "profile/edit-profile/:id", element: <EditProfile /> },
                                   ]
@@ -516,11 +519,6 @@ function AppRoutes() {
                                                     path: "settings/landing-page-setup/edit-landing-page-setup/:id",
                                                     element: <UpdateLandingPageSetup />,
                                                 },
-                                                { path: "settings/bank-setup", element: <BankDetails /> },
-                                                { path: "settings/bank-setup/add-bank", element: <AddBankAccount /> },
-                                                { path: "settings/bank-setup/edit-bank/:id", element: <EditBankAccount /> },
-                                                { path: "settings/company-setup", element: <ViewCompanySetup /> },
-                                                { path: "settings/company-setup/edit-company-setup/:id", element: <UpdateCompanySetup /> },
                                                 { path: "settings/master/assign-incentive", element: <AssignIncentive /> },
                                                 {
                                                     path: "landing-page",
@@ -624,6 +622,15 @@ function AppRoutes() {
                                           ),
                                       },
                                       {
+                                          path: "leads/scoring",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Leads"
+                                                  element={<LeadScoring />}
+                                              />
+                                          ),
+                                      },
+                                      {
                                           path: "leads/automation",
                                           element: (
                                               <PermissionRoute
@@ -647,6 +654,33 @@ function AppRoutes() {
                                               <PermissionRoute
                                                   moduleName="Leads"
                                                   element={<EmailInbox />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "leads/email",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Leads"
+                                                  element={<EmailInbox />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "leads/calls",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Leads"
+                                                  element={<CallIntegration />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "leads/whatsapp",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Leads"
+                                                  element={<WhatsAppIntegration />}
                                               />
                                           ),
                                       },
