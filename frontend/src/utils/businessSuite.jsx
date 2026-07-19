@@ -25,6 +25,10 @@ export const CRM_MODULE_NAMES = [
     "Reports",
     "Incentive",
     "Master",
+    "Sales Pipeline",
+    "Sales Automation",
+    "Engagement Hub",
+    "AI Sales Assistant",
 ];
 
 export const BUSINESS_APPS = [
@@ -113,7 +117,11 @@ export const BUSINESS_APPS = [
 export const hasPackageModule = (user, moduleNames = []) =>
     user?.packageModules?.some((moduleItem) => moduleNames.includes(moduleItem.module));
 
-export const isSuperProviderUser = (user) => user?.user_type === "provider" || user?.role_name === "Super Provider Admin";
+export const isSuperProviderUser = (user) =>
+    user?.user_type === "provider" ||
+    String(user?.role_name || "")
+        .trim()
+        .toLowerCase() === "super provider admin";
 
 export const canAccessBusinessApp = (user, app) => {
     if (!user || app.status !== "active") return false;

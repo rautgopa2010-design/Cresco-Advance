@@ -17,6 +17,16 @@ export const packageModuleGroups = [
         ],
     },
     {
+        title: "Advanced CRM Add-ons",
+        description: "Optional premium sales, automation and engagement workspaces.",
+        modules: [
+            { id: "crm-sales-pipeline", name: "Sales Pipeline" },
+            { id: "crm-sales-automation", name: "Sales Automation" },
+            { id: "crm-engagement-hub", name: "Engagement Hub" },
+            { id: "crm-ai-sales-assistant", name: "AI Sales Assistant" },
+        ],
+    },
+    {
         title: "HRMS",
         description: "Employees, attendance, leaves, payroll and HR operations.",
         modules: [

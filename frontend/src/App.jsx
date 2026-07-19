@@ -139,6 +139,7 @@ import AddBankAccount from "./routes/master/bankdetailsAndQRCode/AddBankAccount"
 import EditBankAccount from "./routes/master/bankdetailsAndQRCode/EditBankAccount";
 import TawkToWidget from "./TawkToWidget";
 import TAndCAndDec from "./routes/master/TAndCAndDec";
+import { isSuperProviderUser } from "./utils/businessSuite";
 
 // Simple 404 Page
 const NotFound = () => <NotFoundPage />;
@@ -148,9 +149,7 @@ function AppRoutes() {
     const token = localStorage.getItem("token");
     const [sessionVersion, setSessionVersion] = useState(0);
     const user = useMemo(() => JSON.parse(localStorage.getItem("user") || "{}"), [sessionVersion]);
-    const isProviderUser =
-        user?.user_type === "provider" ||
-        String(user?.role_name || "").toLowerCase() === "super provider admin";
+    const isProviderUser = isSuperProviderUser(user);
 
     if (token) {
         setAuthToken(token);
@@ -598,7 +597,7 @@ function AppRoutes() {
                                           path: "leads/pipeline",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Leads"
+                                                  moduleName="Sales Pipeline"
                                                   element={<LeadPipeline />}
                                               />
                                           ),
@@ -607,7 +606,7 @@ function AppRoutes() {
                                           path: "leads/opportunities",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Leads"
+                                                  moduleName="Sales Pipeline"
                                                   element={<OpportunityManagement />}
                                               />
                                           ),
@@ -616,7 +615,7 @@ function AppRoutes() {
                                           path: "leads/revenue-forecast",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Leads"
+                                                  moduleName="Sales Pipeline"
                                                   element={<RevenueForecasting />}
                                               />
                                           ),
@@ -625,7 +624,7 @@ function AppRoutes() {
                                           path: "leads/scoring",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Leads"
+                                                  moduleName="Sales Pipeline"
                                                   element={<LeadScoring />}
                                               />
                                           ),
@@ -634,7 +633,7 @@ function AppRoutes() {
                                           path: "leads/automation",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Leads"
+                                                  moduleName="Sales Automation"
                                                   element={<Automation />}
                                               />
                                           ),
@@ -643,7 +642,7 @@ function AppRoutes() {
                                           path: "leads/ai-suggestions",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Leads"
+                                                  moduleName="AI Sales Assistant"
                                                   element={<AiSuggestions />}
                                               />
                                           ),
@@ -652,7 +651,7 @@ function AppRoutes() {
                                           path: "leads/email-inbox",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Leads"
+                                                  moduleName="Engagement Hub"
                                                   element={<EmailInbox />}
                                               />
                                           ),
@@ -661,7 +660,7 @@ function AppRoutes() {
                                           path: "leads/email",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Leads"
+                                                  moduleName="Engagement Hub"
                                                   element={<EmailInbox />}
                                               />
                                           ),
@@ -670,7 +669,7 @@ function AppRoutes() {
                                           path: "leads/calls",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Leads"
+                                                  moduleName="Engagement Hub"
                                                   element={<CallIntegration />}
                                               />
                                           ),
@@ -679,7 +678,7 @@ function AppRoutes() {
                                           path: "leads/whatsapp",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Leads"
+                                                  moduleName="Engagement Hub"
                                                   element={<WhatsAppIntegration />}
                                               />
                                           ),
