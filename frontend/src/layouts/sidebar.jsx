@@ -44,12 +44,27 @@ const salesLabels = new Set(["Dashboard", "Enquiries", "Leads", "Deals", "Custom
 const engagementLabels = new Set(["Engagement"]);
 const operationsLabels = new Set(["Orders", "Payment", "Vendor", "Invoice", "Reports", "Analytics", "Incentive"]);
 
+const encodeLogoPath = (logoPath) =>
+    logoPath
+        .split("/")
+        .map((part) => {
+            if (!part) return part;
+            try {
+                return encodeURIComponent(decodeURIComponent(part));
+            } catch {
+                return encodeURIComponent(part);
+            }
+        })
+        .join("/");
+
 const buildCompanyLogoUrl = (logoPath) => {
     if (!logoPath) return logo;
     if (/^(https?:)?\/\//i.test(logoPath) || logoPath.startsWith("data:") || logoPath.startsWith("blob:")) {
         return logoPath;
     }
-    return `${API_BASE_URL}${logoPath.startsWith("/") ? logoPath : `/${logoPath}`}`;
+    const normalizedPath = logoPath.startsWith("/api/") ? logoPath.slice(4) : logoPath;
+    const uploadPath = normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`;
+    return `${API_BASE_URL}${encodeLogoPath(uploadPath)}`;
 };
 
 const cloneWithIcon = (item) => ({
