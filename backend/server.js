@@ -115,6 +115,7 @@ app.use("/api/ai-suggestions", aiSuggestionsRoutes);
 
 // ✅ Serve static uploads folder
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Start server
 const PORT = process.env.PORT || 8200;

@@ -6,7 +6,7 @@ import logo from "@/assets/logo.jpg";
 import { cn } from "@/utils/cn";
 import { filterLinksByPermission } from "@/utils/permissionHelper";
 import { isSuperProviderUser } from "@/utils/businessSuite";
-import { IMAGE_BASE_URL } from "@/utils/api";
+import { API_BASE_URL } from "@/utils/api";
 import { getCompanySetup } from "../redux/actions/companySetup";
 import { clearSnackbar } from "../redux/actions/commonActions";
 import { useDispatch, useSelector } from "react-redux";
@@ -43,6 +43,14 @@ const iconByLabel = {
 const salesLabels = new Set(["Dashboard", "Enquiries", "Leads", "Deals", "Customer", "Followup", "Quotations"]);
 const engagementLabels = new Set(["Engagement"]);
 const operationsLabels = new Set(["Orders", "Payment", "Vendor", "Invoice", "Reports", "Analytics", "Incentive"]);
+
+const buildCompanyLogoUrl = (logoPath) => {
+    if (!logoPath) return logo;
+    if (/^(https?:)?\/\//i.test(logoPath) || logoPath.startsWith("data:") || logoPath.startsWith("blob:")) {
+        return logoPath;
+    }
+    return `${API_BASE_URL}${logoPath.startsWith("/") ? logoPath : `/${logoPath}`}`;
+};
 
 const cloneWithIcon = (item) => ({
     ...item,
@@ -92,7 +100,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
     // Update logo from Redux store whenever companySetup changes
     useEffect(() => {
         if (companySetup?.companyLogo) {
-            setLogoUrl(`${IMAGE_BASE_URL}${companySetup.companyLogo}`);
+            setLogoUrl(buildCompanyLogoUrl(companySetup.companyLogo));
         } else {
             setLogoUrl(logo);
         }
@@ -256,7 +264,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
 
             if (updatedOrgId === currentOrgId) {
                 if (newLogo) {
-                    setLogoUrl(`${IMAGE_BASE_URL}${newLogo}`);
+                    setLogoUrl(buildCompanyLogoUrl(newLogo));
                 } else {
                     setLogoUrl(logo);
                 }
