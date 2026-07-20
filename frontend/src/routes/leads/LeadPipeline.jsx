@@ -3,8 +3,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, ArrowRight, CalendarDays, CircleDollarSign, Filter, GripVertical, Search, Sparkles, Target, TrendingUp, UserRound } from "lucide-react";
 import { getLeads, updateLeadPipeline } from "../../redux/actions/leadAndFollowup";
+import { getLeadStage } from "../../redux/actions/leadStage";
 
-const PIPELINE_STAGES = [
+const DEFAULT_PIPELINE_STAGES = [
     { key: "New", probability: 10, color: "from-sky-500 to-blue-600", border: "border-sky-300" },
     { key: "Qualified", probability: 30, color: "from-indigo-500 to-blue-700", border: "border-indigo-300" },
     { key: "Proposal", probability: 50, color: "from-violet-500 to-purple-700", border: "border-violet-300" },
@@ -13,11 +14,25 @@ const PIPELINE_STAGES = [
     { key: "Lost", probability: 0, color: "from-rose-500 to-red-700", border: "border-rose-300" },
 ];
 
-const normalizeStage = (lead) => {
+const STAGE_COLORS = DEFAULT_PIPELINE_STAGES.map(({ color, border }) => ({ color, border }));
+
+const getStageProbability = (stageName, index, totalStages) => {
+    const defaultStage = DEFAULT_PIPELINE_STAGES.find((stage) => stage.key.toLowerCase() === String(stageName || "").trim().toLowerCase());
+    if (defaultStage) return defaultStage.probability;
+
+    const normalized = String(stageName || "").trim().toLowerCase();
+    if (["won", "closed own", "closed won"].includes(normalized)) return 100;
+    if (["lost", "dropped", "closed to competition"].includes(normalized)) return 0;
+
+    if (totalStages <= 1) return 10;
+    return Math.round((index / (totalStages - 1)) * 90) + 5;
+};
+
+const normalizeStage = (lead, pipelineStages) => {
     const rawStage = String(lead?.leadStage || "").trim().toLowerCase();
     const rawStatus = String(lead?.leadStatus || "").trim().toLowerCase();
-    const match = PIPELINE_STAGES.find((stage) => stage.key.toLowerCase() === rawStage || stage.key.toLowerCase() === rawStatus);
-    return match?.key || "New";
+    const match = pipelineStages.find((stage) => stage.key.toLowerCase() === rawStage || stage.key.toLowerCase() === rawStatus);
+    return match?.key || pipelineStages[0]?.key || "New";
 };
 
 const numberValue = (value) => {
@@ -48,13 +63,36 @@ const LeadPipeline = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { leads = [], leadLoading } = useSelector((state) => state.leadAndFollowup);
+    const { leadStage = [] } = useSelector((state) => state.leadStage);
     const [draggedLeadId, setDraggedLeadId] = useState(null);
     const [query, setQuery] = useState("");
     const [updatingLeadId, setUpdatingLeadId] = useState(null);
 
     useEffect(() => {
         dispatch(getLeads());
+        dispatch(getLeadStage());
     }, [dispatch]);
+
+    const pipelineStages = useMemo(() => {
+        const stageNames = leadStage
+            .map((stage) => String(stage?.leadStage || "").trim())
+            .filter(Boolean)
+            .filter((stage, index, stages) => stages.findIndex((item) => item.toLowerCase() === stage.toLowerCase()) === index);
+
+        if (!stageNames.length) return DEFAULT_PIPELINE_STAGES;
+
+        return stageNames.map((stageName, index) => {
+            const defaultStage = DEFAULT_PIPELINE_STAGES.find((stage) => stage.key.toLowerCase() === stageName.toLowerCase());
+            const style = defaultStage || STAGE_COLORS[index % STAGE_COLORS.length];
+
+            return {
+                key: stageName,
+                probability: getStageProbability(stageName, index, stageNames.length),
+                color: style.color,
+                border: style.border,
+            };
+        });
+    }, [leadStage]);
 
     const filteredLeads = useMemo(() => {
         const search = query.trim().toLowerCase();
@@ -67,29 +105,29 @@ const LeadPipeline = () => {
     }, [leads, query]);
 
     const leadsByStage = useMemo(() => {
-        const groups = PIPELINE_STAGES.reduce((acc, stage) => ({ ...acc, [stage.key]: [] }), {});
+        const groups = pipelineStages.reduce((acc, stage) => ({ ...acc, [stage.key]: [] }), {});
         filteredLeads.forEach((lead) => {
-            groups[normalizeStage(lead)].push(lead);
+            groups[normalizeStage(lead, pipelineStages)].push(lead);
         });
         return groups;
-    }, [filteredLeads]);
+    }, [filteredLeads, pipelineStages]);
 
     const totals = useMemo(() => {
         const totalValue = filteredLeads.reduce((sum, lead) => sum + numberValue(lead.expectedAmount), 0);
-        const forecastValue = PIPELINE_STAGES.reduce((sum, stage) => {
+        const forecastValue = pipelineStages.reduce((sum, stage) => {
             const stageValue = (leadsByStage[stage.key] || []).reduce((innerSum, lead) => innerSum + numberValue(lead.expectedAmount), 0);
             return sum + (stageValue * stage.probability) / 100;
         }, 0);
         return { totalValue, forecastValue, totalDeals: filteredLeads.length };
-    }, [filteredLeads, leadsByStage]);
+    }, [filteredLeads, leadsByStage, pipelineStages]);
 
     const handleDrop = async (stageKey) => {
         if (!draggedLeadId) return;
         const lead = leads.find((item) => String(item.id) === String(draggedLeadId));
         setDraggedLeadId(null);
-        if (!lead || normalizeStage(lead) === stageKey) return;
+        if (!lead || normalizeStage(lead, pipelineStages) === stageKey) return;
 
-        const leadStatus = ["Won", "Lost"].includes(stageKey) ? stageKey : lead.leadStatus || "Open";
+        const leadStatus = ["won", "lost"].includes(stageKey.toLowerCase()) ? stageKey : lead.leadStatus || "Open";
         setUpdatingLeadId(lead.id);
         try {
             await dispatch(updateLeadPipeline(lead.id, { leadStage: stageKey, leadStatus }));
@@ -187,7 +225,7 @@ const LeadPipeline = () => {
 
             {leadLoading && !leads.length ? (
                 <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-6">
-                    {PIPELINE_STAGES.map((stage) => (
+                    {pipelineStages.map((stage) => (
                         <div
                             key={stage.key}
                             className="h-80 animate-pulse rounded-3xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60"
@@ -196,7 +234,7 @@ const LeadPipeline = () => {
                 </div>
             ) : (
                 <div className="flex gap-4 overflow-x-auto pb-2">
-                    {PIPELINE_STAGES.map((stage) => {
+                    {pipelineStages.map((stage) => {
                         const stageLeads = leadsByStage[stage.key] || [];
                         const stageValue = stageLeads.reduce((sum, lead) => sum + numberValue(lead.expectedAmount), 0);
                         const forecastValue = (stageValue * stage.probability) / 100;
