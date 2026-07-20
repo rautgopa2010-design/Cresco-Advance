@@ -1813,6 +1813,19 @@ const GenerateOrder = () => {
     };
 
     const quotationPrefix = prefix?.quotationPrefix || "";
+    const quotationPrefixLabel = quotationPrefix ? `${quotationPrefix}-` : "";
+    const quotationOptions = useMemo(
+        () =>
+            quotations.map((quotation) => {
+                const displayNo = `${quotationPrefixLabel}${quotation.quotationNo || quotation.id}`;
+                return {
+                    ...quotation,
+                    label: displayNo,
+                    value: displayNo,
+                };
+            }),
+        [quotations, quotationPrefixLabel],
+    );
 
     const handleQuotationSearch = () => {
         if (!quotationNo.trim()) {
@@ -1891,8 +1904,8 @@ const GenerateOrder = () => {
     };
 
     useEffect(() => {
-        setQuotationNo(`${quotationPrefix}-`);
-    }, [quotationPrefix]);
+        setQuotationNo(quotationPrefixLabel);
+    }, [quotationPrefixLabel]);
 
     const handleAddressChange = (type, field) => (e, value) => {
         if (field === "country") {
@@ -2485,39 +2498,51 @@ const GenerateOrder = () => {
                                 </div>
                                     {orderType === "quotation" && (
                                         <>
-                                            <TextField
-                                                label="Quotation Number *"
-                                                type="text"
-                                                placeholder="Enter number (e.g. 1001)"
-                                                size="small"
-                                                value={quotationNo}
-                                                onChange={(e) => {
-                                                    let value = e.target.value.toUpperCase();
-
-                                                    // Always enforce prefix
-                                                    if (!value.startsWith(`${quotationPrefix}-`)) {
-                                                        value = `${quotationPrefix}-`;
-                                                    }
-
-                                                    // Extract only the number part
-                                                    let numberPart = value.replace(`${quotationPrefix}-`, "");
-                                                    numberPart = numberPart.replace(/[^0-9]/g, "");
-
-                                                    setQuotationNo(`${quotationPrefix}-${numberPart}`);
+                                            <Autocomplete
+                                                freeSolo
+                                                options={quotationOptions}
+                                                value={quotationOptions.find((option) => option.value === quotationNo) || null}
+                                                inputValue={quotationNo}
+                                                getOptionLabel={(option) => (typeof option === "string" ? option : option.label || "")}
+                                                isOptionEqualToValue={(option, value) => option.value === value?.value}
+                                                onChange={(event, newValue) => {
+                                                    const value = typeof newValue === "string" ? newValue : newValue?.value || quotationPrefixLabel;
+                                                    setQuotationNo(value.toUpperCase());
+                                                    setErrors((prev) => ({ ...prev, quotationNo: false }));
                                                 }}
-                                                onKeyDown={(e) => {
-                                                    const cursorPos = e.target.selectionStart;
-
-                                                    // Prevent deleting prefix
-                                                    if ((e.key === "Backspace" || e.key === "Delete") && cursorPos <= `${quotationPrefix}-`.length) {
-                                                        e.preventDefault();
+                                                onInputChange={(event, newInputValue, reason) => {
+                                                    if (reason === "reset") return;
+                                                    const upperValue = newInputValue.toUpperCase();
+                                                    if (!upperValue) {
+                                                        setQuotationNo(quotationPrefixLabel);
+                                                        return;
                                                     }
+                                                    setQuotationNo(
+                                                        upperValue.startsWith(quotationPrefixLabel.toUpperCase())
+                                                            ? upperValue
+                                                            : `${quotationPrefixLabel}${upperValue.replace(/[^0-9]/g, "")}`,
+                                                    );
+                                                    setErrors((prev) => ({ ...prev, quotationNo: false }));
                                                 }}
-                                                error={errors.quotationNo}
+                                                renderOption={(props, option) => (
+                                                    <li {...props} key={option.id}>
+                                                        <div className="flex w-full flex-col">
+                                                            <span className="text-sm font-bold text-slate-800">{option.label}</span>
+                                                            <span className="truncate text-xs text-slate-500">{option.companyName || option.selectedCompany || option.customerPerson || "Quotation"}</span>
+                                                        </div>
+                                                    </li>
+                                                )}
+                                                renderInput={(params) => (
+                                                    <TextField
+                                                        {...params}
+                                                        label="Quotation Number *"
+                                                        placeholder={quotationOptions.length ? "Select quotation number" : "No quotations available"}
+                                                        size="small"
+                                                        error={!!errors.quotationNo}
+                                                        fullWidth
+                                                    />
+                                                )}
                                                 fullWidth
-                                                inputProps={{
-                                                    style: { textTransform: "uppercase" },
-                                                }}
                                             />
                                             <Button
                                                 onClick={handleQuotationSearch}
@@ -2561,7 +2586,7 @@ const GenerateOrder = () => {
                             </div>
                         </div>
                     {orderType === "quotation" ? (
-                        <div className="flex w-full flex-col gap-4 lg:flex-row">
+                        <div className="grid w-full gap-4 lg:grid-cols-2">
                             <TextField
                                 label="Company Name"
                                 fullWidth
@@ -2872,8 +2897,8 @@ const GenerateOrder = () => {
                         </>
                     )}
 
-                    <div className="flex w-full flex-col gap-4 lg:flex-row">
-                        <Box className="flex w-full flex-row gap-4 lg:flex-1">
+                    <div className="mt-4 grid w-full gap-4 lg:grid-cols-[minmax(0,1fr)_150px_minmax(0,1fr)]">
+                        <Box className="min-w-0">
                             <TextField
                                 label="Email *"
                                 fullWidth
@@ -2884,24 +2909,25 @@ const GenerateOrder = () => {
                                 InputProps={{ readOnly: true }}
                             />
                         </Box>
-                        {/* Code + Mobile group (always in a row) */}
-                        <Box className="flex w-full flex-row gap-4 lg:flex-1">
+                        <Box className="min-w-0">
                             <TextField
                                 label="Code *"
+                                fullWidth
                                 value={form.code}
                                 error={!!errors.code}
                                 onChange={handleChange("code")}
                                 size="small"
-                                sx={{ flex: 0.4 }}
                                 InputProps={{ readOnly: true }}
                             />
+                        </Box>
+                        <Box className="min-w-0">
                             <TextField
                                 label="Mobile *"
+                                fullWidth
                                 value={form.mobile}
                                 error={!!errors.mobile}
                                 onChange={handleChange("mobile")}
                                 size="small"
-                                sx={{ flex: 1 }}
                                 InputProps={{ readOnly: true }}
                             />
                         </Box>
