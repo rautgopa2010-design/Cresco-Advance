@@ -121,6 +121,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+      missedReminderSentAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      missedReminderSentForDate: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       tableName: `${dbConfig.tablePrefix}followup`,

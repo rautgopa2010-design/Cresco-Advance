@@ -152,7 +152,16 @@ const checkFollowupReminders = async () => {
     for (const item of missedFollowups) {
       const { followup, assignedTo } = item;
       
+      if (followup.missedReminderSentForDate === followup.nextFollowUpDate) {
+        console.log(`Skipping missed followup ${followup.id}; reminder already sent for ${followup.nextFollowUpDate}`);
+        continue;
+      }
+
       await sendFollowupReminderEmail(followup, followup.lead, assignedTo, 'missed');
+      await followup.update({
+        missedReminderSentAt: new Date(),
+        missedReminderSentForDate: followup.nextFollowUpDate
+      });
       
       const employeeDetails = await getEmployeeDetails(assignedTo);
       for (const emp of employeeDetails) {
