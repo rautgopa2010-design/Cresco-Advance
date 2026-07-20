@@ -19,7 +19,6 @@ import {
     Goal,
     IndianRupee,
     ListChecks,
-    LogOut,
     MoveDownRight,
     MoveUpRight,
     Plus,
@@ -29,7 +28,6 @@ import {
     Target,
     TrendingUp,
     TriangleAlert,
-    UserCircle,
     UserPlus,
     UsersRound,
     Zap,
@@ -131,17 +129,9 @@ const AdminDashboardCards = ({ dashData = {} }) => {
     const navigate = useNavigate();
     const [quickOpen, setQuickOpen] = useState(false);
     const [notificationOpen, setNotificationOpen] = useState(false);
-    const [profileOpen, setProfileOpen] = useState(false);
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     const currencyCode = user.currencyCode || "INR";
     const displayName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "User";
-    const initials = displayName
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0])
-        .join("")
-        .toUpperCase() || "U";
     const greeting = today.getHours() < 12 ? "Good Morning" : today.getHours() < 17 ? "Good Afternoon" : "Good Evening";
     const dateLabel = today.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
@@ -402,19 +392,19 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                 initial={{ opacity: 0, scale: 0.985 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.45, ease: "easeOut" }}
-                className="relative overflow-visible rounded-[2rem] border border-white/30 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-7 text-white shadow-[0_28px_80px_rgba(37,99,235,0.24)] md:p-8"
+                className="relative overflow-visible rounded-[1.75rem] border border-white/30 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-5 text-white shadow-[0_24px_60px_rgba(37,99,235,0.22)] md:p-6"
             >
-                <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div className="max-w-3xl">
-                        <div className="mb-3 flex flex-wrap items-center gap-3 text-[13px] font-semibold text-blue-100">
-                            <span className="flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-white/15">
+                        <div className="mb-2 flex flex-wrap items-center gap-2 text-[12px] font-semibold text-blue-100">
+                            <span className="flex items-center gap-2 rounded-full bg-white/12 px-3 py-1 ring-1 ring-white/15">
                                 <CalendarDays size={15} />
                                 {dateLabel}
                             </span>
-                            <span className="rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-white/15">Today's overview</span>
+                            <span className="rounded-full bg-white/12 px-3 py-1 ring-1 ring-white/15">Today's overview</span>
                         </div>
-                        <h1 className="text-[30px] font-extrabold leading-tight tracking-tight md:text-[34px]">{greeting}, {displayName}</h1>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">
+                        <h1 className="text-[26px] font-extrabold leading-tight tracking-tight md:text-[30px]">{greeting}, {displayName}</h1>
+                        <p className="mt-1.5 max-w-2xl text-sm leading-5 text-blue-100">
                             Track pipeline health, pending work, revenue movement, and customer activity from one premium CRM workspace.
                         </p>
                     </div>
@@ -478,7 +468,6 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                             <button
                                 onClick={() => {
                                     setNotificationOpen((prev) => !prev);
-                                    setProfileOpen(false);
                                 }}
                                 className="relative flex size-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur transition hover:bg-white/15"
                             >
@@ -511,52 +500,19 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                             </AnimatePresence>
                         </div>
 
-                        <div className="relative">
-                            <button
-                                onClick={() => {
-                                    setProfileOpen((prev) => !prev);
-                                    setNotificationOpen(false);
-                                }}
-                                className="flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-2 py-2 pr-3 text-sm font-extrabold text-white backdrop-blur transition hover:bg-white/15"
-                            >
-                                <span className="flex size-8 items-center justify-center rounded-xl bg-white text-blue-700">{initials}</span>
-                                Profile
-                            </button>
-                            <AnimatePresence>
-                                {profileOpen && (
-                                    <motion.div initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }} className="absolute right-0 z-30 mt-3 w-64 rounded-2xl border border-slate-200 bg-white/95 p-3 text-slate-800 shadow-2xl backdrop-blur-xl">
-                                        <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-                                            <span className="flex size-11 items-center justify-center rounded-xl bg-blue-600 text-sm font-extrabold text-white">{initials}</span>
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-extrabold">{displayName}</p>
-                                                <p className="truncate text-xs font-semibold text-slate-500">{user?.role_name || "Online"}</p>
-                                            </div>
-                                        </div>
-                                        <button className="mt-2 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition hover:bg-blue-50">
-                                            <UserCircle size={17} />
-                                            Profile
-                                        </button>
-                                        <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-red-600 transition hover:bg-red-50">
-                                            <LogOut size={17} />
-                                            Logout
-                                        </button>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
                     </div>
                 </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     {heroOverview.map((item) => {
                         const Icon = item.icon;
                         return (
-                            <motion.div key={item.label} whileHover={{ y: -3 }} className="rounded-2xl border border-white/15 bg-white/12 p-4 shadow-lg shadow-blue-950/5 backdrop-blur-xl">
+                            <motion.div key={item.label} whileHover={{ y: -3 }} className="rounded-2xl border border-white/15 bg-white/12 p-3.5 shadow-lg shadow-blue-950/5 backdrop-blur-xl">
                                 <div className="flex items-center justify-between gap-3">
                                     <p className="text-[13px] font-semibold text-blue-100">{item.label}</p>
                                     <Icon size={18} className="text-blue-100" />
                                 </div>
-                                <p className="mt-2 truncate text-2xl font-extrabold text-white"><AnimatedCounter value={item.value} formatter={item.formatter} /></p>
+                                <p className="mt-1.5 truncate text-[22px] font-extrabold text-white"><AnimatedCounter value={item.value} formatter={item.formatter} /></p>
                             </motion.div>
                         );
                     })}
