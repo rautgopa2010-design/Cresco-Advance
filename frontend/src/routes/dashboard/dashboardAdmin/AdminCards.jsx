@@ -152,6 +152,24 @@ const AdminDashboardCards = ({ dashData = {} }) => {
             maximumFractionDigits: 0,
         }).format(numberValue(amount));
 
+    const formatCompactCurrency = (amount = 0) => {
+        const value = numberValue(amount);
+        const absValue = Math.abs(value);
+        const sign = value < 0 ? "-" : "";
+        const currencySymbol = currencyCode === "INR" ? "₹" : `${currencyCode} `;
+
+        const compact = (divisor, suffix, digits = 1) => {
+            const result = absValue / divisor;
+            const maximumFractionDigits = result >= 10 ? 1 : digits;
+            return `${sign}${currencySymbol}${Number(result.toFixed(maximumFractionDigits)).toLocaleString("en-IN")}${suffix}`;
+        };
+
+        if (absValue >= 10000000) return compact(10000000, "Cr", 2);
+        if (absValue >= 100000) return compact(100000, "L", 2);
+        if (absValue >= 1000) return compact(1000, "K", 1);
+        return `${sign}${currencySymbol}${Math.round(absValue).toLocaleString("en-IN")}`;
+    };
+
     const formatNumber = (value) => new Intl.NumberFormat("en-IN").format(numberValue(value));
 
     const monthlyData = useMemo(() => {
@@ -225,10 +243,10 @@ const AdminDashboardCards = ({ dashData = {} }) => {
     const statsCards = [
         {
             label: "Total business",
-            value: formatCurrency(totalBusiness),
+            value: formatCompactCurrency(totalBusiness),
             detail: "Lifetime order value",
             amount: totalBusiness,
-            formatter: formatCurrency,
+            formatter: formatCompactCurrency,
             icon: ShoppingBag,
             path: "/orders",
             color: "#22C55E",
@@ -277,10 +295,10 @@ const AdminDashboardCards = ({ dashData = {} }) => {
         },
         {
             label: "Payment received this month",
-            value: formatCurrency(currentMonthPayment),
+            value: formatCompactCurrency(currentMonthPayment),
             detail: `${currentMonth} ${currentYear} collections`,
             amount: currentMonthPayment,
-            formatter: formatCurrency,
+            formatter: formatCompactCurrency,
             icon: CircleDollarSign,
             path: "/reports",
             color: "#8B5CF6",
@@ -290,10 +308,10 @@ const AdminDashboardCards = ({ dashData = {} }) => {
         },
         {
             label: "Outstanding balance",
-            value: formatCurrency(outstandingBalance),
+            value: formatCompactCurrency(outstandingBalance),
             detail: "Pending scheduled payments",
             amount: outstandingBalance,
-            formatter: formatCurrency,
+            formatter: formatCompactCurrency,
             icon: ReceiptIndianRupee,
             path: "/reports",
             color: "#F59E0B",
@@ -325,13 +343,13 @@ const AdminDashboardCards = ({ dashData = {} }) => {
         { label: "Pending followups", value: followupDueToday + missedFollowups, formatter: formatNumber, icon: CalendarClock },
         { label: "Today's meetings", value: 0, formatter: formatNumber, icon: CalendarDays },
         { label: "Today's enquiries", value: totalEnquiries, formatter: formatNumber, icon: UsersRound },
-        { label: "Expected revenue", value: outstandingBalance || currentMonthRevenue, formatter: formatCurrency, icon: IndianRupee },
+        { label: "Expected revenue", value: outstandingBalance || currentMonthRevenue, formatter: formatCompactCurrency, icon: IndianRupee },
     ];
 
     const activityItems = [
         totalLeads > 0 && { label: "Lead Created", meta: `${formatNumber(totalLeads)} active leads`, icon: Target, color: "bg-blue-50 text-blue-600" },
         totalQuotations > 0 && { label: "Quotation Sent", meta: `${formatNumber(totalQuotations)} quotations`, icon: FileText, color: "bg-violet-50 text-violet-600" },
-        currentMonthPayment > 0 && { label: "Payment Received", meta: `${formatCurrency(currentMonthPayment)} this month`, icon: BadgeIndianRupee, color: "bg-green-50 text-green-600" },
+        currentMonthPayment > 0 && { label: "Payment Received", meta: `${formatCompactCurrency(currentMonthPayment)} this month`, icon: BadgeIndianRupee, color: "bg-green-50 text-green-600" },
         overdueInvoices > 0 && { label: "Invoice Generated", meta: `${formatNumber(overdueInvoices)} overdue invoices`, icon: ReceiptIndianRupee, color: "bg-red-50 text-red-600" },
         totalCustomers > 0 && { label: "Customer Added", meta: `${formatNumber(totalCustomers)} converted customers`, icon: UsersRound, color: "bg-cyan-50 text-cyan-600" },
     ].filter(Boolean);
@@ -590,7 +608,7 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                         subtitle: "Track open deals by stage",
                         value: formatNumber(totalLeads),
                         label: "Open deals",
-                        detail: `${formatCurrency(pipelineValue)} total pipeline`,
+                        detail: `${formatCompactCurrency(pipelineValue)} total pipeline`,
                         icon: Target,
                         path: "/leads/pipeline",
                         tone: "from-blue-600 to-indigo-700",
@@ -608,9 +626,9 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                     {
                         title: "Revenue Forecast",
                         subtitle: "Weighted forecast by pipeline stage",
-                        value: formatCurrency(pipelineForecast),
+                        value: formatCompactCurrency(pipelineForecast),
                         label: "Expected revenue",
-                        detail: `${formatCurrency(currentMonthRevenue)} achieved this month`,
+                        detail: `${formatCompactCurrency(currentMonthRevenue)} achieved this month`,
                         icon: TrendingUp,
                         path: "/leads/revenue-forecast",
                         tone: "from-emerald-500 to-teal-700",

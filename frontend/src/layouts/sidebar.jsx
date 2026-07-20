@@ -81,9 +81,13 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
     const nestedContentRefs = useRef({});
     const [initialLoad, setInitialLoad] = useState(true);
     const { companySetup } = useSelector((state) => state.companySetup);
-    const [logoUrl, setLogoUrl] = useState(logo);
 
     const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
+    const currentOrgId = user?.org_id || "default";
+    const [logoUrl, setLogoUrl] = useState(() => {
+        const cachedLogo = localStorage.getItem(`companyLogo_${currentOrgId}`);
+        return cachedLogo ? buildCompanyLogoUrl(cachedLogo) : null;
+    });
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -115,11 +119,13 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
     // Update logo from Redux store whenever companySetup changes
     useEffect(() => {
         if (companySetup?.companyLogo) {
+            localStorage.setItem(`companyLogo_${currentOrgId}`, companySetup.companyLogo);
             setLogoUrl(buildCompanyLogoUrl(companySetup.companyLogo));
         } else {
-            setLogoUrl(logo);
+            localStorage.removeItem(`companyLogo_${currentOrgId}`);
+            setLogoUrl(initialLoad ? null : logo);
         }
-    }, [companySetup]);
+    }, [companySetup, currentOrgId, initialLoad]);
 
     const isProviderAdmin = isSuperProviderUser(user);
     const isHrmsWorkspace = activeWorkspace === "hrms" && !helpDeskMode;
@@ -275,12 +281,13 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
     useEffect(() => {
         const handleLogoUpdate = (event) => {
             const { orgId: updatedOrgId, logo: newLogo } = event.detail;
-            const currentOrgId = user?.org_id || "default";
 
             if (updatedOrgId === currentOrgId) {
                 if (newLogo) {
+                    localStorage.setItem(`companyLogo_${currentOrgId}`, newLogo);
                     setLogoUrl(buildCompanyLogoUrl(newLogo));
                 } else {
+                    localStorage.removeItem(`companyLogo_${currentOrgId}`);
                     setLogoUrl(logo);
                 }
             }
@@ -291,7 +298,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
         return () => {
             window.removeEventListener("companyLogoUpdated", handleLogoUpdate);
         };
-    }, [user]);
+    }, [currentOrgId]);
 
     return (
         <aside
@@ -330,14 +337,19 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
                                 : "mx-auto h-[58px] w-full",
                         )}
                     >
-                        <img
-                            src={logoUrl}
-                            alt="Company Logo"
-                            className={cn(
-                                "absolute inset-0 h-full w-full transition-all duration-300",
-                                collapsed ? "object-contain" : "object-contain",
-                            )}
-                        />
+                        {logoUrl ? (
+                            <img
+                                src={logoUrl}
+                                alt="Company Logo"
+                                onError={() => setLogoUrl(logo)}
+                                className={cn(
+                                    "absolute inset-0 h-full w-full transition-all duration-300",
+                                    collapsed ? "object-contain" : "object-contain",
+                                )}
+                            />
+                        ) : (
+                            <div className="absolute inset-0 animate-pulse bg-slate-100" />
+                        )}
                     </div>
                 </div>
             </Link>
