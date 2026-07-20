@@ -1185,7 +1185,7 @@
 
 // export default GenerateInvoice;
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getCustomers } from "../../redux/actions/customer";
