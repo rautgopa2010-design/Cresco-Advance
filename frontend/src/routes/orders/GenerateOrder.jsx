@@ -1814,16 +1814,34 @@ const GenerateOrder = () => {
 
     const quotationPrefix = prefix?.quotationPrefix || "";
     const quotationPrefixLabel = quotationPrefix ? `${quotationPrefix}-` : "";
+    const excludedQuotationStatuses = ["cancelled", "canceled", "completed", "lost", "dropped", "onhold", "on hold"];
+    const isQuotationAvailableForOrder = (quotation) => {
+        const statusValues = [
+            quotation?.status,
+            quotation?.quotationStatus,
+            quotation?.leadStatus,
+            quotation?.stage,
+            quotation?.quotationStage,
+        ];
+
+        return !statusValues.some((status) => {
+            const normalized = String(status || "").trim().toLowerCase().replace(/[-_\s]+/g, " ");
+            const compact = normalized.replace(/\s+/g, "");
+            return excludedQuotationStatuses.includes(normalized) || excludedQuotationStatuses.includes(compact);
+        });
+    };
     const quotationOptions = useMemo(
         () =>
-            quotations.map((quotation) => {
-                const displayNo = `${quotationPrefixLabel}${quotation.quotationNo || quotation.id}`;
-                return {
-                    ...quotation,
-                    label: displayNo,
-                    value: displayNo,
-                };
-            }),
+            quotations
+                .filter(isQuotationAvailableForOrder)
+                .map((quotation) => {
+                    const displayNo = `${quotationPrefixLabel}${quotation.quotationNo || quotation.id}`;
+                    return {
+                        ...quotation,
+                        label: displayNo,
+                        value: displayNo,
+                    };
+                }),
         [quotations, quotationPrefixLabel],
     );
 
@@ -1841,6 +1859,13 @@ const GenerateOrder = () => {
         const quotationData = quotations.find((q) => q.quotationNo === fullQuotationNo);
 
         if (quotationData) {
+            if (!isQuotationAvailableForOrder(quotationData)) {
+                setLocalSnackbarMessage("This quotation is not available for order creation.");
+                setLocalSnackbarSeverity("error");
+                setSnackbarOpen(true);
+                return;
+            }
+
             const { productQuotationDetails } = quotationData;
             const intrastate = productQuotationDetails?.intrastate || [];
             const interstate = productQuotationDetails?.interstate || [];
