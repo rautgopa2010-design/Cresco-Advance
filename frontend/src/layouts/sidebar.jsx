@@ -84,10 +84,7 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
 
     const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
     const currentOrgId = user?.org_id || "default";
-    const [logoUrl, setLogoUrl] = useState(() => {
-        const cachedLogo = localStorage.getItem(`companyLogo_${currentOrgId}`);
-        return cachedLogo ? buildCompanyLogoUrl(cachedLogo) : null;
-    });
+    const [logoUrl, setLogoUrl] = useState(null);
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -106,6 +103,8 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
 
     useEffect(() => {
         const fetchInitialData = async () => {
+            setInitialLoad(true);
+            setLogoUrl(null);
             try {
                 await Promise.all([dispatch(getCompanySetup())]);
             } finally {
@@ -114,18 +113,16 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
         };
         dispatch(clearSnackbar());
         fetchInitialData();
-    }, [dispatch]);
+    }, [dispatch, currentOrgId]);
 
     // Update logo from Redux store whenever companySetup changes
     useEffect(() => {
         if (companySetup?.companyLogo) {
-            localStorage.setItem(`companyLogo_${currentOrgId}`, companySetup.companyLogo);
             setLogoUrl(buildCompanyLogoUrl(companySetup.companyLogo));
         } else {
-            localStorage.removeItem(`companyLogo_${currentOrgId}`);
             setLogoUrl(initialLoad ? null : logo);
         }
-    }, [companySetup, currentOrgId, initialLoad]);
+    }, [companySetup, initialLoad]);
 
     const isProviderAdmin = isSuperProviderUser(user);
     const isHrmsWorkspace = activeWorkspace === "hrms" && !helpDeskMode;
@@ -282,12 +279,10 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
         const handleLogoUpdate = (event) => {
             const { orgId: updatedOrgId, logo: newLogo } = event.detail;
 
-            if (updatedOrgId === currentOrgId) {
+            if (String(updatedOrgId) === String(currentOrgId)) {
                 if (newLogo) {
-                    localStorage.setItem(`companyLogo_${currentOrgId}`, newLogo);
                     setLogoUrl(buildCompanyLogoUrl(newLogo));
                 } else {
-                    localStorage.removeItem(`companyLogo_${currentOrgId}`);
                     setLogoUrl(logo);
                 }
             }
