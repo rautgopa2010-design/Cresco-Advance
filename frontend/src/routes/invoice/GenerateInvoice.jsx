@@ -1835,6 +1835,31 @@ const GenerateInvoice = () => {
     };
 
     const orderPrefix = prefix?.orderPrefix || "";
+    const orderPrefixLabel = orderPrefix ? `${orderPrefix}-` : "";
+    const usedOrderKeys = useMemo(
+        () =>
+            new Set(
+                invoices
+                    .flatMap((invoice) => [invoice.orderId && String(invoice.orderId), invoice.orderNo && String(invoice.orderNo)])
+                    .filter(Boolean),
+            ),
+        [invoices],
+    );
+    const invoiceOrderOptions = useMemo(
+        () =>
+            orders
+                .filter((order) => order.status === "Completed")
+                .filter((order) => !usedOrderKeys.has(String(order.id)) && !usedOrderKeys.has(String(order.orderNo)))
+                .map((order) => {
+                    const displayNo = `${orderPrefixLabel}${order.orderNo || order.id}`;
+                    return {
+                        ...order,
+                        label: displayNo,
+                        value: displayNo,
+                    };
+                }),
+        [orders, orderPrefixLabel, usedOrderKeys],
+    );
 
     // // old
     // const handleOrderSearch = () => {
@@ -2027,8 +2052,8 @@ const GenerateInvoice = () => {
     };
 
     useEffect(() => {
-        setOrderNo(`${orderPrefix}-`);
-    }, [orderPrefix]);
+        setOrderNo(orderPrefixLabel);
+    }, [orderPrefixLabel]);
 
     const handleAddressChange = (type, field) => (e, value) => {
         if (field === "country") {
@@ -2624,39 +2649,47 @@ const GenerateInvoice = () => {
                                                     style: { textTransform: "uppercase" },
                                                 }}
                                             /> */}
-                                            <TextField
-                                                label="Order Number *"
-                                                type="text"
-                                                placeholder="Enter number (e.g. 1001)"
-                                                size="small"
-                                                value={orderNo}
-                                                onChange={(e) => {
-                                                    let value = e.target.value.toUpperCase();
-
-                                                    // Always enforce prefix
-                                                    if (!value.startsWith(`${orderPrefix}-`)) {
-                                                        value = `${orderPrefix}-`;
-                                                    }
-
-                                                    // Extract only the number part
-                                                    let numberPart = value.replace(`${orderPrefix}-`, "");
-                                                    numberPart = numberPart.replace(/[^0-9]/g, "");
-
-                                                    setOrderNo(`${orderPrefix}-${numberPart}`);
+                                            <Autocomplete
+                                                freeSolo
+                                                options={invoiceOrderOptions}
+                                                value={invoiceOrderOptions.find((option) => option.value === orderNo) || null}
+                                                inputValue={orderNo}
+                                                getOptionLabel={(option) => (typeof option === "string" ? option : option.label || "")}
+                                                isOptionEqualToValue={(option, value) => option.value === value?.value}
+                                                onChange={(event, newValue) => {
+                                                    const value = typeof newValue === "string" ? newValue : newValue?.value || orderPrefixLabel;
+                                                    setOrderNo(value.toUpperCase());
+                                                    setErrors((prev) => ({ ...prev, orderNo: false }));
                                                 }}
-                                                onKeyDown={(e) => {
-                                                    const cursorPos = e.target.selectionStart;
-
-                                                    // Prevent deleting prefix
-                                                    if ((e.key === "Backspace" || e.key === "Delete") && cursorPos <= `${orderPrefix}-`.length) {
-                                                        e.preventDefault();
+                                                onInputChange={(event, newInputValue, reason) => {
+                                                    if (reason === "reset") return;
+                                                    const upperValue = newInputValue.toUpperCase();
+                                                    if (!upperValue) {
+                                                        setOrderNo(orderPrefixLabel);
+                                                        return;
                                                     }
+                                                    setOrderNo(upperValue.startsWith(orderPrefixLabel.toUpperCase()) ? upperValue : `${orderPrefixLabel}${upperValue.replace(/[^0-9]/g, "")}`);
+                                                    setErrors((prev) => ({ ...prev, orderNo: false }));
                                                 }}
-                                                error={errors.orderNo}
+                                                renderOption={(props, option) => (
+                                                    <li {...props} key={option.id}>
+                                                        <div className="flex w-full flex-col">
+                                                            <span className="text-sm font-bold text-slate-800">{option.label}</span>
+                                                            <span className="truncate text-xs text-slate-500">{option.selectedCompany || option.customerPerson || "Completed order"}</span>
+                                                        </div>
+                                                    </li>
+                                                )}
+                                                renderInput={(params) => (
+                                                    <TextField
+                                                        {...params}
+                                                        label="Order Number *"
+                                                        placeholder={invoiceOrderOptions.length ? "Select order number" : "No completed orders available"}
+                                                        size="small"
+                                                        error={!!errors.orderNo}
+                                                        fullWidth
+                                                    />
+                                                )}
                                                 fullWidth
-                                                inputProps={{
-                                                    style: { textTransform: "uppercase" },
-                                                }}
                                             />
                                             <Button
                                                 onClick={handleOrderSearch}
@@ -2700,7 +2733,7 @@ const GenerateInvoice = () => {
                         </div>
 
                     {invoiceType === "order" ? (
-                        <div className="flex w-full flex-col gap-4 lg:flex-row">
+                        <div className="grid w-full gap-4 lg:grid-cols-2">
                             <TextField
                                 label="Company Name"
                                 fullWidth
@@ -3008,8 +3041,8 @@ const GenerateInvoice = () => {
                         </>
                     )}
 
-                    <div className="flex w-full flex-col gap-4 lg:flex-row">
-                        <Box className="flex w-full flex-row gap-4 lg:flex-1">
+                    <div className="mt-4 grid w-full gap-4 lg:grid-cols-[minmax(0,1fr)_150px_minmax(0,1fr)]">
+                        <Box className="min-w-0">
                             <TextField
                                 label="Email *"
                                 fullWidth
@@ -3020,24 +3053,25 @@ const GenerateInvoice = () => {
                                 InputProps={{ readOnly: true }}
                             />
                         </Box>
-                        {/* Code + Mobile group (always in a row) */}
-                        <Box className="flex w-full flex-row gap-4 lg:flex-1">
+                        <Box className="min-w-0">
                             <TextField
                                 label="Code *"
+                                fullWidth
                                 value={form.code}
                                 error={!!errors.code}
                                 onChange={handleChange("code")}
                                 size="small"
-                                sx={{ flex: 0.4 }}
                                 InputProps={{ readOnly: true }}
                             />
+                        </Box>
+                        <Box className="min-w-0">
                             <TextField
                                 label="Mobile *"
+                                fullWidth
                                 value={form.mobile}
                                 error={!!errors.mobile}
                                 onChange={handleChange("mobile")}
                                 size="small"
-                                sx={{ flex: 1 }}
                                 InputProps={{ readOnly: true }}
                             />
                         </Box>
