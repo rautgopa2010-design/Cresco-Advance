@@ -46,7 +46,7 @@ const iconByLabel = {
 
 const salesLabels = new Set(["Dashboard", "Enquiries", "Leads", "Deals", "Customer", "Followup", "Quotations"]);
 const engagementLabels = new Set(["Engagement"]);
-const operationsLabels = new Set(["Orders", "Payment", "Field Visits", "Vendor", "Invoice", "Reports", "Analytics", "Incentive"]);
+const operationsLabels = new Set(["Orders", "Field Visits", "Vendor", "Invoice", "Reports", "Analytics", "Incentive"]);
 
 const encodeLogoPath = (logoPath) =>
     logoPath

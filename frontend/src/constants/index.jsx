@@ -142,7 +142,6 @@ export const adminNavbarLinks = [
     { links: [{ label: "Followup", icon: RiUserFollowLine, path: "/followup" }] },
     { links: [{ label: "Quotations", icon: SiWikiquote, path: "/quotations" }] },
     { links: [{ label: "Orders", icon: FaJediOrder, path: "/orders" }] },
-    { links: [{ label: "Payment", icon: CreditCard, path: "/payments" }] },
     {
         links: [
             {
