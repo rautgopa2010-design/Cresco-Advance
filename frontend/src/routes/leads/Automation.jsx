@@ -33,7 +33,7 @@ const formatDateTime = (value) => {
 };
 
 const AutomationCard = ({ icon: Icon, label, value, caption, tone }) => (
-    <div className="rounded-3xl border border-white/80 bg-white/90 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur">
+    <div className="rounded-3xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur sm:p-5">
         <div className="flex items-start justify-between gap-3">
             <span className={`flex size-12 items-center justify-center rounded-2xl ${tone}`}>
                 <Icon size={22} />
@@ -41,7 +41,7 @@ const AutomationCard = ({ icon: Icon, label, value, caption, tone }) => (
             <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-black text-slate-500">Live</span>
         </div>
         <p className="mt-5 text-[13px] font-bold text-slate-500">{label}</p>
-        <p className="mt-1 text-[32px] font-black leading-none text-slate-950">{value}</p>
+        <p className="mt-1 text-2xl font-black leading-none text-slate-950 sm:text-[32px]">{value}</p>
         <p className="mt-2 text-sm font-semibold text-slate-400">{caption}</p>
     </div>
 );
@@ -52,7 +52,7 @@ const EmptyPanel = ({ icon: Icon, title, message }) => (
             <Icon size={26} />
         </span>
         <p className="mt-4 text-sm font-black text-slate-800">{title}</p>
-        <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">{message}</p>
+        <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500 sm:text-sm sm:leading-6">{message}</p>
     </div>
 );
 
@@ -128,26 +128,26 @@ const Automation = () => {
     );
 
     return (
-        <div className="mx-auto flex w-full max-w-[1520px] flex-col gap-6 pb-8 font-['Inter'] text-slate-900">
-            <section className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-8 text-white shadow-[0_28px_80px_rgba(37,99,235,0.24)]">
+        <div className="mx-auto flex w-full max-w-[1520px] flex-col gap-4 pb-8 font-['Inter'] text-slate-900 sm:gap-6">
+            <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 p-5 text-white shadow-[0_28px_80px_rgba(37,99,235,0.24)] sm:rounded-[2rem] sm:p-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                         <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-blue-100 ring-1 ring-white/15">
                             <Sparkles size={15} />
                             CRM Automation
                         </span>
-                        <h1 className="mt-4 text-[34px] font-black leading-tight">Automation Center</h1>
+                        <h1 className="mt-4 text-2xl font-black leading-tight sm:text-[34px]">Automation Center</h1>
                         <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-blue-100">
                             Follow-up reminders, stale deal alerts, smart stage suggestions, and notification triggers for your sales team.
                         </p>
                         <p className="mt-4 text-xs font-bold text-blue-100">Last checked: {formatDateTime(summary?.generatedAt)}</p>
                     </div>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                         <button
                             type="button"
                             onClick={loadSummary}
                             disabled={loading || running}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 disabled:opacity-60"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 disabled:opacity-60"
                         >
                             <RefreshCcw size={18} className={loading ? "animate-spin" : ""} />
                             Refresh
@@ -156,7 +156,7 @@ const Automation = () => {
                             type="button"
                             onClick={runAutomation}
                             disabled={running || loading}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-blue-700 shadow-lg shadow-blue-950/10 transition hover:bg-blue-50 disabled:opacity-60"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-blue-700 shadow-lg shadow-blue-950/10 transition hover:bg-blue-50 disabled:opacity-60"
                         >
                             {running ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
                             Run Checks Now
@@ -186,7 +186,7 @@ const Automation = () => {
             ) : (
                 <>
                     <section className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
-                        <div className="rounded-3xl border border-white/80 bg-white/90 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur">
+                        <div className="rounded-3xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur sm:p-6">
                             <div className="mb-5 flex items-start justify-between gap-4">
                                 <div>
                                     <h2 className="text-lg font-black text-slate-950">Stale Deal Alerts</h2>
@@ -201,13 +201,13 @@ const Automation = () => {
                                             key={deal.leadId}
                                             type="button"
                                             onClick={() => navigate(`/leads/view-leads/${deal.leadId}`)}
-                                            className="flex w-full items-center justify-between gap-4 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 text-left transition hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-md"
+                                            className="flex w-full flex-col gap-3 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 text-left transition hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                                         >
                                             <div className="min-w-0">
                                                 <p className="truncate text-sm font-black text-slate-900">{deal.companyName}</p>
                                                 <p className="mt-1 text-xs font-bold text-amber-700">{deal.leadStage} stage • stale for {deal.staleForDays} days</p>
                                             </div>
-                                            <div className="text-right">
+                                            <div className="text-left sm:text-right">
                                                 <p className="text-sm font-black text-slate-950">{formatCurrency(deal.expectedAmount)}</p>
                                                 <ArrowRight size={17} className="ml-auto mt-1 text-amber-600" />
                                             </div>
@@ -219,7 +219,7 @@ const Automation = () => {
                             )}
                         </div>
 
-                        <div className="rounded-3xl border border-white/80 bg-white/90 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur">
+                        <div className="rounded-3xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur sm:p-6">
                             <div className="mb-5 flex items-start justify-between gap-4">
                                 <div>
                                     <h2 className="text-lg font-black text-slate-950">Auto-stage Suggestions</h2>
@@ -236,9 +236,9 @@ const Automation = () => {
                                             onClick={() => navigate(`/leads/opportunities`)}
                                             className="w-full rounded-2xl border border-violet-100 bg-violet-50/70 p-4 text-left transition hover:-translate-y-0.5 hover:bg-violet-50 hover:shadow-md"
                                         >
-                                            <div className="flex items-center justify-between gap-4">
+                                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                                                 <p className="truncate text-sm font-black text-slate-900">{suggestion.companyName}</p>
-                                                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-violet-700">{suggestion.suggestedStage}</span>
+                                                <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-black text-violet-700">{suggestion.suggestedStage}</span>
                                             </div>
                                             <p className="mt-2 text-xs font-bold text-violet-700">{suggestion.currentStage} → {suggestion.suggestedStage}</p>
                                             <p className="mt-1 text-xs font-semibold text-slate-500">{suggestion.reason}</p>
@@ -251,7 +251,7 @@ const Automation = () => {
                         </div>
                     </section>
 
-                    <section className="rounded-3xl border border-white/80 bg-white/90 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur">
+                    <section className="rounded-3xl border border-white/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur sm:p-6">
                         <div className="mb-5 flex items-start justify-between gap-4">
                             <div>
                                 <h2 className="text-lg font-black text-slate-950">Follow-up Reminder Queue</h2>

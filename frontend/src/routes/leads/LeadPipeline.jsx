@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, ArrowRight, CalendarDays, CircleDollarSign, Filter, GripVertical, Search, Sparkles, Target, TrendingUp, UserRound } from "lucide-react";
@@ -67,6 +67,7 @@ const LeadPipeline = () => {
     const [draggedLeadId, setDraggedLeadId] = useState(null);
     const [query, setQuery] = useState("");
     const [updatingLeadId, setUpdatingLeadId] = useState(null);
+    const touchDragRef = useRef({ leadId: null, startX: 0, startY: 0, moved: false });
 
     useEffect(() => {
         dispatch(getLeads());
@@ -121,9 +122,9 @@ const LeadPipeline = () => {
         return { totalValue, forecastValue, totalDeals: filteredLeads.length };
     }, [filteredLeads, leadsByStage, pipelineStages]);
 
-    const handleDrop = async (stageKey) => {
-        if (!draggedLeadId) return;
-        const lead = leads.find((item) => String(item.id) === String(draggedLeadId));
+    const moveLeadToStage = async (leadId, stageKey) => {
+        if (!leadId || !stageKey) return;
+        const lead = leads.find((item) => String(item.id) === String(leadId));
         setDraggedLeadId(null);
         if (!lead || normalizeStage(lead, pipelineStages) === stageKey) return;
 
@@ -135,6 +136,39 @@ const LeadPipeline = () => {
         } finally {
             setUpdatingLeadId(null);
         }
+    };
+
+    const handleDrop = (stageKey) => {
+        moveLeadToStage(draggedLeadId, stageKey);
+    };
+
+    const handleTouchStart = (event, leadId) => {
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        touchDragRef.current = { leadId, startX: touch.clientX, startY: touch.clientY, moved: false };
+        setDraggedLeadId(leadId);
+    };
+
+    const handleTouchMove = (event) => {
+        const touch = event.touches?.[0];
+        const dragState = touchDragRef.current;
+        if (!touch || !dragState.leadId) return;
+
+        if (Math.abs(touch.clientX - dragState.startX) > 8 || Math.abs(touch.clientY - dragState.startY) > 8) {
+            dragState.moved = true;
+            event.preventDefault();
+        }
+    };
+
+    const handleTouchEnd = (event) => {
+        const dragState = touchDragRef.current;
+        const touch = event.changedTouches?.[0];
+        touchDragRef.current = { leadId: null, startX: 0, startY: 0, moved: false };
+        setDraggedLeadId(null);
+        if (!touch || !dragState.leadId || !dragState.moved) return;
+
+        const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY)?.closest("[data-pipeline-stage]");
+        moveLeadToStage(dragState.leadId, dropTarget?.getAttribute("data-pipeline-stage"));
     };
 
     return (
@@ -242,6 +276,7 @@ const LeadPipeline = () => {
                         return (
                             <section
                                 key={stage.key}
+                                data-pipeline-stage={stage.key}
                                 onDragOver={(event) => event.preventDefault()}
                                 onDrop={() => handleDrop(stage.key)}
                                 className={`flex min-h-[560px] w-[260px] shrink-0 flex-col rounded-3xl border ${stage.border} bg-slate-50/80 p-3 shadow-lg shadow-slate-200/70`}
@@ -273,8 +308,11 @@ const LeadPipeline = () => {
                                                     draggable
                                                     onDragStart={() => setDraggedLeadId(lead.id)}
                                                     onDragEnd={() => setDraggedLeadId(null)}
+                                                    onTouchStart={(event) => handleTouchStart(event, lead.id)}
+                                                    onTouchMove={handleTouchMove}
+                                                    onTouchEnd={handleTouchEnd}
                                                     className={`group cursor-grab rounded-2xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-200/70 transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl active:cursor-grabbing ${
-                                                        updatingLeadId === lead.id ? "opacity-60" : ""
+                                                        updatingLeadId === lead.id || draggedLeadId === lead.id ? "opacity-60" : ""
                                                     }`}
                                                 >
                                                     <div className="flex items-start justify-between gap-3">
