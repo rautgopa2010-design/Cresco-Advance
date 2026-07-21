@@ -116,7 +116,7 @@ import { deleteModule } from "../../../redux/actions/rbac";
 import { Button } from "@material-tailwind/react";
 
 const PermissionTable = ({ defaultPermissions, onEditModule }) => {
-    const DEFAULT_MODULES = ["Enquiry", "Leads", "API Leads", "Followup", "Quotations", "Orders", "Customer", "Invoice", "Reports", "Incentive", "Master", "Tickets"];
+    const DEFAULT_MODULES = ["Enquiry", "Leads", "API Leads", "Followup", "Quotations", "Orders", "Field Visits", "Customer", "Invoice", "Reports", "Incentive", "Master", "Tickets"];
     const dispatch = useDispatch();
     const isMobile = useMediaQuery("(max-width:600px)");
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);

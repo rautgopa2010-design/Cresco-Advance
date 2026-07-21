@@ -9,6 +9,7 @@ export const packageModuleGroups = [
             { id: "crm-followup", name: "Followup" },
             { id: "crm-quotations", name: "Quotations" },
             { id: "crm-orders", name: "Orders" },
+            { id: "crm-field-visits", name: "Field Visits" },
             { id: "crm-customer", name: "Customer" },
             { id: "crm-invoice", name: "Invoice" },
             { id: "crm-reports", name: "Reports" },

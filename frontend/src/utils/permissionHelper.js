@@ -8,6 +8,7 @@ export const filterLinksByPermission = (links, permissions, isProviderAdmin = fa
     if (isProviderAdmin) return links; // Provider Admin sees everything
 
     const isSuperAdmin = userRole === "Super Admin" || userRole === "Super Provider Admin";
+    if (isSuperAdmin) return links;
 
     return links
         .map((group) => {

@@ -61,6 +61,7 @@ import ViewOrder from "./routes/orders/ViewOrder";
 import OrderPayment from "./routes/orders/OrderPayment";
 import OrderPaymentDetails from "./routes/orders/OrderPaymentDetails";
 import PaymentLookup from "./routes/payments/PaymentLookup";
+import FieldVisits from "./routes/fieldVisits/FieldVisits";
 import VendorManager from "./routes/vendors/VendorManager";
 import Customer from "./routes/customer/Customer";
 import Invoice from "./routes/invoice/Invoice";
@@ -833,6 +834,33 @@ function AppRoutes() {
                                               <PermissionRoute
                                                   moduleName="Orders"
                                                   element={<PaymentLookup />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "field-visits/check-in",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Field Visits"
+                                                  element={<FieldVisits mode="check-in" />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "field-visits/history",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Field Visits"
+                                                  element={<FieldVisits mode="history" />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "field-visits/map",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Field Visits"
+                                                  element={<FieldVisits mode="map" />}
                                               />
                                           ),
                                       },

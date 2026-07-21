@@ -1,4 +1,4 @@
-import { Building2, CreditCard, Dot, Home, Settings, CircleDot, UserRound, User } from "lucide-react";
+import { Building2, CreditCard, Dot, Home, MapPinned, Settings, CircleDot, UserRound, User } from "lucide-react";
 import { MdOutlineLeaderboard, MdOutlineSettingsAccessibility, MdPages } from "react-icons/md";
 import { RiUserFollowLine } from "react-icons/ri";
 import { SiWikiquote } from "react-icons/si";
@@ -143,6 +143,22 @@ export const adminNavbarLinks = [
     { links: [{ label: "Quotations", icon: SiWikiquote, path: "/quotations" }] },
     { links: [{ label: "Orders", icon: FaJediOrder, path: "/orders" }] },
     { links: [{ label: "Payment", icon: CreditCard, path: "/payments" }] },
+    {
+        links: [
+            {
+                label: "Field Visits",
+                icon: MapPinned,
+                isAccordion: true,
+                showArrow: true,
+                defaultOpen: false,
+                children: [
+                    { label: "Visit Check-in", moduleName: "Field Visits", path: "/field-visits/check-in", icon: Dot },
+                    { label: "Visit History", moduleName: "Field Visits", path: "/field-visits/history", icon: Dot },
+                    { label: "Visit Map", moduleName: "Field Visits", path: "/field-visits/map", icon: Dot },
+                ],
+            },
+        ],
+    },
     {
         links: [
             {

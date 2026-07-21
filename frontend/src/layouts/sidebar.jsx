@@ -10,7 +10,7 @@ import { API_BASE_URL } from "@/utils/api";
 import { getCompanySetup } from "../redux/actions/companySetup";
 import { clearSnackbar } from "../redux/actions/commonActions";
 import { useDispatch, useSelector } from "react-redux";
-import { BarChart3, BriefcaseBusiness, ChevronDown, Circle, CreditCard, FileText, Home, Landmark, Layers3, LayoutDashboard, Mail, MessageCircle, PhoneCall, ReceiptText, Settings, Target, TrendingUp, UserRound, UsersRound } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, ChevronDown, Circle, CreditCard, FileText, Home, Landmark, Layers3, LayoutDashboard, Mail, MapPinned, MessageCircle, PhoneCall, ReceiptText, Settings, Target, TrendingUp, UserRound, UsersRound } from "lucide-react";
 
 const iconByLabel = {
     Dashboard: LayoutDashboard,
@@ -30,6 +30,10 @@ const iconByLabel = {
     Quotations: FileText,
     Orders: BriefcaseBusiness,
     Payment: CreditCard,
+    "Field Visits": MapPinned,
+    "Visit Check-in": MapPinned,
+    "Visit History": MapPinned,
+    "Visit Map": MapPinned,
     Vendor: Landmark,
     Customer: UsersRound,
     Invoice: ReceiptText,
@@ -42,7 +46,7 @@ const iconByLabel = {
 
 const salesLabels = new Set(["Dashboard", "Enquiries", "Leads", "Deals", "Customer", "Followup", "Quotations"]);
 const engagementLabels = new Set(["Engagement"]);
-const operationsLabels = new Set(["Orders", "Payment", "Vendor", "Invoice", "Reports", "Analytics", "Incentive"]);
+const operationsLabels = new Set(["Orders", "Payment", "Field Visits", "Vendor", "Invoice", "Reports", "Analytics", "Incentive"]);
 
 const encodeLogoPath = (logoPath) =>
     logoPath

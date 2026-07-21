@@ -20,6 +20,7 @@ export const CRM_MODULE_NAMES = [
     "Followup",
     "Quotations",
     "Orders",
+    "Field Visits",
     "Customer",
     "Invoice",
     "Reports",
