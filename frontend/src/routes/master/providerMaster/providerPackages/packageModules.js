@@ -9,7 +9,6 @@ export const packageModuleGroups = [
             { id: "crm-followup", name: "Followup" },
             { id: "crm-quotations", name: "Quotations" },
             { id: "crm-orders", name: "Orders" },
-            { id: "crm-field-visits", name: "Field Visits" },
             { id: "crm-customer", name: "Customer" },
             { id: "crm-invoice", name: "Invoice" },
             { id: "crm-reports", name: "Reports" },
@@ -25,6 +24,7 @@ export const packageModuleGroups = [
             { id: "crm-sales-automation", name: "Sales Automation" },
             { id: "crm-engagement-hub", name: "Engagement Hub" },
             { id: "crm-ai-sales-assistant", name: "AI Sales Assistant" },
+            { id: "crm-field-visits", name: "Field Visits" },
         ],
     },
     {
