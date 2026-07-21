@@ -279,7 +279,7 @@ const LeadPipeline = () => {
                                                 >
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="min-w-0">
-                                                            <h4 className="truncate text-sm font-black text-slate-950">{lead.companyName || "Untitled deal"}</h4>
+                                                            <h4 className="truncate text-sm font-black text-slate-950">{lead.companyName || "--"}</h4>
                                                             <p className="mt-1 truncate text-xs font-semibold text-slate-500">{lead.customerPerson || "No customer person"}</p>
                                                         </div>
                                                         <GripVertical
