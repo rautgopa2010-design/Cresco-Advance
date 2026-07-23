@@ -56,7 +56,8 @@ import axios from "axios";
 import store from "../redux/store";
 import { USER_LOGOUT } from "../redux/types";
 
-const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:8200").replace(/\/api\/?$/, "").replace(/\/$/, "");
+const currentOrigin = typeof window !== "undefined" ? window.location.origin : "http://localhost:8200";
+const API_ORIGIN = (import.meta.env.VITE_API_URL || currentOrigin).replace(/\/api\/?$/, "").replace(/\/$/, "");
 
 export const API_BASE_URL = `${API_ORIGIN}/api`;
 export const IMAGE_BASE_URL = API_ORIGIN;
