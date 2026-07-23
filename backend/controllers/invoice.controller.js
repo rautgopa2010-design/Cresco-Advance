@@ -396,3 +396,47 @@ exports.deleteInvoice = async (req, res) => {
     return sendErrorResponse(res, 500, "Error deleting invoice.");
   }
 };
+
+/* ----------------------- Cancel Invoice ----------------------- */
+exports.cancelInvoice = async (req, res) => {
+  const { id } = req.params;
+  const org_id = req.user.org_id;
+
+  try {
+    const invoice = await Invoice.findOne({ where: { id, org_id } });
+    if (!invoice) return sendErrorResponse(res, 404, "Invoice not found.");
+
+    if (invoice.status === "Cancelled") {
+      return sendErrorResponse(res, 400, "Invoice is already cancelled.");
+    }
+
+    await invoice.update({ status: "Cancelled" });
+
+    return res.status(200).json({
+      message: "Invoice cancelled successfully.",
+      updatedInvoice: {
+        id: invoice.id,
+        invoiceNo: invoice.invoiceNo,
+        invoiceType: invoice.invoiceType,
+        org_id: invoice.org_id,
+        user_id: invoice.user_id,
+        selectedCompany: invoice.selectedCompany,
+        customerPerson: invoice.customerPerson,
+        email: invoice.email,
+        mobile: invoice.mobile,
+        date: invoice.date,
+        billingAddress: parseJSON(invoice.billingAddress, {}),
+        shippingAddress: parseJSON(invoice.shippingAddress, {}),
+        termsAndConditions: invoice.termsAndConditions,
+        productInvoiceDetails: parseJSON(invoice.productInvoiceDetails, {}),
+        status: invoice.status,
+        finalAmt: invoice.finalAmt,
+        createdAt: invoice.createdAt,
+        updatedAt: invoice.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Cancel Invoice Error:", error);
+    return sendErrorResponse(res, 500, "Error cancelling invoice.");
+  }
+};

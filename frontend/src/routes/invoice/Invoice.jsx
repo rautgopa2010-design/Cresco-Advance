@@ -110,12 +110,12 @@
 // export default Invoice;
 
 import { Button } from "@material-tailwind/react";
-import { ChevronDown, ChevronLeft, ChevronRight, File, Inbox, IndianRupee, PencilLine, Printer, ReceiptText, SlidersHorizontal, Trash, TrendingUp, X } from "lucide-react";
+import { Ban, ChevronDown, ChevronLeft, ChevronRight, File, Inbox, IndianRupee, PencilLine, Printer, ReceiptText, SlidersHorizontal, Trash, TrendingUp, X } from "lucide-react";
 import { LiaFileInvoiceSolid } from "react-icons/lia";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { getInvoices, deleteInvoice } from "../../redux/actions/invoice";
+import { cancelInvoice, getInvoices, deleteInvoice } from "../../redux/actions/invoice";
 import { Alert, Box, CircularProgress, IconButton, Modal, Snackbar, Typography, useMediaQuery, TextField } from "@mui/material";
 import { clearSnackbar } from "../../redux/actions/commonActions";
 import InvoicePrint from "./InvoicePrint";
@@ -135,6 +135,8 @@ const Invoice = ({ documentType = "final" }) => {
     const isMobile = useMediaQuery("(max-width:600px)");
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [selectedDeleteId, setSelectedDeleteId] = useState(null);
+    const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+    const [selectedCancelId, setSelectedCancelId] = useState(null);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const { companySetup } = useSelector((state) => state.companySetup);
     const { prefix } = useSelector((state) => state.prefix);
@@ -206,11 +208,23 @@ const Invoice = ({ documentType = "final" }) => {
         setDeleteConfirmOpen(true);
     };
 
+    const handleCancelClick = (id) => {
+        setSelectedCancelId(id);
+        setCancelConfirmOpen(true);
+    };
+
     const confirmDelete = () => {
         dispatch(deleteInvoice(selectedDeleteId, documentType));
         setSnackbarOpen(true);
         setDeleteConfirmOpen(false);
         setSelectedDeleteId(null);
+    };
+
+    const confirmCancel = () => {
+        dispatch(cancelInvoice(selectedCancelId, documentType));
+        setSnackbarOpen(true);
+        setCancelConfirmOpen(false);
+        setSelectedCancelId(null);
     };
 
     const handleSnackbarClose = (_, reason) => {
@@ -455,6 +469,7 @@ const Invoice = ({ documentType = "final" }) => {
                                         <th className="table-head border border-gray-300 capitalize">Quantity</th>
                                         <th className="table-head border border-gray-300 capitalize">Total</th>
                                         <th className="table-head border border-gray-300 capitalize">Final Amount</th>
+                                        <th className="table-head border border-gray-300 capitalize">Status</th>
                                         <th className="table-head border border-gray-300 capitalize">Actions</th>
                                     </tr>
                                 </thead>
@@ -462,7 +477,7 @@ const Invoice = ({ documentType = "final" }) => {
                                     {currentInvoices.length === 0 ? (
                                         <tr>
                                             <td
-                                                colSpan="11"
+                                                colSpan="12"
                                                 className="px-4 py-14 text-center"
                                             >
                                                 <div className="mx-auto flex max-w-md flex-col items-center">
@@ -528,6 +543,11 @@ const Invoice = ({ documentType = "final" }) => {
 
                                                     <td className="table-cell border border-gray-300">{invoice.finalAmt}</td>
                                                     <td className="table-cell border border-gray-300">
+                                                        <span className={`rounded-full px-3 py-1 text-xs font-black ${invoice.status === "Cancelled" ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
+                                                            {invoice.status || "Pending"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="table-cell border border-gray-300">
                                                         <div className="flex items-center gap-x-2">
                                                             <button
                                                                 className="rounded-xl bg-blue-50 p-2 text-blue-600 transition hover:-translate-y-0.5 hover:bg-blue-100"
@@ -556,6 +576,15 @@ const Invoice = ({ documentType = "final" }) => {
                                                             >
                                                                 <Printer size={18} />
                                                             </button>
+                                                            {invoice.status !== "Cancelled" && (
+                                                                <button
+                                                                    className="rounded-xl bg-rose-50 p-2 text-rose-600 transition hover:-translate-y-0.5 hover:bg-rose-100"
+                                                                    onClick={() => handleCancelClick(invoice.id)}
+                                                                    title={`Cancel ${documentLabel.toLowerCase()}`}
+                                                                >
+                                                                    <Ban size={18} />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -636,6 +665,48 @@ const Invoice = ({ documentType = "final" }) => {
                             variant="gradient"
                             className="rounded bg-gray-500 px-4 py-2 capitalize text-white"
                             onClick={() => setDeleteConfirmOpen(false)}
+                        >
+                            No
+                        </Button>
+                    </div>
+                </Box>
+            </Modal>
+
+            {/* Cancel Modal */}
+            <Modal
+                open={cancelConfirmOpen}
+                onClose={() => setCancelConfirmOpen(false)}
+            >
+                <Box sx={modalStyle}>
+                    <div className="mb-4 flex items-center justify-between">
+                        <Typography
+                            variant="h6"
+                            className="font-semibold"
+                        >
+                            Confirm Cancel
+                        </Typography>
+                        <IconButton
+                            onClick={() => setCancelConfirmOpen(false)}
+                            className="delay-300 duration-300 hover:scale-105 hover:text-red-500"
+                        >
+                            <X size={20} />
+                        </IconButton>
+                    </div>
+
+                    <Typography className="mb-6 text-[#433C50]">Are you sure, you want to cancel this {documentLabel.toLowerCase()}?</Typography>
+
+                    <div className="mt-4 flex justify-center gap-4">
+                        <Button
+                            variant="gradient"
+                            className="rounded bg-red-700 px-4 py-2 capitalize text-white"
+                            onClick={confirmCancel}
+                        >
+                            Yes, Cancel
+                        </Button>
+                        <Button
+                            variant="gradient"
+                            className="rounded bg-gray-500 px-4 py-2 capitalize text-white"
+                            onClick={() => setCancelConfirmOpen(false)}
                         >
                             No
                         </Button>

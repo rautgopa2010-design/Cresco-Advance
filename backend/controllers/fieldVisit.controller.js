@@ -67,9 +67,6 @@ exports.createVisit = async (req, res) => {
       resolvedClientName = resolvedClientName || customer.companyName || `${customer.firstName || ""} ${customer.lastName || ""}`.trim();
       resolvedContactPerson = resolvedContactPerson || `${customer.firstName || ""} ${customer.lastName || ""}`.trim();
       resolvedMobile = resolvedMobile || customer.mobile || "";
-      resolvedAddress =
-        resolvedAddress ||
-        compactAddress(customer.shippingStreet || customer.billingStreet, customer.shippingCity || customer.billingCity, customer.shippingState || customer.billingState, customer.shippingPincode || customer.billingPincode, customer.shippingCountry || customer.billingCountry);
     }
 
     if (resolvedLeadId) {
@@ -78,13 +75,14 @@ exports.createVisit = async (req, res) => {
       resolvedClientName = resolvedClientName || lead.companyName || lead.customerPerson;
       resolvedContactPerson = resolvedContactPerson || lead.customerPerson || "";
       resolvedMobile = resolvedMobile || lead.mobile || "";
-      resolvedAddress =
-        resolvedAddress ||
-        compactAddress(lead.shippingStreet || lead.billingStreet, lead.shippingCity || lead.billingCity, lead.shippingState || lead.billingState, lead.shippingPincode || lead.billingPincode, lead.shippingCountry || lead.billingCountry);
     }
 
     if (!resolvedClientName) {
       return sendErrorResponse(res, 400, "Client name is required.");
+    }
+
+    if (!resolvedAddress) {
+      resolvedAddress = `Lat ${lat.toFixed(6)}, Long ${lng.toFixed(6)}`;
     }
 
     const visit = await FieldVisit.create({

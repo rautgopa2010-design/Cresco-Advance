@@ -68,6 +68,31 @@ export const updateInvoice = (id, data) => async (dispatch) => {
   }
 };
 
+// Cancel invoice
+export const cancelInvoice = (id, invoiceType = "final") => async (dispatch) => {
+  dispatch({ type: INVOICE_LOADING });
+  try {
+    const res = await api.patch(`/invoice/cancel/${id}?invoiceType=${encodeURIComponent(invoiceType)}`);
+
+    dispatch({
+      type: UPDATE_INVOICE,
+      payload: res.data.updatedInvoice,
+    });
+
+    dispatch({
+      type: INVOICE_SUCCESS,
+      payload: res.data.message || "Invoice cancelled successfully",
+    });
+  } catch (err) {
+    console.error("Cancel Invoice Error:", err);
+    const message =
+      err.response?.data?.errors?.[0]?.msg ||
+      err.response?.data?.message ||
+      "Failed to cancel invoice";
+    dispatch({ type: INVOICE_ERROR, payload: message });
+  }
+};
+
 // Delete invoice
 export const deleteInvoice = (id, invoiceType = "final") => async (dispatch) => {
   dispatch({ type: INVOICE_LOADING });

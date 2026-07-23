@@ -78,6 +78,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "Pending",
+      },
     },
     {
       tableName: `${dbConfig.tablePrefix}invoice`,

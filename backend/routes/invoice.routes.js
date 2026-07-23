@@ -42,6 +42,13 @@ router.put(
   controller.updateInvoice
 );
 
+router.patch(
+  "/cancel/:id",
+  auth,
+  invoicePermission("edit"),
+  controller.cancelInvoice
+);
+
 router.delete(
   "/:id",
   auth,

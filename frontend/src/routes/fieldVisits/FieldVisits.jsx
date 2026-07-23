@@ -29,6 +29,7 @@ const FieldVisits = ({ mode = "check-in" }) => {
     const [manualClientName, setManualClientName] = useState("");
     const [notes, setNotes] = useState("");
     const [location, setLocation] = useState(null);
+    const [currentAddress, setCurrentAddress] = useState("");
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -96,9 +97,28 @@ const FieldVisits = ({ mode = "check-in" }) => {
         );
     }, [query, visits]);
 
+    const resolveCurrentAddress = async (latitude, longitude) => {
+        try {
+            const params = new URLSearchParams({
+                format: "jsonv2",
+                lat: String(latitude),
+                lon: String(longitude),
+            });
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+                headers: { Accept: "application/json" },
+            });
+            if (!response.ok) throw new Error("Reverse geocode failed");
+            const data = await response.json();
+            return data.display_name || "";
+        } catch {
+            return "";
+        }
+    };
+
     const getCurrentLocation = () => {
         setError("");
         setMessage("");
+        setCurrentAddress("");
         if (!navigator.geolocation) {
             setError("Geolocation is not supported on this device/browser.");
             return;
@@ -106,12 +126,15 @@ const FieldVisits = ({ mode = "check-in" }) => {
 
         setLoading(true);
         navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setLocation({
+            async (position) => {
+                const capturedLocation = {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     accuracy: Math.round(position.coords.accuracy || 0),
-                });
+                };
+                const resolvedAddress = await resolveCurrentAddress(capturedLocation.latitude, capturedLocation.longitude);
+                setLocation(capturedLocation);
+                setCurrentAddress(resolvedAddress || `Lat ${capturedLocation.latitude.toFixed(6)}, Long ${capturedLocation.longitude.toFixed(6)}`);
                 setMessage("Current location captured. You can save the visit now.");
                 setLoading(false);
             },
@@ -144,7 +167,7 @@ const FieldVisits = ({ mode = "check-in" }) => {
                 clientName: selectedTarget?.label || manualClientName.trim(),
                 contactPerson: selectedTarget?.contactPerson || "",
                 mobile: selectedTarget?.mobile || "",
-                address: selectedTarget?.address || "",
+                address: currentAddress || `Lat ${location.latitude.toFixed(6)}, Long ${location.longitude.toFixed(6)}`,
                 latitude: location.latitude,
                 longitude: location.longitude,
                 accuracy: location.accuracy,
@@ -155,6 +178,7 @@ const FieldVisits = ({ mode = "check-in" }) => {
             setManualClientName("");
             setNotes("");
             setLocation(null);
+            setCurrentAddress("");
             await loadData();
         } catch (err) {
             setError(err.response?.data?.message || err.response?.data?.msg || "Failed to save visit check-in");
@@ -260,6 +284,7 @@ const FieldVisits = ({ mode = "check-in" }) => {
                                         <p>Latitude: {location.latitude.toFixed(6)}</p>
                                         <p>Longitude: {location.longitude.toFixed(6)}</p>
                                         <p>Accuracy: {location.accuracy || "-"} meters</p>
+                                        {currentAddress && <p>Current address: {currentAddress}</p>}
                                     </div>
                                 ) : (
                                     <p>No location captured yet.</p>
