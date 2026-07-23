@@ -109,7 +109,9 @@ exports.createInvoice = async (req, res) => {
       productInvoiceDetails,
       finalAmt,
       orderId, // Add orderId to track which order generated this invoice
+      invoiceType = "final",
   } = req.body;
+  const normalizedInvoiceType = invoiceType === "proforma" ? "proforma" : "final";
 
   try {
       // ✅ Check if invoice already exists for this order
@@ -117,7 +119,8 @@ exports.createInvoice = async (req, res) => {
           const existingInvoice = await Invoice.findOne({
               where: { 
                   org_id,
-                  orderId: orderId  // You'll need to add orderId field to Invoice model
+                  orderId: orderId,
+                  invoiceType: normalizedInvoiceType,
               }
           });
           
@@ -128,7 +131,7 @@ exports.createInvoice = async (req, res) => {
 
       // Generate next numeric invoice number
       const lastInvoice = await Invoice.findOne({
-          where: { org_id },
+          where: { org_id, invoiceType: normalizedInvoiceType },
           order: [["id", "DESC"]],
       });
 
@@ -142,6 +145,7 @@ exports.createInvoice = async (req, res) => {
       const newInvoice = await Invoice.create({
           org_id,
           invoiceNo,
+          invoiceType: normalizedInvoiceType,
           user_id,
           assignedRoleIds: [userRoleId],
           selectedCompany,
@@ -171,9 +175,10 @@ exports.createInvoice = async (req, res) => {
 /* ----------------------- GET ALL INVOICES ----------------------- */
 exports.getAllInvoices = async (req, res) => {
   const { org_id, id: userId, role_id: userRoleId } = req.user;
+  const requestedType = req.query.invoiceType === "proforma" ? "proforma" : "final";
 
   try {
-    const allInvoices = await Invoice.findAll({ where: { org_id } });
+    const allInvoices = await Invoice.findAll({ where: { org_id, invoiceType: requestedType } });
 
     const visibleInvoices = [];
     for (const invoice of allInvoices) {
@@ -203,6 +208,7 @@ exports.getAllInvoices = async (req, res) => {
     const transformedInvoices = visibleInvoices.map((invoice) => ({
       id: invoice.id,
       invoiceNo: invoice.invoiceNo,
+      invoiceType: invoice.invoiceType,
       org_id: invoice.org_id,
       user_id: invoice.user_id,
       selectedCompany: invoice.selectedCompany,
@@ -310,14 +316,16 @@ exports.updateInvoice = async (req, res) => {
     productInvoiceDetails,
     status,
     finalAmt,
+    invoiceType,
   } = req.body;
+  const normalizedInvoiceType = invoiceType === "proforma" ? "proforma" : "final";
 
   try {
     const invoice = await Invoice.findOne({ where: { id, org_id } });
     if (!invoice) return sendErrorResponse(res, 404, "Invoice not found.");
 
     // ✅ Check if invoice has an associated order
-    if (invoice.orderId) {
+    if (normalizedInvoiceType === "final" && invoice.orderId) {
       const Order = db.order;
       const order = await Order.findOne({ where: { id: invoice.orderId, org_id } });
       
@@ -339,6 +347,7 @@ exports.updateInvoice = async (req, res) => {
       productInvoiceDetails,
       status,
       finalAmt,
+      invoiceType: normalizedInvoiceType,
     });
 
     // ✅ Respond with updated data
@@ -346,6 +355,8 @@ exports.updateInvoice = async (req, res) => {
       message: "Invoice updated successfully.",
       updatedInvoice: {
         id: invoice.id,
+        invoiceNo: invoice.invoiceNo,
+        invoiceType: invoice.invoiceType,
         org_id: invoice.org_id,
         user_id: invoice.user_id,
         selectedCompany: invoice.selectedCompany,

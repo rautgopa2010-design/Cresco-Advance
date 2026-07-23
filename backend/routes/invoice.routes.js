@@ -4,6 +4,12 @@ const controller = require("../controllers/invoice.controller");
 const auth = require("../middleware/auth.middleware");
 const checkPermission = require("../middleware/checkPermission.middleware");
 
+const invoicePermission = (action) => (req, res, next) => {
+  const invoiceType = req.body?.invoiceType || req.query?.invoiceType;
+  const modulePrefix = invoiceType === "proforma" ? "proforma_invoice" : "invoice";
+  return checkPermission(`${modulePrefix}_${action}`)(req, res, next);
+};
+
 // ✅ Validation rules
 const invoiceValidation = [
   check("customerPerson", "Customer person is required").notEmpty(),
@@ -16,7 +22,7 @@ const invoiceValidation = [
 router.post(
   "/create",
   auth,
-  checkPermission("invoice_create"),
+  invoicePermission("create"),
   invoiceValidation,
   controller.createInvoice
 );
@@ -24,14 +30,14 @@ router.post(
 router.get(
   "/",
   auth,
-  checkPermission("invoice_view"),
+  invoicePermission("view"),
   controller.getAllInvoices
 );
 
 router.put(
   "/edit/:id",
   auth,
-  checkPermission("invoice_edit"),
+  invoicePermission("edit"),
   invoiceValidation,
   controller.updateInvoice
 );
@@ -39,7 +45,7 @@ router.put(
 router.delete(
   "/:id",
   auth,
-  checkPermission("invoice_delete"),
+  invoicePermission("delete"),
   controller.deleteInvoice
 );
 

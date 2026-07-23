@@ -10,10 +10,10 @@ import {
 } from "../types";
 
 // Get all invoices
-export const getInvoices = () => async (dispatch) => {
+export const getInvoices = (invoiceType = "final") => async (dispatch) => {
   dispatch({ type: INVOICE_LOADING });
   try {
-    const res = await api.get("/invoice");
+    const res = await api.get(`/invoice?invoiceType=${encodeURIComponent(invoiceType)}`);
     const sorted = res.data.sort((a, b) => b.id - a.id);
     dispatch({ type: GET_INVOICES, payload: sorted });
   } catch (err) {
@@ -69,10 +69,10 @@ export const updateInvoice = (id, data) => async (dispatch) => {
 };
 
 // Delete invoice
-export const deleteInvoice = (id) => async (dispatch) => {
+export const deleteInvoice = (id, invoiceType = "final") => async (dispatch) => {
   dispatch({ type: INVOICE_LOADING });
   try {
-    await api.delete(`/invoice/${id}`);
+    await api.delete(`/invoice/${id}?invoiceType=${encodeURIComponent(invoiceType)}`);
     dispatch({ type: DELETE_INVOICE, payload: id });
     dispatch({ type: INVOICE_SUCCESS, payload: "Invoice deleted successfully" });
   } catch (err) {

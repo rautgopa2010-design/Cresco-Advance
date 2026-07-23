@@ -174,6 +174,8 @@ export const adminNavbarLinks = [
         ],
     },
     { links: [{ label: "Customer", icon: BsBorderStyle, path: "/customer" }] },
+    { links: [{ label: "Payment", moduleName: "Payment", icon: CreditCard, path: "/payments" }] },
+    { links: [{ label: "Proforma Invoice", icon: LiaFileInvoiceSolid, path: "/proforma-invoice" }] },
     { links: [{ label: "Invoice", icon: LiaFileInvoiceSolid, path: "/invoice" }] },
     { links: [{ label: "Reports", icon: TbReportAnalytics, path: "/reports" }] },
     { links: [{ label: "Analytics", moduleName: "Reports", icon: TbReportAnalytics, path: "/analytics" }] },

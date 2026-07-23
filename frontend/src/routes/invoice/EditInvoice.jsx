@@ -20,10 +20,13 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { getDefaultTAndCAndDec } from "../../redux/actions/tAndCAndDec";
 
-const EditInvoice = () => {
+const EditInvoice = ({ documentType = "final" }) => {
     const { id } = useParams();
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const isProforma = documentType === "proforma";
+    const basePath = isProforma ? "/proforma-invoice" : "/invoice";
+    const documentLabel = isProforma ? "Proforma Invoice" : "Invoice";
     const [form, setForm] = useState({
         selectedCompany: "",
         date: "",
@@ -112,7 +115,7 @@ const EditInvoice = () => {
                     dispatch(getProduct()),
                     dispatch(getOrders()),
                     dispatch(getPrefix()),
-                    dispatch(getInvoices()),
+                    dispatch(getInvoices(documentType)),
                 ]);
             } finally {
                 setInitialLoad(false);
@@ -154,7 +157,7 @@ const EditInvoice = () => {
 
     useEffect(() => {
         if (id) {
-            dispatch(getInvoices(id));
+            dispatch(getInvoices(documentType));
         }
     }, [id, dispatch]);
 
@@ -162,7 +165,7 @@ const EditInvoice = () => {
     useEffect(() => {
         if (id && invoices.length > 0 && orders.length > 0) {
             const currentInvoice = invoices.find((inv) => String(inv.id) === String(id));
-            if (currentInvoice && currentInvoice.orderId) {
+            if (!isProforma && currentInvoice && currentInvoice.orderId) {
                 const associatedOrder = orders.find((order) => order.id === currentInvoice.orderId);
                 if (associatedOrder && associatedOrder.status !== "Completed") {
                     setLocalSnackbarMessage(`Warning: Associated order is ${associatedOrder.status}. Invoice may not be editable.`);
@@ -1356,6 +1359,7 @@ const EditInvoice = () => {
             productInvoiceDetails,
             finalAmt: form.finalAmt,
             termsAndConditions: form.termsAndConditions,
+            invoiceType: documentType,
         };
 
         // ✅ Dispatch updateInvoice instead of createInvoice
@@ -1399,7 +1403,7 @@ const EditInvoice = () => {
 
         // ✅ Navigate back to invoice list after short delay
         setTimeout(() => {
-            navigate("/invoice");
+            navigate(basePath);
         }, 1000);
     };
 
@@ -1412,7 +1416,7 @@ const EditInvoice = () => {
             ) : (
                 <div className="card space-y-1">
                     <div className="flex items-center justify-between text-nowrap">
-                        <div className="text-base font-semibold text-[#433C50] md:text-lg">Update Invoice :</div>
+                        <div className="text-base font-semibold text-[#433C50] md:text-lg">Update {documentLabel} :</div>
                         <Button
                             onClick={() => navigate(-1)}
                             variant="gradient"

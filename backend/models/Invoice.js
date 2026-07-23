@@ -13,6 +13,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      invoiceType: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "final",
+      },
       org_id: {
         type: DataTypes.INTEGER,
         allowNull: false,

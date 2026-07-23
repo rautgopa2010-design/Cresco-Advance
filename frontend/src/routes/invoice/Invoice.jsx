@@ -124,9 +124,13 @@ import { getPrefix } from "../../redux/actions/prefix";
 import { getBanks } from "../../redux/actions/bankDetails";
 import { useSessionToggle } from "../../hooks/use-session-toggle";
 
-const Invoice = () => {
+const Invoice = ({ documentType = "final" }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
+    const isProforma = documentType === "proforma";
+    const basePath = isProforma ? "/proforma-invoice" : "/invoice";
+    const documentLabel = isProforma ? "Proforma Invoice" : "Invoice";
+    const documentLabelPlural = isProforma ? "Proforma Invoices" : "Invoices";
     const { invoices, loading, snackbarMessage, snackbarSeverity } = useSelector((state) => state.invoice);
     const isMobile = useMediaQuery("(max-width:600px)");
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -139,7 +143,7 @@ const Invoice = () => {
     const { banks } = useSelector((state) => state.bankDetails);
 
     useEffect(() => {
-        dispatch(getInvoices());
+        dispatch(getInvoices(documentType));
         dispatch(getPrefix());
         dispatch(getBanks());
         dispatch(clearSnackbar());
@@ -160,7 +164,7 @@ const Invoice = () => {
     }, [snackbarMessage]);
 
     const handleCreateClick = () => {
-        navigate("/invoice/generate-invoice");
+        navigate(`${basePath}/generate-invoice`);
     };
 
     const formatCompanyAddress = (company) => {
@@ -190,11 +194,11 @@ const Invoice = () => {
     };
 
     const handleEditClick = (id) => {
-        navigate(`/invoice/edit-invoice/${id}`);
+        navigate(`${basePath}/edit-invoice/${id}`);
     };
 
     const handleViewClick = (id) => {
-        navigate(`/invoice/view-invoice/${id}`);
+        navigate(`${basePath}/view-invoice/${id}`);
     };
 
     const handleDeleteClick = (id) => {
@@ -203,7 +207,7 @@ const Invoice = () => {
     };
 
     const confirmDelete = () => {
-        dispatch(deleteInvoice(selectedDeleteId));
+        dispatch(deleteInvoice(selectedDeleteId, documentType));
         setSnackbarOpen(true);
         setDeleteConfirmOpen(false);
         setSelectedDeleteId(null);
@@ -313,11 +317,11 @@ const Invoice = () => {
                             <div>
                                 <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-50">
                                     <ReceiptText size={14} />
-                                    CRM Invoices
+                                    CRM {documentLabelPlural}
                                 </div>
-                                <h1 className="text-3xl font-black leading-tight tracking-normal md:text-[34px]">Invoice List</h1>
+                                <h1 className="text-3xl font-black leading-tight tracking-normal md:text-[34px]">{documentLabel} List</h1>
                                 <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-blue-50/90 md:text-base">
-                                    Review generated invoices, products, billing value, customer details, and document actions.
+                                    Review generated {documentLabelPlural.toLowerCase()}, products, billing value, customer details, and document actions.
                                 </p>
                             </div>
                         <Button
@@ -326,14 +330,14 @@ const Invoice = () => {
                                 className="flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black capitalize text-[#053054] shadow-xl shadow-slate-950/10 transition hover:scale-[1.02]"
                         >
                             <LiaFileInvoiceSolid size={20} />
-                            Create New Invoice
+                            Create New {documentLabel}
                         </Button>
                         </div>
                     </section>
 
                     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                         {[
-                            { label: "Total invoices", value: invoices.length, icon: ReceiptText, tone: "from-blue-500 to-blue-700", helper: "All invoice records" },
+                            { label: `Total ${documentLabelPlural.toLowerCase()}`, value: invoices.length, icon: ReceiptText, tone: "from-blue-500 to-blue-700", helper: `All ${documentLabel.toLowerCase()} records` },
                             { label: "Visible after filters", value: filteredInvoices.length, icon: SlidersHorizontal, tone: "from-cyan-500 to-blue-600", helper: "Current list result" },
                             { label: "Total value", value: `₹${totalInvoiceValue}`, icon: IndianRupee, tone: "from-emerald-500 to-teal-600", helper: "All invoice value" },
                             { label: "Filtered value", value: `₹${filteredInvoiceValue}`, icon: TrendingUp, tone: "from-violet-500 to-indigo-600", helper: "Visible invoice value" },
@@ -465,9 +469,9 @@ const Invoice = () => {
                                                     <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                                                         <Inbox size={30} />
                                                     </div>
-                                                    <div className="text-xl font-black text-slate-900">No invoices added yet.</div>
+                                                    <div className="text-xl font-black text-slate-900">No {documentLabelPlural.toLowerCase()} added yet.</div>
                                                     <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
-                                                        Create your first invoice to start tracking billed products and customer value.
+                                                        Create your first {documentLabel.toLowerCase()} to start tracking billed products and customer value.
                                                     </p>
                                                 </div>
                                             </td>

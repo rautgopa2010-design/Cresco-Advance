@@ -1207,9 +1207,12 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { getDefaultTAndCAndDec } from "../../redux/actions/tAndCAndDec";
 
-const GenerateInvoice = () => {
+const GenerateInvoice = ({ documentType = "final" }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const isProforma = documentType === "proforma";
+    const basePath = isProforma ? "/proforma-invoice" : "/invoice";
+    const documentLabel = isProforma ? "Proforma Invoice" : "Invoice";
     const [form, setForm] = useState({
         selectedCompany: "",
         date: "",
@@ -1302,7 +1305,7 @@ const GenerateInvoice = () => {
                     dispatch(getProduct()),
                     dispatch(getOrders()),
                     dispatch(getPrefix()),
-                    dispatch(getInvoices()),
+                    dispatch(getInvoices(documentType)),
                 ]);
             } finally {
                 setInitialLoad(false);
@@ -2508,6 +2511,7 @@ const GenerateInvoice = () => {
             },
             productInvoiceDetails,
             finalAmt: form.finalAmt,
+            invoiceType: documentType,
             orderId: loadedOrderData?.id, // ✅ USE THE STORED ORDER DATA
         };
     
@@ -2552,7 +2556,7 @@ const GenerateInvoice = () => {
         localStorage.removeItem("productInvoiceDetails");
     
         setTimeout(() => {
-            navigate("/invoice");
+            navigate(basePath);
         }, 1000);
     };
 
@@ -2570,11 +2574,11 @@ const GenerateInvoice = () => {
                             <div>
                                 <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-50">
                                     <ReceiptText size={14} />
-                                    CRM Invoice
+                                    CRM {documentLabel}
                                 </div>
-                                <h1 className="text-3xl font-black leading-tight tracking-normal md:text-[34px]">Generate Invoice</h1>
+                                <h1 className="text-3xl font-black leading-tight tracking-normal md:text-[34px]">Generate {documentLabel}</h1>
                                 <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-blue-50/90 md:text-base">
-                                    Create an invoice from an order, review customer details, confirm billing and shipping address, then generate the invoice.
+                                    Create a {documentLabel.toLowerCase()} from an order, review customer details, confirm billing and shipping address, then generate the document.
                                 </p>
                             </div>
                             <Button
@@ -2595,7 +2599,7 @@ const GenerateInvoice = () => {
                                 <Search size={20} />
                             </div>
                             <div>
-                                <h2 className="text-lg font-black text-slate-950">Invoice Source</h2>
+                                <h2 className="text-lg font-black text-slate-950">{documentLabel} Source</h2>
                                 <p className="mt-0.5 text-sm font-semibold text-slate-500">Search an existing order and pull customer details.</p>
                             </div>
                         </div>

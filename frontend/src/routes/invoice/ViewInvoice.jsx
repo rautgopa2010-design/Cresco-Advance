@@ -20,16 +20,17 @@ import {
     IndianRupee,
 } from "lucide-react";
 
-const ViewInvoice = () => {
+const ViewInvoice = ({ documentType = "final" }) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const dispatch = useDispatch();
+    const documentLabel = documentType === "proforma" ? "Proforma Invoice" : "Invoice";
 
     const { invoices, loading } = useSelector((state) => state.invoice);
 
     useEffect(() => {
-        dispatch(getInvoices());
-    }, [dispatch]);
+        dispatch(getInvoices(documentType));
+    }, [dispatch, documentType]);
 
     const invoice = invoices.find((inv) => String(inv.id) === String(id));
 
@@ -56,7 +57,7 @@ const ViewInvoice = () => {
                 </IconButton>
 
                 <h1 className="bg-gradient-to-r from-[#053054] to-[#5b2be3] bg-clip-text text-3xl font-extrabold tracking-tight text-transparent md:text-4xl">
-                    Invoice Details
+                    {documentLabel} Details
                 </h1>
             </div>
 

@@ -832,7 +832,7 @@ function AppRoutes() {
                                           path: "payments",
                                           element: (
                                               <PermissionRoute
-                                                  moduleName="Orders"
+                                                  moduleName="Payment"
                                                   element={<PaymentLookup />}
                                               />
                                           ),
@@ -906,6 +906,42 @@ function AppRoutes() {
                                               <PermissionRoute
                                                   moduleName="Invoice"
                                                   element={<Invoice />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "proforma-invoice",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Proforma Invoice"
+                                                  element={<Invoice documentType="proforma" />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "proforma-invoice/generate-invoice",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Proforma Invoice"
+                                                  element={<GenerateInvoice documentType="proforma" />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "proforma-invoice/edit-invoice/:id",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Proforma Invoice"
+                                                  element={<EditInvoice documentType="proforma" />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "proforma-invoice/view-invoice/:id",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Proforma Invoice"
+                                                  element={<ViewInvoice documentType="proforma" />}
                                               />
                                           ),
                                       },
