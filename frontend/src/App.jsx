@@ -64,6 +64,7 @@ import PaymentLookup from "./routes/payments/PaymentLookup";
 import FieldVisits from "./routes/fieldVisits/FieldVisits";
 import VendorManager from "./routes/vendors/VendorManager";
 import Customer from "./routes/customer/Customer";
+import Customer360 from "./routes/customer/Customer360";
 import Invoice from "./routes/invoice/Invoice";
 import GenerateInvoice from "./routes/invoice/GenerateInvoice";
 import EditInvoice from "./routes/invoice/EditInvoice";
@@ -888,6 +889,15 @@ function AppRoutes() {
                                               <PermissionRoute
                                                   moduleName="Customer"
                                                   element={<Customer />}
+                                              />
+                                          ),
+                                      },
+                                      {
+                                          path: "customer-360",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Customer"
+                                                  element={<Customer360 />}
                                               />
                                           ),
                                       },

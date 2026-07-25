@@ -173,7 +173,21 @@ export const adminNavbarLinks = [
             },
         ],
     },
-    { links: [{ label: "Customer", icon: BsBorderStyle, path: "/customer" }] },
+    {
+        links: [
+            {
+                label: "Customer",
+                icon: BsBorderStyle,
+                isAccordion: true,
+                showArrow: true,
+                defaultOpen: false,
+                children: [
+                    { label: "Customers", moduleName: "Customer", path: "/customer", icon: Dot },
+                    { label: "Customer 360", moduleName: "Customer", path: "/customer-360", icon: Dot },
+                ],
+            },
+        ],
+    },
     { links: [{ label: "Payment", moduleName: "Payment", icon: CreditCard, path: "/payments" }] },
     { links: [{ label: "Proforma Invoice", icon: LiaFileInvoiceSolid, path: "/proforma-invoice" }] },
     { links: [{ label: "Invoice", icon: LiaFileInvoiceSolid, path: "/invoice" }] },
