@@ -519,7 +519,7 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                 </div>
             </motion.section>
 
-            <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-6">
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
                 {statsCards.map((card) => {
                     const Icon = card.icon;
                     const series = card.series.some((value) => value > 0) ? card.series : [0, 1, 0, 1, 0, 1];
