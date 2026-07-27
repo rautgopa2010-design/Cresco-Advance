@@ -66,6 +66,7 @@ const LeadPipeline = () => {
     const { leadStage = [] } = useSelector((state) => state.leadStage);
     const [draggedLeadId, setDraggedLeadId] = useState(null);
     const [query, setQuery] = useState("");
+    const [mobileStageKey, setMobileStageKey] = useState("");
     const [updatingLeadId, setUpdatingLeadId] = useState(null);
     const touchDragRef = useRef({ leadId: null, startX: 0, startY: 0, moved: false });
 
@@ -95,6 +96,14 @@ const LeadPipeline = () => {
         });
     }, [leadStage]);
 
+    useEffect(() => {
+        if (!pipelineStages.length) return;
+        const stillExists = pipelineStages.some((stage) => stage.key === mobileStageKey);
+        if (!mobileStageKey || !stillExists) {
+            setMobileStageKey(pipelineStages[0].key);
+        }
+    }, [mobileStageKey, pipelineStages]);
+
     const filteredLeads = useMemo(() => {
         const search = query.trim().toLowerCase();
         if (!search) return leads;
@@ -121,6 +130,9 @@ const LeadPipeline = () => {
         }, 0);
         return { totalValue, forecastValue, totalDeals: filteredLeads.length };
     }, [filteredLeads, leadsByStage, pipelineStages]);
+
+    const selectedMobileStage = pipelineStages.find((stage) => stage.key === mobileStageKey) || pipelineStages[0];
+    const mobileStageLeads = selectedMobileStage ? leadsByStage[selectedMobileStage.key] || [] : [];
 
     const moveLeadToStage = async (leadId, stageKey) => {
         if (!leadId || !stageKey) return;
@@ -267,8 +279,125 @@ const LeadPipeline = () => {
                     ))}
                 </div>
             ) : (
-                <div className="flex gap-4 overflow-x-auto pb-2">
-                    {pipelineStages.map((stage) => {
+                <>
+                    <div className="space-y-4 md:hidden">
+                        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/70">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <h3 className="text-lg font-black text-slate-950">Mobile pipeline</h3>
+                                    <p className="mt-1 text-sm font-semibold text-slate-500">Review deals by stage and move them with one tap.</p>
+                                </div>
+                                <span className="rounded-2xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600">{filteredLeads.length} deals</span>
+                            </div>
+
+                            <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
+                                {pipelineStages.map((stage) => {
+                                    const isActive = selectedMobileStage?.key === stage.key;
+                                    return (
+                                        <button
+                                            key={stage.key}
+                                            type="button"
+                                            onClick={() => setMobileStageKey(stage.key)}
+                                            className={`shrink-0 rounded-2xl border px-4 py-3 text-left text-xs font-black transition ${
+                                                isActive
+                                                    ? "border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                                                    : "border-slate-200 bg-slate-50 text-slate-600"
+                                            }`}
+                                        >
+                                            <span className="block">{stage.key}</span>
+                                            <span className={isActive ? "text-blue-100" : "text-slate-400"}>{(leadsByStage[stage.key] || []).length} deals</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {selectedMobileStage && (
+                            <section className={`rounded-3xl border ${selectedMobileStage.border} bg-slate-50 p-3 shadow-lg shadow-slate-200/70`}>
+                                <div className={`rounded-2xl bg-gradient-to-r ${selectedMobileStage.color} p-4 text-white shadow-lg`}>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h3 className="truncate text-base font-black">{selectedMobileStage.key}</h3>
+                                        <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-black">{selectedMobileStage.probability}%</span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 space-y-3">
+                                    {mobileStageLeads.length ? (
+                                        mobileStageLeads.map((lead) => {
+                                            const latestFollowup = Array.isArray(lead.followups) && lead.followups.length ? lead.followups[0] : null;
+                                            return (
+                                                <article
+                                                    key={lead.id}
+                                                    className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-200/70 ${
+                                                        updatingLeadId === lead.id ? "opacity-60" : ""
+                                                    }`}
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <h4 className="truncate text-sm font-black text-slate-950">{lead.companyName || "--"}</h4>
+                                                            <p className="mt-1 truncate text-xs font-semibold text-slate-500">{lead.customerPerson || "No customer person"}</p>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => navigate(`/leads/view-leads/${lead.id}`)}
+                                                            className="shrink-0 rounded-xl bg-blue-50 px-3 py-2 text-xs font-black text-blue-600"
+                                                        >
+                                                            View
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="mt-4 rounded-2xl bg-blue-50 p-3">
+                                                        <p className="text-xs font-bold uppercase tracking-wide text-blue-500">Expected amount</p>
+                                                        <p className="mt-1 text-xl font-black text-slate-950">{formatCurrency(lead.expectedAmount)}</p>
+                                                    </div>
+
+                                                    <div className="mt-4 space-y-2 text-xs font-semibold text-slate-600">
+                                                        <p className="flex min-w-0 items-center gap-2">
+                                                            <UserRound size={14} className="shrink-0" />
+                                                            <span className="truncate">{getAssignedName(lead)}</span>
+                                                        </p>
+                                                        <p className="flex min-w-0 items-center gap-2">
+                                                            <CalendarDays size={14} className="shrink-0" />
+                                                            <span className="truncate">Close: {formatDate(lead.expectedClosingDate)}</span>
+                                                        </p>
+                                                        <p className="flex min-w-0 items-center gap-2">
+                                                            <AlertCircle size={14} className="shrink-0" />
+                                                            <span className="truncate">Followup: {formatDate(latestFollowup?.nextFollowUpDate || lead.followupDate)}</span>
+                                                        </p>
+                                                    </div>
+
+                                                    <label className="mt-4 block">
+                                                        <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">Move to stage</span>
+                                                        <select
+                                                            value={normalizeStage(lead, pipelineStages)}
+                                                            disabled={updatingLeadId === lead.id}
+                                                            onChange={(event) => moveLeadToStage(lead.id, event.target.value)}
+                                                            className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                                        >
+                                                            {pipelineStages.map((stage) => (
+                                                                <option key={stage.key} value={stage.key}>
+                                                                    {stage.key}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </label>
+                                                </article>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+                                            <Target size={28} className="mx-auto text-slate-300" />
+                                            <p className="mt-3 text-sm font-black text-slate-500">No deals here</p>
+                                            <p className="mt-1 text-xs font-semibold text-slate-400">Select another stage to review active deals.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+                        )}
+                    </div>
+
+                    <div className="hidden gap-4 overflow-x-auto pb-2 md:flex">
+                        {pipelineStages.map((stage) => {
                         const stageLeads = leadsByStage[stage.key] || [];
                         const stageValue = stageLeads.reduce((sum, lead) => sum + numberValue(lead.expectedAmount), 0);
                         const forecastValue = (stageValue * stage.probability) / 100;
@@ -372,8 +501,9 @@ const LeadPipeline = () => {
                                 </div>
                             </section>
                         );
-                    })}
-                </div>
+                        })}
+                    </div>
+                </>
             )}
         </div>
     );
