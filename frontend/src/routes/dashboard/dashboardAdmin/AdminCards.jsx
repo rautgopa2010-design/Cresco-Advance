@@ -380,6 +380,44 @@ const AdminDashboardCards = ({ dashData = {} }) => {
         { label: "Overdue Payments", value: overdueInvoices, path: "/invoice", icon: TriangleAlert },
     ];
     const notificationCount = notifications.reduce((sum, item) => sum + item.value, 0);
+    const todayWorkItems = [
+        {
+            label: "Follow-ups to finish",
+            value: followupDueToday + missedFollowups,
+            helper: missedFollowups > 0 ? `${formatNumber(missedFollowups)} missed follow-ups need recovery` : "Keep every customer touchpoint on time",
+            action: "Open follow-ups",
+            path: "/followup",
+            icon: ListChecks,
+            tone: "bg-blue-50 text-blue-700 ring-blue-100",
+        },
+        {
+            label: "Open pipeline",
+            value: totalLeads,
+            helper: `${formatCompactCurrency(outstandingBalance || currentMonthRevenue)} visible revenue to move forward`,
+            action: "Review deals",
+            path: "/leads/pipeline",
+            icon: Target,
+            tone: "bg-violet-50 text-violet-700 ring-violet-100",
+        },
+        {
+            label: "Customer conversations",
+            value: totalEnquiries,
+            helper: "Convert active enquiries into qualified opportunities",
+            action: "View enquiries",
+            path: "/enquiries",
+            icon: UsersRound,
+            tone: "bg-cyan-50 text-cyan-700 ring-cyan-100",
+        },
+        {
+            label: "Payments to watch",
+            value: overdueInvoices + (outstandingBalance > 0 ? 1 : 0),
+            helper: outstandingBalance > 0 ? `${formatCompactCurrency(outstandingBalance)} pending collection` : "No visible collection risk",
+            action: "Check invoices",
+            path: "/invoice",
+            icon: ReceiptIndianRupee,
+            tone: "bg-amber-50 text-amber-700 ring-amber-100",
+        },
+    ];
 
     return (
         <motion.div
@@ -518,6 +556,101 @@ const AdminDashboardCards = ({ dashData = {} }) => {
                     })}
                 </div>
             </motion.section>
+
+            <section className="grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.38, ease: "easeOut" }}
+                    className="rounded-3xl border border-white/80 bg-white/90 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur"
+                >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-600">Today&apos;s Work</p>
+                            <h2 className="mt-1 text-xl font-black text-slate-950">Start with the highest-impact actions</h2>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => navigate("/leads/pipeline")}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5 hover:bg-blue-700"
+                        >
+                            Open pipeline
+                            <ArrowRight size={16} />
+                        </button>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {todayWorkItems.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <button
+                                    key={item.label}
+                                    type="button"
+                                    onClick={() => navigate(item.path)}
+                                    className="group flex min-h-[170px] flex-col rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-left transition hover:-translate-y-1 hover:border-blue-100 hover:bg-white hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <span className={`flex size-11 items-center justify-center rounded-2xl ring-1 ${item.tone}`}>
+                                            <Icon size={20} />
+                                        </span>
+                                        <span className="text-2xl font-black text-slate-950">
+                                            <AnimatedCounter value={item.value} formatter={formatNumber} />
+                                        </span>
+                                    </div>
+                                    <p className="mt-4 text-sm font-black text-slate-900">{item.label}</p>
+                                    <p className="mt-1 min-h-[40px] text-[12px] font-semibold leading-5 text-slate-500">{item.helper}</p>
+                                    <span className="mt-auto inline-flex items-center gap-1.5 pt-3 text-[13px] font-black text-blue-600">
+                                        {item.action}
+                                        <ArrowRight size={14} className="transition group-hover:translate-x-1" />
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.38, ease: "easeOut", delay: 0.05 }}
+                    className="rounded-3xl border border-blue-100 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-5 text-white shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                >
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200">Smart Summary</p>
+                            <h2 className="mt-1 text-xl font-black">What changed today</h2>
+                        </div>
+                        <span className="flex size-12 items-center justify-center rounded-2xl bg-white/10 text-blue-100 ring-1 ring-white/15">
+                            <Sparkles size={22} />
+                        </span>
+                    </div>
+                    <div className="mt-5 space-y-3">
+                        {[
+                            { label: "Pipeline value", value: formatCompactCurrency(outstandingBalance || currentMonthRevenue || totalBusiness), icon: TrendingUp },
+                            { label: "Follow-up pressure", value: formatNumber(followupDueToday + missedFollowups), icon: CalendarClock },
+                            { label: "Month collection", value: formatCompactCurrency(currentMonthPayment), icon: BadgeIndianRupee },
+                        ].map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <button
+                                    key={item.label}
+                                    type="button"
+                                    onClick={() => navigate(item.label === "Follow-up pressure" ? "/followup" : item.label === "Month collection" ? "/reports" : "/leads/revenue-forecast")}
+                                    className="flex w-full items-center justify-between rounded-2xl bg-white/8 px-4 py-3 text-left ring-1 ring-white/10 transition hover:bg-white/12"
+                                >
+                                    <span className="flex items-center gap-3 text-sm font-bold text-blue-50">
+                                        <Icon size={18} />
+                                        {item.label}
+                                    </span>
+                                    <span className="text-lg font-black">{item.value}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <p className="mt-4 rounded-2xl bg-white/8 px-4 py-3 text-sm font-semibold leading-6 text-blue-50 ring-1 ring-white/10">
+                        Recommended next step: clear overdue follow-ups first, then move active deals from pipeline to quotation or order.
+                    </p>
+                </motion.div>
+            </section>
 
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
                 {statsCards.map((card) => {
