@@ -9,6 +9,8 @@ import {
     FileCheck2,
     FileText,
     Mail,
+    MapPin,
+    MessageSquareText,
     PackageCheck,
     Phone,
     ReceiptText,
@@ -131,6 +133,7 @@ const Customer360 = () => {
     const navigate = useNavigate();
     const [search, setSearch] = useState("");
     const [selectedId, setSelectedId] = useState(null);
+    const [activeView, setActiveView] = useState("timeline");
 
     const { customers = [], loading: customerLoading } = useSelector((state) => state.customer || {});
     const { leads = [], leadLoading } = useSelector((state) => state.leadAndFollowup || {});
@@ -212,6 +215,20 @@ const Customer360 = () => {
         return { revenue, invoiceValue, activeLeads, openInvoices };
     }, [related]);
 
+    const health = useMemo(() => {
+        const score = Math.min(
+            100,
+            35 +
+                Math.min(related.orders.length * 12, 24) +
+                Math.min(related.quotations.length * 8, 16) +
+                (summary.openInvoices ? -18 : 12) +
+                (summary.activeLeads ? 8 : 0),
+        );
+        if (score >= 76) return { score, label: "Healthy", tone: "bg-emerald-50 text-emerald-700", bar: "bg-emerald-500" };
+        if (score >= 52) return { score, label: "Needs attention", tone: "bg-amber-50 text-amber-700", bar: "bg-amber-500" };
+        return { score, label: "At risk", tone: "bg-rose-50 text-rose-700", bar: "bg-rose-500" };
+    }, [related.orders.length, related.quotations.length, summary.activeLeads, summary.openInvoices]);
+
     const timeline = useMemo(() => {
         const rows = [
             ...related.leads.map((item) => ({ type: "Lead", label: item.companyName || item.customerPerson, status: item.leadStage || item.status || "Open", amount: item.expectedAmount, date: item.updatedAt || item.createdAt, path: `/leads/view-leads/${item.id}` })),
@@ -221,6 +238,33 @@ const Customer360 = () => {
         ];
         return rows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 10);
     }, [related]);
+
+    const nextActions = [
+        {
+            label: summary.activeLeads ? "Review active lead" : "Create a new opportunity",
+            helper: summary.activeLeads ? `${summary.activeLeads} lead(s) still need movement` : "Start a pipeline record for this customer",
+            path: summary.activeLeads ? "/leads/pipeline" : "/leads",
+            icon: Activity,
+        },
+        {
+            label: summary.openInvoices ? "Follow up payment" : "Check commercial history",
+            helper: summary.openInvoices ? `${summary.openInvoices} invoice(s) are still open` : "Review invoices, orders and quotations",
+            path: summary.openInvoices ? "/invoice" : "/customer-360",
+            icon: ReceiptText,
+        },
+        {
+            label: "Plan next touchpoint",
+            helper: "Use follow-up to keep the relationship warm",
+            path: "/followup",
+            icon: CalendarClock,
+        },
+    ];
+
+    const viewTabs = [
+        { key: "timeline", label: "Timeline", count: timeline.length },
+        { key: "commercial", label: "Commercial", count: related.quotations.length + related.orders.length + related.invoices.length },
+        { key: "profile", label: "Profile", count: related.leads.length },
+    ];
 
     if (loading && !customerOptions.length) {
         return (
@@ -241,7 +285,7 @@ const Customer360 = () => {
                         </div>
                         <h1 className="mt-4 text-3xl font-black">Customer 360</h1>
                         <p className="mt-2 max-w-3xl text-sm font-semibold text-blue-100">
-                            One professional view of account profile, sales movement, orders, invoices, and relationship activity.
+                            Search any customer and get the full relationship picture: profile, revenue, open work, quotations, orders, invoices, and recent activity.
                         </p>
                     </div>
                     <div className="w-full max-w-md rounded-[8px] border border-white/15 bg-white/10 p-3">
@@ -282,6 +326,7 @@ const Customer360 = () => {
                                             <span className="min-w-0">
                                                 <span className="block truncate text-sm font-black text-slate-950">{displayName(customer)}</span>
                                                 <span className="block truncate text-xs font-semibold text-slate-500">{contactName(customer)}</span>
+                                                <span className="mt-1 block truncate text-[11px] font-semibold text-slate-400">{customer.email || customer.mobile || customer.source}</span>
                                             </span>
                                         </div>
                                     </button>
@@ -295,28 +340,64 @@ const Customer360 = () => {
 
                 <div className="space-y-5">
                     {selectedCustomer && (
-                        <section className="rounded-[8px] border border-slate-200 bg-white p-5 shadow-sm">
-                            <div className="flex flex-wrap items-start justify-between gap-4">
-                                <div className="flex items-start gap-4">
-                                    <span className="flex size-16 shrink-0 items-center justify-center rounded-[8px] bg-gradient-to-br from-blue-600 to-indigo-700 text-xl font-black text-white">
+                        <section className="overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm">
+                            <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_320px]">
+                                <div className="p-5">
+                                    <div className="flex flex-wrap items-start justify-between gap-4">
+                                        <div className="flex items-start gap-4">
+                                            <span className="flex size-16 shrink-0 items-center justify-center rounded-[8px] bg-gradient-to-br from-blue-600 to-indigo-700 text-xl font-black text-white">
                                         {displayName(selectedCustomer).charAt(0).toUpperCase()}
-                                    </span>
-                                    <div>
-                                        <h2 className="text-2xl font-black text-slate-950">{displayName(selectedCustomer)}</h2>
-                                        <p className="mt-1 text-sm font-semibold text-slate-500">{contactName(selectedCustomer)}</p>
-                                        <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-slate-600">
-                                            <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1"><Mail size={15} />{selectedCustomer.email || "No email"}</span>
-                                            <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1"><Phone size={15} />{selectedCustomer.mobile || "No mobile"}</span>
+                                            </span>
+                                            <div>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <h2 className="text-2xl font-black text-slate-950">{displayName(selectedCustomer)}</h2>
+                                                    <span className={`rounded-full px-3 py-1 text-xs font-black ${health.tone}`}>{health.label}</span>
+                                                </div>
+                                                <p className="mt-1 text-sm font-semibold text-slate-500">{contactName(selectedCustomer)}</p>
+                                                <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-slate-600">
+                                                    <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1"><Mail size={15} />{selectedCustomer.email || "No email"}</span>
+                                                    <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1"><Phone size={15} />{selectedCustomer.mobile || "No mobile"}</span>
+                                                    <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1"><Building2 size={15} />{selectedCustomer.source || "Customer"}</span>
+                                                </div>
+                                            </div>
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate("/customer")}
+                                            className="inline-flex items-center gap-2 rounded-[8px] border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
+                                        >
+                                            Customer list <ArrowRight size={16} />
+                                        </button>
+                                    </div>
+                                    <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                                        {nextActions.map((item) => {
+                                            const Icon = item.icon;
+                                            return (
+                                                <button key={item.label} type="button" onClick={() => navigate(item.path)} className="group rounded-[8px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-blue-200 hover:bg-blue-50">
+                                                    <span className="flex size-10 items-center justify-center rounded-[8px] bg-white text-blue-700 shadow-sm"><Icon size={18} /></span>
+                                                    <p className="mt-3 text-sm font-black text-slate-950">{item.label}</p>
+                                                    <p className="mt-1 min-h-[36px] text-xs font-semibold leading-5 text-slate-500">{item.helper}</p>
+                                                    <span className="mt-3 inline-flex items-center gap-1 text-xs font-black text-blue-700">Open <ArrowRight size={13} className="transition group-hover:translate-x-1" /></span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => navigate("/customer")}
-                                    className="inline-flex items-center gap-2 rounded-[8px] border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:border-blue-200 hover:text-blue-700"
-                                >
-                                    Customer list <ArrowRight size={16} />
-                                </button>
+                                <div className="border-t border-slate-100 bg-slate-50 p-5 xl:border-l xl:border-t-0">
+                                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Relationship Score</p>
+                                    <div className="mt-4 flex items-end justify-between">
+                                        <p className="text-4xl font-black text-slate-950">{health.score}</p>
+                                        <span className={`rounded-full px-3 py-1 text-xs font-black ${health.tone}`}>{health.label}</span>
+                                    </div>
+                                    <div className="mt-4 h-3 overflow-hidden rounded-full bg-white">
+                                        <div className={`h-full rounded-full ${health.bar}`} style={{ width: `${health.score}%` }} />
+                                    </div>
+                                    <div className="mt-5 space-y-3 text-sm font-semibold text-slate-600">
+                                        <p className="flex items-center gap-2"><FileCheck2 size={16} className="text-blue-600" /> {related.quotations.length} quotation(s)</p>
+                                        <p className="flex items-center gap-2"><PackageCheck size={16} className="text-emerald-600" /> {related.orders.length} order(s)</p>
+                                        <p className="flex items-center gap-2"><ReceiptText size={16} className="text-amber-600" /> {summary.openInvoices} open invoice(s)</p>
+                                    </div>
+                                </div>
                             </div>
                         </section>
                     )}
@@ -328,6 +409,23 @@ const Customer360 = () => {
                         <Metric label="Completed orders" value={related.orders.filter((order) => lower(order.status).includes("completed")).length} helper={`${related.orders.length} total order(s)`} icon={PackageCheck} tone="bg-violet-50 text-violet-700" />
                     </div>
 
+                    <div className="rounded-[8px] border border-slate-200 bg-white p-2 shadow-sm">
+                        <div className="flex flex-wrap gap-2">
+                            {viewTabs.map((tab) => (
+                                <button
+                                    key={tab.key}
+                                    type="button"
+                                    onClick={() => setActiveView(tab.key)}
+                                    className={`rounded-[8px] px-4 py-2 text-sm font-black transition ${activeView === tab.key ? "bg-slate-950 text-white" : "text-slate-500 hover:bg-slate-100 hover:text-slate-950"}`}
+                                >
+                                    {tab.label}
+                                    <span className={`ml-2 rounded-full px-2 py-0.5 text-[11px] ${activeView === tab.key ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500"}`}>{tab.count}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {activeView === "commercial" && (
                     <div className="grid gap-5 xl:grid-cols-2">
                         <Section title="Commercial Snapshot" subtitle="Quotations, orders and invoices tied to this customer." icon={FileCheck2}>
                             <div className="grid gap-3 p-5 sm:grid-cols-3">
@@ -362,7 +460,9 @@ const Customer360 = () => {
                             </div>
                         </Section>
                     </div>
+                    )}
 
+                    {activeView === "timeline" && (
                     <Section title="Customer Timeline" subtitle="Latest CRM activity across lead to collection." icon={CalendarClock}>
                         <CompactList
                             rows={timeline}
@@ -391,6 +491,29 @@ const Customer360 = () => {
                             )}
                         />
                     </Section>
+                    )}
+
+                    {activeView === "profile" && (
+                        <Section title="Customer Profile" subtitle="Contact, account ownership and quick communication details." icon={Building2}>
+                            <div className="grid gap-4 p-5 lg:grid-cols-3">
+                                <div className="rounded-[8px] bg-slate-50 p-4">
+                                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Primary contact</p>
+                                    <p className="mt-2 text-lg font-black text-slate-950">{contactName(selectedCustomer)}</p>
+                                    <p className="mt-1 text-sm font-semibold text-slate-500">{displayName(selectedCustomer)}</p>
+                                </div>
+                                <div className="rounded-[8px] bg-slate-50 p-4">
+                                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Communication</p>
+                                    <p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-700"><Mail size={15} />{selectedCustomer.email || "No email saved"}</p>
+                                    <p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-700"><Phone size={15} />{selectedCustomer.mobile || "No mobile saved"}</p>
+                                </div>
+                                <div className="rounded-[8px] bg-slate-50 p-4">
+                                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Suggested actions</p>
+                                    <p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-700"><MessageSquareText size={15} />Add next interaction note</p>
+                                    <p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-700"><MapPin size={15} />Review field visit history</p>
+                                </div>
+                            </div>
+                        </Section>
+                    )}
                 </div>
             </div>
         </div>
