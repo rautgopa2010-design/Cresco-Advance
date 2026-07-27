@@ -543,7 +543,7 @@
 
 // export default Followup;
 
-import { CalendarClock, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, File, Inbox, PhoneCall, SlidersHorizontal, Target, UserCheck } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, File, Inbox, PhoneCall, Search, SlidersHorizontal, Target, UserCheck } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import FollowupModal from "./FollowupModal";
 import { useDispatch, useSelector } from "react-redux";
@@ -560,7 +560,7 @@ const Followup = () => {
     const { leads, leadLoading } = useSelector((state) => state.leadAndFollowup);
     const { employees } = useSelector((state) => state.employee);
     const [completingFollowups, setCompletingFollowups] = useState({});
-    const [hideCompleted, setHideCompleted] = useState(true);
+    const [activeBucket, setActiveBucket] = useState("all");
 
     const fetchLeads = () => {
         dispatch(getLeads());
@@ -606,6 +606,28 @@ const Followup = () => {
         }
     };
 
+    const getFollowupDate = (dateStr) => {
+        if (!dateStr) return null;
+        const [day, month, year] = dateStr.split("-");
+        if (!day || !month || !year) return null;
+        const date = new Date(`${year}-${month}-${day}`);
+        date.setHours(0, 0, 0, 0);
+        return Number.isNaN(date.getTime()) ? null : date;
+    };
+
+    const getDueBucket = (followup) => {
+        if (followup?.isCompleted) return "completed";
+        const date = getFollowupDate(followup?.followup_date);
+        if (!date) return "unscheduled";
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (date.getTime() === today.getTime()) return "today";
+        if (date < today) return "overdue";
+        return "upcoming";
+    };
+
     // ================= Filters =================
     const [filters, setFilters] = useState(() => JSON.parse(localStorage.getItem("crm:followup-filters") || "null") || ({
         fromDate: "",
@@ -617,6 +639,8 @@ const Followup = () => {
         assignedTo: [],
     }));
     const [filtersOpen, setFiltersOpen] = useSessionToggle("crm:followup-filters-open", false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(5);
 
     useEffect(() => {
         localStorage.setItem("crm:followup-filters", JSON.stringify(filters));
@@ -653,11 +677,25 @@ const Followup = () => {
         }
     };
 
+    const bucketCounts = followupList.reduce(
+        (acc, followup) => {
+            const bucket = getDueBucket(followup);
+            acc[bucket] = (acc[bucket] || 0) + 1;
+            acc.all += 1;
+            return acc;
+        },
+        { all: 0, overdue: 0, today: 0, upcoming: 0, completed: 0, unscheduled: 0 },
+    );
+
+    const topPriorityFollowups = followupList
+        .filter((followup) => ["overdue", "today"].includes(getDueBucket(followup)))
+        .sort((a, b) => (getFollowupDate(a.followup_date)?.getTime() || 0) - (getFollowupDate(b.followup_date)?.getTime() || 0))
+        .slice(0, 5);
+
     // ✅ Filter Followups with all filters including date range
     const filteredFollowups = followupList.filter((f) => {
         // Convert followup_date "DD-MM-YYYY" safely to Date
-        const [day, month, year] = (f.followup_date || "").split("-");
-        const followupDate = year && month && day ? new Date(`${year}-${month}-${day}`) : null;
+        const followupDate = getFollowupDate(f.followup_date);
 
         const fromDate = filters.fromDate ? new Date(filters.fromDate) : null;
         const toDate = filters.toDate ? new Date(filters.toDate) : null;
@@ -681,17 +719,20 @@ const Followup = () => {
                   })
                 : true;
 
-        return matchesFromDate && matchesToDate && matchesCompany && matchesCustomer && matchesMobile && matchesEmail && matchesAssignedTo;
+        const matchesBucket = activeBucket === "all" ? true : getDueBucket(f) === activeBucket;
+
+        return matchesBucket && matchesFromDate && matchesToDate && matchesCompany && matchesCustomer && matchesMobile && matchesEmail && matchesAssignedTo;
     });
 
-    // ================= Pagination =================
-    const [currentPage, setCurrentPage] = useState(1);
-    const [rowsPerPage, setRowsPerPage] = useState(5);
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeBucket, filters]);
 
+    // ================= Pagination =================
     const totalPages = Math.ceil(filteredFollowups.length / rowsPerPage);
     const startIndex = (currentPage - 1) * rowsPerPage;
     const currentFollowups = filteredFollowups.slice(startIndex, startIndex + rowsPerPage);
-    const completedFollowups = followupList.filter((f) => f.isCompleted).length;
+    const completedFollowups = bucketCounts.completed;
     const pendingFollowups = Math.max(followupList.length - completedFollowups, 0);
     const assignedCount = followupList.filter((f) => Array.isArray(f.assignedTo) ? f.assignedTo.length > 0 : Boolean(f.assignedTo)).length;
     const visibleStart = filteredFollowups.length === 0 ? 0 : startIndex + 1;
@@ -748,40 +789,54 @@ const Followup = () => {
     return (
         <>
             {leadLoading ? (
-                <div className="flex h-screen w-full items-center justify-center">
-                    <CircularProgress />
+                <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+                    <div className="flex flex-col items-center rounded-3xl border border-slate-200 bg-white px-10 py-8 shadow-xl shadow-slate-200/70">
+                        <CircularProgress />
+                        <p className="mt-4 text-sm font-bold text-slate-500">Preparing follow-up center...</p>
+                    </div>
                 </div>
             ) : (
                 <div className="mx-auto flex w-full max-w-[1520px] flex-col gap-6 pb-8">
-                    <section className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-[#2563EB] via-[#1d4ed8] to-[#053054] p-6 text-white shadow-2xl shadow-blue-200/70 md:p-8">
-                        <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-                        <div className="relative">
-                            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-50">
-                                <Target size={14} />
-                                CRM Follow-Up
+                    <section className="relative overflow-hidden rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-[#2563EB] via-[#1d4ed8] to-[#053054] p-5 text-white shadow-2xl shadow-blue-200/70 md:p-6">
+                        <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+                            <div>
+                                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-50">
+                                    <Target size={14} />
+                                    Follow-up Center
+                                </div>
+                                <h1 className="text-3xl font-black leading-tight tracking-normal md:text-[34px]">Today&apos;s Follow-up Workbench</h1>
+                                <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-blue-50/90 md:text-base">
+                                    Focus on overdue conversations, calls due today, upcoming commitments, and completed customer touchpoints.
+                                </p>
                             </div>
-                            <h1 className="text-3xl font-black leading-tight tracking-normal md:text-[34px]">Follow-Up List</h1>
-                            <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-blue-50/90 md:text-base">
-                                Prioritize upcoming calls, customer conversations, product follow-ups, and owner activity from one focused workspace.
-                            </p>
+                            <div className="grid min-w-full grid-cols-2 gap-3 rounded-3xl border border-white/15 bg-white/10 p-3 backdrop-blur xl:min-w-[420px]">
+                                <div className="rounded-2xl bg-white/10 p-4">
+                                    <p className="text-xs font-bold uppercase tracking-widest text-blue-100">Overdue</p>
+                                    <p className="mt-2 text-3xl font-black">{bucketCounts.overdue}</p>
+                                </div>
+                                <div className="rounded-2xl bg-white/10 p-4">
+                                    <p className="text-xs font-bold uppercase tracking-widest text-blue-100">Due Today</p>
+                                    <p className="mt-2 text-3xl font-black">{bucketCounts.today}</p>
+                                </div>
+                            </div>
                         </div>
                     </section>
 
                     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                         {[
-                            { label: "Total follow-ups", value: followupList.length, icon: CalendarClock, tone: "from-blue-500 to-blue-700", helper: "All scheduled work" },
-                            { label: "Visible after filters", value: filteredFollowups.length, icon: SlidersHorizontal, tone: "from-cyan-500 to-blue-600", helper: "Current list result" },
-                            { label: "Completed", value: completedFollowups, icon: CheckCircle2, tone: "from-emerald-500 to-teal-600", helper: "Marked done" },
-                            { label: "Pending", value: pendingFollowups, icon: UserCheck, tone: "from-orange-500 to-red-500", helper: `${assignedCount} assigned` },
+                            { label: "Total follow-ups", value: followupList.length, icon: CalendarClock, tone: "bg-blue-50 text-blue-600", helper: "All scheduled work" },
+                            { label: "Due today", value: bucketCounts.today, icon: Target, tone: "bg-cyan-50 text-cyan-600", helper: "Needs action now" },
+                            { label: "Completed", value: completedFollowups, icon: CheckCircle2, tone: "bg-emerald-50 text-emerald-600", helper: "Marked done" },
+                            { label: "Pending", value: pendingFollowups, icon: UserCheck, tone: "bg-orange-50 text-orange-600", helper: `${assignedCount} assigned` },
                         ].map((item) => {
                             const Icon = item.icon;
                             return (
-                                <div key={item.label} className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-100">
+                                <div key={item.label} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-200/60 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-100">
                                     <div className="mb-5 flex items-start justify-between">
-                                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${item.tone} text-white shadow-lg shadow-blue-100`}>
+                                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.tone}`}>
                                             <Icon size={22} />
                                         </div>
-                                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-600">Live</span>
+                                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-500">Live</span>
                                     </div>
                                     <p className="text-sm font-bold text-slate-500">{item.label}</p>
                                     <div className="mt-2 text-4xl font-black tracking-normal text-slate-950">{item.value}</div>
@@ -791,13 +846,40 @@ const Followup = () => {
                         })}
                     </section>
 
-                    {/* ===== Filter Box ===== */}
-                    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/60">
-                        <button type="button" onClick={() => setFiltersOpen((open) => !open)} className="flex w-full items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-800 transition hover:bg-blue-50" aria-expanded={filtersOpen}>
-                            <span className="flex items-center gap-2"><SlidersHorizontal size={17} className="text-blue-600" />{filtersOpen ? "Hide Filters" : "Show Filters"}</span>
-                            <ChevronDown size={18} className={`transition ${filtersOpen ? "rotate-180" : ""}`} />
-                        </button>
-                        {filtersOpen && <div className="crm-filter-panel mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
+                        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/60">
+                            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                <div>
+                                    <h2 className="text-xl font-black text-slate-950">Follow-up Queue</h2>
+                                    <p className="mt-1 text-sm font-semibold text-slate-500">Switch between due buckets before using detailed filters.</p>
+                                </div>
+                                <button type="button" onClick={() => setFiltersOpen((open) => !open)} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-800 transition hover:border-blue-200 hover:bg-blue-50" aria-expanded={filtersOpen}>
+                                    <SlidersHorizontal size={17} className="text-blue-600" />
+                                    {filtersOpen ? "Hide Filters" : "Advanced Filters"}
+                                    <ChevronDown size={18} className={`transition ${filtersOpen ? "rotate-180" : ""}`} />
+                                </button>
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                                {[
+                                    { key: "all", label: "All", value: bucketCounts.all, tone: "border-slate-200 text-slate-700" },
+                                    { key: "overdue", label: "Overdue", value: bucketCounts.overdue, tone: "border-orange-200 text-orange-700" },
+                                    { key: "today", label: "Today", value: bucketCounts.today, tone: "border-blue-200 text-blue-700" },
+                                    { key: "upcoming", label: "Upcoming", value: bucketCounts.upcoming, tone: "border-violet-200 text-violet-700" },
+                                    { key: "completed", label: "Completed", value: bucketCounts.completed, tone: "border-emerald-200 text-emerald-700" },
+                                ].map((bucket) => (
+                                    <button
+                                        key={bucket.key}
+                                        type="button"
+                                        onClick={() => setActiveBucket(bucket.key)}
+                                        className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${bucket.tone} ${activeBucket === bucket.key ? "bg-slate-950 text-white shadow-lg shadow-slate-200" : "bg-white hover:bg-slate-50"}`}
+                                    >
+                                        <span className="text-sm font-black">{bucket.label}</span>
+                                        <span className="text-lg font-black">{bucket.value}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {filtersOpen && <div className="crm-filter-panel mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                             {/* ✅ From Date / To Date Filters */}
                             <TextField
                                 label="From Date"
@@ -875,13 +957,65 @@ const Followup = () => {
                                 loading={!employees?.length}
                             />
                         </div>}
-                    </div>
+                        </div>
+
+                        <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/60">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-lg font-black text-slate-950">Priority Focus</h2>
+                                    <p className="mt-1 text-sm font-semibold text-slate-500">Overdue and today&apos;s conversations.</p>
+                                </div>
+                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                                    <AlertTriangle size={21} />
+                                </div>
+                            </div>
+
+                            <div className="mt-5 space-y-3">
+                                {topPriorityFollowups.length ? (
+                                    topPriorityFollowups.map((followup) => (
+                                        <button
+                                            key={followup.id}
+                                            type="button"
+                                            onClick={() => setSelectedFollowup({ ...followup })}
+                                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-black text-slate-950">{followup.companyName || "---"}</p>
+                                                    <p className="mt-1 truncate text-xs font-bold text-slate-500">{followup.customerPerson || "Customer not set"}</p>
+                                                </div>
+                                                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black uppercase ${getDueBucket(followup) === "overdue" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"}`}>
+                                                    {getDueBucket(followup)}
+                                                </span>
+                                            </div>
+                                            <p className="mt-3 text-xs font-black uppercase tracking-wide text-slate-400">{followup.followup_date || "No date"}</p>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center">
+                                        <Inbox className="mx-auto text-slate-300" size={28} />
+                                        <p className="mt-3 text-sm font-black text-slate-700">No urgent follow-ups</p>
+                                        <p className="mt-1 text-xs font-semibold text-slate-500">Overdue and today items will appear here.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </aside>
+                    </section>
 
                     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
                     {/* ===== Show Entries ===== */}
-                    <div className="flex flex-col gap-3 border-b border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-4 border-b border-slate-100 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                                <Search size={20} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-950">Follow-up Details</h2>
+                                <p className="text-sm font-semibold text-slate-500">Showing {visibleStart} - {visibleEnd} of {filteredFollowups.length} follow-ups</p>
+                            </div>
+                        </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-600">Show</span>
+                            <span className="text-sm font-bold text-slate-600">Rows</span>
                             <select
                                 value={rowsPerPage === filteredFollowups.length ? "All" : rowsPerPage}
                                 onChange={handleRowsPerPageChange}
@@ -893,11 +1027,10 @@ const Followup = () => {
                                 <option value={100}>100</option>
                                 <option value="All">All</option>
                             </select>
-                            <span className="text-sm font-bold text-slate-600">entries</span>
+                            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-700">
+                                Page {currentPage} of {Math.ceil(filteredFollowups.length / rowsPerPage) || 1}
+                            </span>
                         </div>
-                        <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-700">
-                            Page {currentPage} of {Math.ceil(filteredFollowups.length / rowsPerPage) || 1}
-                        </span>
                     </div>
 
                     {/* ===== Table ===== */}
