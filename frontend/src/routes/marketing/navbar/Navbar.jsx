@@ -9,6 +9,7 @@ const navItems = [
     { label: "Services", to: "/marketing-website/our-services", scrollTo: "our-services" },
     { label: "Features", to: "/marketing-website/features", scrollTo: "features" },
     { label: "Pricing", to: "/marketing-website/pricing", scrollTo: "pricing" },
+    { label: "Refer & Earn", to: "/refer-and-earn" },
     { label: "Blogs", to: "/marketing-website/blogs", scrollTo: "blogs" },
     { label: "Testimonials", to: "/marketing-website/testimonials", scrollTo: "testimonials" },
     { label: "Industry", to: "/marketing-website/industry", scrollTo: "industry" },
@@ -45,7 +46,7 @@ const Navbar = ({ theme }) => {
                         <Link
                             key={item.label}
                             to={item.to}
-                            state={{ scrollTo: item.scrollTo }}
+                            state={item.scrollTo ? { scrollTo: item.scrollTo } : undefined}
                             className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-indigo-700 dark:text-slate-300 dark:hover:bg-slate-900"
                         >
                             {item.label}
@@ -84,7 +85,7 @@ const Navbar = ({ theme }) => {
                         <Link
                             key={item.label}
                             to={item.to}
-                            state={{ scrollTo: item.scrollTo }}
+                            state={item.scrollTo ? { scrollTo: item.scrollTo } : undefined}
                             className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-indigo-700 dark:text-slate-300 dark:hover:bg-slate-900"
                         >
                             {item.label}
@@ -129,7 +130,7 @@ const Navbar = ({ theme }) => {
                             <Link
                                 key={item.label}
                                 to={item.to}
-                                state={{ scrollTo: item.scrollTo }}
+                                state={item.scrollTo ? { scrollTo: item.scrollTo } : undefined}
                                 onClick={closeMenu}
                                 className="rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900"
                             >

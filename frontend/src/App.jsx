@@ -129,6 +129,7 @@ import MarketingHome from "./routes/marketing/MarketingHome";
 import History from "./routes/marketing/aboutUs/History";
 import WhyUs from "./routes/marketing/aboutUs/WhyUs";
 import Team from "./routes/marketing/aboutUs/Team";
+import ReferAndEarn from "./routes/marketing/ReferAndEarn";
 
 // Landing Page Layout & Pages for each organizations
 import LandingLayout from "./routes/layout/LandingLayout";
@@ -223,6 +224,7 @@ function AppRoutes() {
                 element: <MarketingLayout />,
                 children: [
                     { index: true, element: <MarketingHome /> },
+                    { path: "refer-and-earn", element: <ReferAndEarn /> },
                     {
                         path: "privacy-policy",
                         element: <PrivacyPolicy />,
@@ -237,6 +239,11 @@ function AppRoutes() {
                     { path: "about-us/team", element: <Team /> },
                     { path: "*", element: <NotFoundPage /> },
                 ],
+            },
+            {
+                path: "/refer-and-earn",
+                element: <MarketingLayout />,
+                children: [{ index: true, element: <ReferAndEarn /> }],
             },
 
             // ==================== ORGANIZATION LANDING PAGES (Public) ====================
