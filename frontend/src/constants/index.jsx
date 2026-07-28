@@ -1,4 +1,4 @@
-import { Building2, CreditCard, Dot, Home, MapPinned, Settings, CircleDot, UserRound, User } from "lucide-react";
+import { Building2, CreditCard, Dot, HandCoins, Home, MapPinned, Settings, CircleDot, UserRound, User } from "lucide-react";
 import { MdOutlineLeaderboard, MdOutlineSettingsAccessibility, MdPages } from "react-icons/md";
 import { RiUserFollowLine } from "react-icons/ri";
 import { SiWikiquote } from "react-icons/si";
@@ -73,6 +73,7 @@ export const providerAdminNavbarLinks = [
                             { label: "Currency", path: "/settings/master/currency", icon: Dot },
                             { label: "Packages", path: "/provider/settings/master/package", icon: Dot },
                             { label: "Payment", path: "/provider/settings/master/payment", icon: Dot },
+                            { label: "Refer & Earn", path: "/provider/settings/master/referrals", icon: HandCoins },
                         ],
                     },
                     { label: "Bank Setup", icon: AiFillBank, path: "/settings/bank-setup" },

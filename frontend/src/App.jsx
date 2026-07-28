@@ -112,6 +112,7 @@ import ProviderEditPackage from "./routes/master/providerMaster/providerPackages
 import ProviderCreatePackage from "./routes/master/providerMaster/providerPackages/ProviderCreatePackage";
 import ProviderPayment from "./routes/master/providerMaster/providerPayments/ProviderPayment";
 import ProviderPaymentDetails from "./routes/master/providerMaster/providerPayments/ProviderPaymentDetails";
+import ProviderReferrals from "./routes/master/providerMaster/ProviderReferrals";
 import ChoosePackage from "./routes/auth/ChoosePackage";
 import PaymentPage from "./routes/auth/PaymentPage";
 import CustomerList from "./routes/customer/CustomerList";
@@ -275,6 +276,7 @@ function AppRoutes() {
                             { path: "provider/settings/master/package/create-package", element: isProviderUser ? <ProviderCreatePackage /> : <NotFound /> },
                             { path: "provider/settings/master/payment", element: isProviderUser ? <ProviderPayment /> : <NotFound /> },
                             { path: "provider/settings/master/payment/details/:orgId", element: isProviderUser ? <ProviderPaymentDetails /> : <NotFound /> },
+                            { path: "provider/settings/master/referrals", element: isProviderUser ? <ProviderReferrals /> : <NotFound /> },
                             { path: "settings/bank-setup", element: <BankDetails /> },
                             { path: "settings/bank-setup/add-bank", element: <AddBankAccount /> },
                             { path: "settings/bank-setup/edit-bank/:id", element: <EditBankAccount /> },

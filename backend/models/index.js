@@ -81,6 +81,7 @@ db.notification = require("./notification")(sequelize, Sequelize);
 db.bankDetails = require("./BankDetails")(sequelize, Sequelize);
 db.t_and_c_and_dec = require("./TAndCAndDec")(sequelize, Sequelize);
 db.fieldVisit = require("./FieldVisit")(sequelize, Sequelize);
+db.referral = require("./Referral")(sequelize, Sequelize);
 
 // Setup association
 Object.keys(db).forEach((modelName) => {

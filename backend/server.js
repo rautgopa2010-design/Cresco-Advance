@@ -114,6 +114,8 @@ const aiSuggestionsRoutes = require("./routes/aiSuggestions.routes");
 app.use("/api/ai-suggestions", aiSuggestionsRoutes);
 const fieldVisitRoutes = require("./routes/fieldVisit.routes");
 app.use("/api/field-visits", fieldVisitRoutes);
+const referralRoutes = require("./routes/referral.routes");
+app.use("/api/referrals", referralRoutes);
 
 // ✅ Serve static uploads folder
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

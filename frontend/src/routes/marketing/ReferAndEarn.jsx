@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import api from "@/utils/api";
 import {
     ArrowRight,
     Award,
@@ -67,6 +68,8 @@ const initialForm = {
 const ReferAndEarn = () => {
     const [form, setForm] = useState(initialForm);
     const [submitted, setSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
     const [openFaq, setOpenFaq] = useState(0);
 
     const handleChange = (field) => (event) => {
@@ -74,10 +77,24 @@ const ReferAndEarn = () => {
         setForm((prev) => ({ ...prev, [field]: value }));
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
-        setSubmitted(true);
-        setForm(initialForm);
+        setSubmitting(true);
+        setSubmitted(false);
+        setSubmitError("");
+
+        try {
+            await api.post("/referrals", {
+                ...form,
+                source: "website-refer-and-earn",
+            });
+            setSubmitted(true);
+            setForm(initialForm);
+        } catch (error) {
+            setSubmitError(error.response?.data?.msg || "Referral could not be submitted. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -221,11 +238,18 @@ const ReferAndEarn = () => {
                                 </div>
                             )}
 
+                            {submitError && (
+                                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                                    {submitError}
+                                </div>
+                            )}
+
                             <button
                                 type="submit"
+                                disabled={submitting}
                                 className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-4 text-sm font-black uppercase tracking-[0.14em] text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 dark:shadow-none"
                             >
-                                Submit referral
+                                {submitting ? "Submitting..." : "Submit referral"}
                                 <ArrowRight size={18} />
                             </button>
                         </form>
