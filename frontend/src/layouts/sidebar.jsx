@@ -45,9 +45,12 @@ const iconByLabel = {
     Master: Layers3,
 };
 
-const salesLabels = new Set(["Dashboard", "Enquiries", "Leads", "Deals", "Customer", "Followup", "Quotations"]);
+const homeLabels = new Set(["Dashboard"]);
+const salesLabels = new Set(["Enquiries", "Leads", "Deals", "Customer", "Followup"]);
 const engagementLabels = new Set(["Engagement"]);
-const operationsLabels = new Set(["Orders", "Payment", "Field Visits", "Vendor", "Proforma Invoice", "Invoice", "Reports", "Analytics", "Incentive"]);
+const financeLabels = new Set(["Quotations", "Orders", "Proforma Invoice", "Invoice", "Payment"]);
+const fieldOpsLabels = new Set(["Field Visits", "Vendor"]);
+const insightsLabels = new Set(["Reports", "Analytics", "Incentive"]);
 
 const encodeLogoPath = (logoPath) =>
     logoPath
@@ -158,9 +161,12 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
         }
 
         const sections = {
-            SALES: [],
+            HOME: [],
+            "SALES PIPELINE": [],
             ENGAGEMENT: [],
-            OPERATIONS: [],
+            "FINANCE & DOCUMENTS": [],
+            "FIELD OPERATIONS": [],
+            INSIGHTS: [],
             MASTER: [],
             SETTINGS: [],
         };
@@ -202,8 +208,13 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
                     return;
                 }
 
+                if (homeLabels.has(link.label)) {
+                    sections.HOME.push(link);
+                    return;
+                }
+
                 if (salesLabels.has(link.label)) {
-                    sections.SALES.push(link);
+                    sections["SALES PIPELINE"].push(link);
                     return;
                 }
 
@@ -212,8 +223,18 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
                     return;
                 }
 
-                if (operationsLabels.has(link.label)) {
-                    sections.OPERATIONS.push(link);
+                if (financeLabels.has(link.label)) {
+                    sections["FINANCE & DOCUMENTS"].push(link);
+                    return;
+                }
+
+                if (fieldOpsLabels.has(link.label)) {
+                    sections["FIELD OPERATIONS"].push(link);
+                    return;
+                }
+
+                if (insightsLabels.has(link.label)) {
+                    sections.INSIGHTS.push(link);
                     return;
                 }
 
