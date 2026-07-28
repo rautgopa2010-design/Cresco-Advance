@@ -248,15 +248,16 @@ import Footer from "../marketing/footer/Footer";
 import { useState, useEffect, useRef } from "react";
 
 export default function MarketingLayout() {
-    const [theme, setTheme] = useState(
-        () => localStorage.getItem("theme") ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
-    );
+    const [theme, setTheme] = useState("light");
     const location = useLocation();
     const gtagLoaded = useRef(false);
     const conversionTracked = useRef(false); // Track if conversion already fired
 
     // Check if current path is marketing website
-    const isMarketingRoute = location.pathname.startsWith("/marketing-website") || location.pathname.startsWith("/landing/");
+    const isMarketingRoute =
+        location.pathname.startsWith("/marketing-website") ||
+        location.pathname.startsWith("/refer-and-earn") ||
+        location.pathname.startsWith("/landing/");
 
     // Check if this is a conversion page (adjust based on your actual conversion URL)
     const isConversionPage =
@@ -316,16 +317,17 @@ export default function MarketingLayout() {
     }, [isMarketingRoute, isConversionPage]);
 
     useEffect(() => {
-        if (theme === "dark") {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
-        localStorage.setItem("theme", theme);
-    }, [theme]);
+        const hadDarkClass = document.documentElement.classList.contains("dark");
+        document.documentElement.classList.remove("dark");
+        setTheme("light");
+
+        return () => {
+            if (hadDarkClass) document.documentElement.classList.add("dark");
+        };
+    }, []);
 
     return (
-        <div className="flex min-h-screen flex-col bg-white text-slate-700 transition-colors dark:bg-slate-950 dark:text-white">
+        <div className="flex min-h-screen flex-col bg-white text-slate-700 transition-colors">
             <Navbar
                 theme={theme}
                 setTheme={setTheme}

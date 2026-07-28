@@ -148,6 +148,15 @@ const Signup = () => {
     };
 
     useEffect(() => {
+        const hadDarkClass = document.documentElement.classList.contains("dark");
+        document.documentElement.classList.remove("dark");
+
+        return () => {
+            if (hadDarkClass) document.documentElement.classList.add("dark");
+        };
+    }, []);
+
+    useEffect(() => {
         if (snackbarMessage && snackbarSeverity?.toLowerCase() === "error") {
             setLocalSnackbarMessage(snackbarMessage);
             setLocalSnackbarSeverity("error");
@@ -211,26 +220,26 @@ const Signup = () => {
 
             <Box className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.12),_transparent_34%),linear-gradient(135deg,_#f8fafc_0%,_#eef4ff_46%,_#f8fafc_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
                 <Box className="mx-auto flex min-h-[calc(100vh-48px)] w-full max-w-7xl items-center">
-                    <Box className="grid w-full overflow-hidden rounded-[28px] border border-white/80 bg-white/80 shadow-[0_24px_80px_rgba(15,23,42,0.14)] backdrop-blur-xl lg:grid-cols-[0.9fr_1.1fr]">
-                        <Box className="relative hidden min-h-[680px] overflow-hidden bg-[#082f49] p-10 text-white lg:flex lg:flex-col lg:justify-between">
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(34,211,238,0.26),_transparent_30%),radial-gradient(circle_at_78%_12%,_rgba(132,204,22,0.20),_transparent_26%),linear-gradient(145deg,_#083344,_#0f172a)]" />
+                    <Box className="grid w-full overflow-hidden rounded-[28px] border border-white/80 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl lg:grid-cols-[0.9fr_1.1fr]">
+                        <Box className="relative hidden min-h-[680px] overflow-hidden bg-[#f8fafc] p-10 text-slate-950 lg:flex lg:flex-col lg:justify-between">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(79,70,229,0.16),_transparent_30%),radial-gradient(circle_at_78%_12%,_rgba(37,99,235,0.14),_transparent_28%),linear-gradient(145deg,_#ffffff,_#eef4ff)]" />
                             <div className="relative">
                                 <img
                                     src={logo}
                                     alt="Crescosoft"
                                     className="h-20 w-auto object-contain"
                                 />
-                                <div className="mt-12 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-sky-100">
+                                <div className="mt-12 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm">
                                     <Sparkles size={16} />
                                     CRM onboarding
                                 </div>
                                 <Typography
                                     component="h1"
-                                    className="mt-6 max-w-md !text-4xl !font-black !leading-tight text-white"
+                                    className="mt-6 max-w-md !text-4xl !font-black !leading-tight text-slate-950"
                                 >
                                     Start your workspace with a clean company profile.
                                 </Typography>
-                                <p className="mt-5 max-w-md text-base font-medium leading-7 text-slate-200">
+                                <p className="mt-5 max-w-md text-base font-medium leading-7 text-slate-600">
                                     Create the Super Admin account, choose a package, and continue into your CRM workspace.
                                 </p>
                             </div>
@@ -239,9 +248,9 @@ const Signup = () => {
                                 {["Secure Super Admin account", "Company workspace setup", "Package selection after signup"].map((item) => (
                                     <div
                                         key={item}
-                                        className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-slate-100"
+                                        className="flex items-center gap-3 rounded-2xl border border-indigo-100 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm"
                                     >
-                                        <CheckCircle2 className="h-5 w-5 text-cyan-200" />
+                                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                                         {item}
                                     </div>
                                 ))}
