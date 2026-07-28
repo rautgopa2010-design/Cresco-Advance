@@ -2607,8 +2607,8 @@ const GenerateInvoice = ({ documentType = "final" }) => {
                             value={invoiceType}
                             onChange={(e) => setInvoiceType(e.target.value)}
                         >
-                            <div className="grid gap-4 lg:grid-cols-[220px_minmax(280px,360px)_120px_minmax(190px,240px)] lg:items-start">
-                                <div className="flex h-10 items-center rounded-2xl bg-slate-50 px-3">
+                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[230px_minmax(280px,1fr)_130px_minmax(190px,240px)] xl:items-start">
+                                <div className="flex min-h-11 items-center rounded-2xl border border-slate-100 bg-slate-50 px-3">
                                     <FormControlLabel
                                         value="order"
                                         control={<Radio size="small" />}
@@ -2756,7 +2756,7 @@ const GenerateInvoice = ({ documentType = "final" }) => {
                         </div>
                     ) : (
                         <>
-                            <div className="mb-6 flex items-center gap-12">
+                            <div className="mb-6 grid gap-3 sm:grid-cols-2">
                                 <FormControlLabel
                                     control={
                                         <Radio
@@ -2770,6 +2770,7 @@ const GenerateInvoice = ({ documentType = "final" }) => {
                                         />
                                     }
                                     label="B2B (Business to Business)"
+                                    className="m-0 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2"
                                 />
                                 <FormControlLabel
                                     control={
@@ -2784,10 +2785,11 @@ const GenerateInvoice = ({ documentType = "final" }) => {
                                         />
                                     }
                                     label="B2C (Business to Consumer)"
+                                    className="m-0 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2"
                                 />
                             </div>
                             {/* Customer / Company Fields */}
-                            <div className="flex w-full flex-col gap-6 lg:flex-row">
+                            <div className="grid w-full gap-4 lg:grid-cols-2">
                                 {businessMode === "B2B" ? (
                                     <>
                                         <Autocomplete
@@ -2810,7 +2812,7 @@ const GenerateInvoice = ({ documentType = "final" }) => {
                                                     placeholder="Search company..."
                                                 />
                                             )}
-                                            className="flex-1"
+                                            className="min-w-0"
                                         />
                                         <Autocomplete
                                             disablePortal
@@ -2830,7 +2832,7 @@ const GenerateInvoice = ({ documentType = "final" }) => {
                                                     placeholder={availableCustomerNames.length === 0 ? "First select company" : "Select contact"}
                                                 />
                                             )}
-                                            className="flex-1"
+                                            className="min-w-0"
                                         />
                                     </>
                                 ) : (
@@ -3027,7 +3029,7 @@ const GenerateInvoice = ({ documentType = "final" }) => {
                                                     placeholder="Search customer name..."
                                                 />
                                             )}
-                                            className="flex-1"
+                                            className="min-w-0"
                                         />
 
                                         {/* B2C: Company Name (optional, editable) */}
@@ -3037,7 +3039,7 @@ const GenerateInvoice = ({ documentType = "final" }) => {
                                             onChange={handleChange("selectedCompany")}
                                             size="small"
                                             fullWidth
-                                            className="flex-1"
+                                            className="min-w-0"
                                         />
                                     </>
                                 )}
@@ -3045,7 +3047,7 @@ const GenerateInvoice = ({ documentType = "final" }) => {
                         </>
                     )}
 
-                    <div className="mt-4 grid w-full gap-4 lg:grid-cols-[minmax(0,1fr)_150px_minmax(0,1fr)]">
+                    <div className="mt-4 grid w-full gap-4 md:grid-cols-[minmax(0,1fr)_120px_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_150px_minmax(0,1fr)]">
                         <Box className="min-w-0">
                             <TextField
                                 label="Email *"

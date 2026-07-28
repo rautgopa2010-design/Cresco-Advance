@@ -2487,8 +2487,8 @@ const GenerateOrder = () => {
                             value={orderType}
                             onChange={(e) => setOrderType(e.target.value)}
                         >
-                            <div className="grid gap-4 xl:grid-cols-[250px_minmax(280px,360px)_120px_230px_minmax(190px,240px)] xl:items-start">
-                                <div className="flex h-10 items-center rounded-2xl bg-slate-50 px-3">
+                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[260px_minmax(280px,1fr)_130px_240px_minmax(190px,240px)] xl:items-start">
+                                <div className="flex min-h-11 items-center rounded-2xl border border-slate-100 bg-slate-50 px-3">
                                     <FormControlLabel
                                         value="quotation"
                                         control={<Radio size="small" />}
@@ -2554,7 +2554,7 @@ const GenerateOrder = () => {
                                         </>
                                     )}
 
-                                <div className="flex h-10 items-center rounded-2xl bg-slate-50 px-3">
+                                <div className="flex min-h-11 items-center rounded-2xl border border-slate-100 bg-slate-50 px-3">
                                     <FormControlLabel
                                         value="manual"
                                         control={<Radio size="small" />}
@@ -2607,7 +2607,7 @@ const GenerateOrder = () => {
                         </div>
                     ) : (
                         <>
-                            <div className="mb-6 flex items-center gap-12">
+                            <div className="mb-6 grid gap-3 sm:grid-cols-2">
                                 <FormControlLabel
                                     control={
                                         <Radio
@@ -2621,6 +2621,7 @@ const GenerateOrder = () => {
                                         />
                                     }
                                     label="B2B (Business to Business)"
+                                    className="m-0 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2"
                                 />
                                 <FormControlLabel
                                     control={
@@ -2635,10 +2636,11 @@ const GenerateOrder = () => {
                                         />
                                     }
                                     label="B2C (Business to Consumer)"
+                                    className="m-0 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2"
                                 />
                             </div>
                             {/* Customer / Company Fields */}
-                            <div className="flex w-full flex-col gap-6 lg:flex-row">
+                            <div className="grid w-full gap-4 lg:grid-cols-2">
                                 {businessMode === "B2B" ? (
                                     <>
                                         <Autocomplete
@@ -2661,7 +2663,7 @@ const GenerateOrder = () => {
                                                     placeholder="Search company..."
                                                 />
                                             )}
-                                            className="flex-1"
+                                            className="min-w-0"
                                         />
                                         <Autocomplete
                                             disablePortal
@@ -2681,7 +2683,7 @@ const GenerateOrder = () => {
                                                     placeholder={availableCustomerNames.length === 0 ? "First select company" : "Select contact"}
                                                 />
                                             )}
-                                            className="flex-1"
+                                            className="min-w-0"
                                         />
                                     </>
                                 ) : (
@@ -2879,7 +2881,7 @@ const GenerateOrder = () => {
                                                     placeholder="Search customer name..."
                                                 />
                                             )}
-                                            className="flex-1"
+                                            className="min-w-0"
                                         />
 
                                         {/* B2C: Company Name (optional, editable) */}
@@ -2889,7 +2891,7 @@ const GenerateOrder = () => {
                                             onChange={handleChange("selectedCompany")}
                                             size="small"
                                             fullWidth
-                                            className="flex-1"
+                                            className="min-w-0"
                                         />
                                     </>
                                 )}
@@ -2897,7 +2899,7 @@ const GenerateOrder = () => {
                         </>
                     )}
 
-                    <div className="mt-4 grid w-full gap-4 lg:grid-cols-[minmax(0,1fr)_150px_minmax(0,1fr)]">
+                    <div className="mt-4 grid w-full gap-4 md:grid-cols-[minmax(0,1fr)_120px_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_150px_minmax(0,1fr)]">
                         <Box className="min-w-0">
                             <TextField
                                 label="Email *"
@@ -2945,7 +2947,7 @@ const GenerateOrder = () => {
                                 <p className="mt-1 text-sm font-semibold text-slate-500">Add product, GST, discount and order value details.</p>
                             </div>
                         </div>
-                        <Box className="flex items-center gap-10 text-nowrap md:gap-5 lg:gap-5">
+                        <Box className="grid gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 sm:grid-cols-[120px_1fr] sm:items-center">
                             <span className="-mt-1 text-sm font-semibold text-[#433C50] md:-mt-1.5 lg:-mt-1.5">GSTIN Type :</span>
                             <RadioGroup
                                 row
