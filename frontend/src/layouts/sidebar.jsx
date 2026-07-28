@@ -81,6 +81,16 @@ const cloneWithIcon = (item) => ({
     children: item.children?.map((child) => cloneWithIcon(child)),
 });
 
+const getOrgLogoStorageKey = (orgId) => `companyLogo_${orgId || "default"}`;
+
+const getUserCompanyLogo = (user) =>
+    user?.companyLogo ||
+    user?.organization?.companyLogo ||
+    user?.companySetup?.companyLogo ||
+    user?.company_setup?.companyLogo ||
+    user?.company_setup?.company_logo ||
+    null;
+
 export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, activeWorkspace }, ref) => {
     const [tooltip, setTooltip] = useState({ label: "", x: 0, y: 0, show: false });
     const [openAccordions, setOpenAccordions] = useState({});
@@ -91,8 +101,13 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
     const { companySetup } = useSelector((state) => state.companySetup);
 
     const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
-    const currentOrgId = user?.org_id || "default";
-    const [logoUrl, setLogoUrl] = useState(null);
+    const currentOrgId = user?.org_id || user?.organization?.id || "default";
+    const [logoUrl, setLogoUrl] = useState(() => {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const orgId = storedUser?.org_id || storedUser?.organization?.id || "default";
+        const logoPath = getUserCompanyLogo(storedUser) || localStorage.getItem(getOrgLogoStorageKey(orgId));
+        return logoPath ? buildCompanyLogoUrl(logoPath) : null;
+    });
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -123,14 +138,17 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
         fetchInitialData();
     }, [dispatch, currentOrgId]);
 
-    // Update logo from Redux store whenever companySetup changes
+    // Update logo from org-specific setup/user/cache whenever available.
     useEffect(() => {
+        const orgId = user?.org_id || user?.organization?.id || companySetup?.org_id || "default";
+        const logoPath = companySetup?.companyLogo || getUserCompanyLogo(user) || localStorage.getItem(getOrgLogoStorageKey(orgId));
+
         if (companySetup?.companyLogo) {
-            setLogoUrl(buildCompanyLogoUrl(companySetup.companyLogo));
-        } else {
-            setLogoUrl(initialLoad ? null : logo);
+            localStorage.setItem(getOrgLogoStorageKey(orgId), companySetup.companyLogo);
         }
-    }, [companySetup, initialLoad]);
+
+        setLogoUrl(logoPath ? buildCompanyLogoUrl(logoPath) : initialLoad ? null : logo);
+    }, [companySetup, user, initialLoad]);
 
     const isProviderAdmin = isSuperProviderUser(user);
     const isHrmsWorkspace = activeWorkspace === "hrms" && !helpDeskMode;
@@ -307,10 +325,11 @@ export const Sidebar = forwardRef(({ collapsed, setCollapsed, helpDeskMode, acti
 
             if (String(updatedOrgId) === String(currentOrgId)) {
                 if (newLogo) {
-                    setLogoUrl(buildCompanyLogoUrl(newLogo));
+                    localStorage.setItem(getOrgLogoStorageKey(currentOrgId), newLogo);
                 } else {
-                    setLogoUrl(logo);
+                    localStorage.removeItem(getOrgLogoStorageKey(currentOrgId));
                 }
+                setLogoUrl(newLogo ? buildCompanyLogoUrl(newLogo) : logo);
             }
         };
 
