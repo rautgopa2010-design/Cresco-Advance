@@ -71,7 +71,12 @@ const CompactEnquiryForm = ({ config, templateKey }) => {
             setForm(initialForm);
             if (config.redirectUrl) window.location.href = config.redirectUrl;
         } catch (err) {
-            setError(err.response?.data?.message || err.response?.data?.msg || "Could not submit enquiry. Please try again.");
+            setError(
+                err.response?.data?.errors?.[0]?.msg ||
+                    err.response?.data?.message ||
+                    err.response?.data?.msg ||
+                    "Could not submit enquiry. Please try again.",
+            );
         } finally {
             setLoading(false);
         }

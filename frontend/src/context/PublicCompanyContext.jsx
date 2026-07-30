@@ -52,25 +52,9 @@ export const PublicCompanyProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Helper to extract org_id from slug like "suraj-agro-3"
-    const extractOrgId = (slug) => {
-        if (!slug) return null;
-        const parts = slug.split("-");
-        const lastPart = parts[parts.length - 1];
-        return /^\d+$/.test(lastPart) ? lastPart : null;
-    };
-
     useEffect(() => {
         if (!companySlug) {
             setError("No company slug provided");
-            setLoading(false);
-            return;
-        }
-
-        const org_id = extractOrgId(companySlug);
-
-        if (!org_id) {
-            setError("Invalid company slug: org_id not found");
             setLoading(false);
             return;
         }
@@ -85,6 +69,11 @@ export const PublicCompanyProvider = ({ children }) => {
                     `${API_BASE_URL}/company-setup/public/${companySlug}`
                 );
                 setCompanyData(companyResponse.data);
+                const org_id = companyResponse.data?.org_id;
+
+                if (!org_id) {
+                    throw new Error("Company org_id not found");
+                }
 
                 // Fetch landing page setup using org_id (public endpoint)
                 const landingResponse = await axios.get(

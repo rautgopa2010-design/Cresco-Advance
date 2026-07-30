@@ -9,6 +9,32 @@ const submissionWindows = new Map();
 
 const clean = (value) => String(value || "").trim();
 
+const slugifyCompany = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const getOrgIdFromSlug = (slug) => {
+  const match = String(slug || "").match(/-(\d+)$/);
+  return match ? Number(match[1]) : null;
+};
+
+const resolveCompanyFromSlug = async (companySlug) => {
+  const orgIdFromSlug = getOrgIdFromSlug(companySlug);
+  if (orgIdFromSlug) {
+    const byOrg = await CompanySetup.findOne({ where: { org_id: orgIdFromSlug } });
+    if (byOrg) return byOrg;
+  }
+
+  const bySlug = await CompanySetup.findOne({ where: { companySlug } });
+  if (bySlug) return bySlug;
+
+  const companies = await CompanySetup.findAll();
+  return companies.find((item) => slugifyCompany(item.companyName) === companySlug) || null;
+};
+
 const getClientIp = (req) =>
   clean(req.headers["x-forwarded-for"]).split(",")[0] || req.ip || "";
 
@@ -64,7 +90,7 @@ exports.createLandingLead = async (req, res) => {
 
   try {
     // Get org_id from companySlug
-    const company = await CompanySetup.findOne({ where: { companySlug } });
+    const company = await resolveCompanyFromSlug(companySlug);
     if (!company) return sendErrorResponse(res, 404, "Invalid company slug");
 
     const role = await db.roles.findOne({

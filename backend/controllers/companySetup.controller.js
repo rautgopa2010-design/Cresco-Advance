@@ -11,6 +11,18 @@ const Profile = db.profile;
 const CompanySetup = db.companySetup;
 const IncentiveFormulaMaster = db.incentiveFormulaMaster;
 
+const slugifyCompany = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const getOrgIdFromSlug = (slug) => {
+  const match = String(slug || "").match(/-(\d+)$/);
+  return match ? Number(match[1]) : null;
+};
+
 // Utility: remove file if exists
 const removeFileIfExists = (filePath) => {
   if (filePath && fs.existsSync(filePath)) {
@@ -435,10 +447,20 @@ exports.getPublicCompanySetup = async (req, res) => {
   }
 
   try {
-    const companySetup = await CompanySetup.findOne({
+    const orgIdFromSlug = getOrgIdFromSlug(companySlug);
+    const candidates = await CompanySetup.findAll({
+      where: orgIdFromSlug ? { org_id: orgIdFromSlug } : undefined,
+      include: [{ model: IncentiveFormulaMaster, as: "formulas" }],
+    });
+
+    const companySetup =
+      candidates.find((item) => item.companySlug === companySlug) ||
+      candidates.find((item) => slugifyCompany(item.companyName) === companySlug) ||
+      (orgIdFromSlug ? candidates[0] : null) ||
+      (await CompanySetup.findOne({
       where: { companySlug },
       include: [{ model: IncentiveFormulaMaster, as: "formulas" }], // if needed later
-    });
+      }));
 
     if (!companySetup) {
       return res.status(404).json({ message: "Company not found" });
