@@ -22,6 +22,7 @@ import { Box, TextField, Button, CircularProgress, Snackbar, Alert, IconButton, 
 import { MdOutlineSettingsAccessibility } from "react-icons/md";
 import { CirclePlus, CircleMinus, Trash2 } from "lucide-react";
 import { IMAGE_BASE_URL } from "../../../utils/api";
+import { DEFAULT_TEMPLATE_CONFIG, LANDING_TEMPLATES } from "../../landing/templates/landingTemplateRegistry";
 
 const UpdateLandingPageSetup = () => {
     const dispatch = useDispatch();
@@ -36,6 +37,9 @@ const UpdateLandingPageSetup = () => {
     const [heroPreview, setHeroPreview] = useState(null);
     const [expertiseFile, setExpertiseFile] = useState(null);
     const [expertisePreview, setExpertisePreview] = useState(null);
+    const [selectedTemplate, setSelectedTemplate] = useState("classic");
+    const [templateStatus, setTemplateStatus] = useState("published");
+    const [templateConfig, setTemplateConfig] = useState(DEFAULT_TEMPLATE_CONFIG);
 
     const [form, setForm] = useState({
         hero_headline: "",
@@ -156,6 +160,16 @@ const UpdateLandingPageSetup = () => {
         if (landingPageSetup.hero_image) {
             setHeroPreview(`${IMAGE_BASE_URL}${landingPageSetup.hero_image}`);
         }
+        setSelectedTemplate(landingPageSetup.template_key || "classic");
+        setTemplateStatus(landingPageSetup.template_status || "published");
+        setTemplateConfig({
+            ...DEFAULT_TEMPLATE_CONFIG,
+            ...(landingPageSetup.template_config || {}),
+            formFields: {
+                ...DEFAULT_TEMPLATE_CONFIG.formFields,
+                ...(landingPageSetup.template_config?.formFields || {}),
+            },
+        });
     }, [landingPageSetup]);
 
     useEffect(() => {
@@ -171,6 +185,20 @@ const UpdateLandingPageSetup = () => {
     const handleChange = (field) => (e) => {
         setForm({ ...form, [field]: e.target.value });
         setErrors({ ...errors, [field]: false });
+    };
+
+    const handleTemplateConfigChange = (field) => (e) => {
+        setTemplateConfig((prev) => ({ ...prev, [field]: e.target.value }));
+    };
+
+    const handleTemplateListChange = (field) => (e) => {
+        setTemplateConfig((prev) => ({
+            ...prev,
+            [field]: e.target.value
+                .split("\n")
+                .map((item) => item.trim())
+                .filter(Boolean),
+        }));
     };
 
     const handleArrayChange = (arrayName, index, subField) => (e) => {
@@ -287,6 +315,15 @@ const UpdateLandingPageSetup = () => {
 
         const formData = new FormData();
 
+        formData.append("landing_page_name", templateConfig.landingPageName || "Main Landing Page");
+        formData.append("template_key", selectedTemplate);
+        formData.append("template_status", templateStatus);
+        formData.append("success_message", templateConfig.successMessage || "");
+        formData.append("redirect_url", templateConfig.redirectUrl || "");
+        formData.append("seo_title", templateConfig.seoTitle || "");
+        formData.append("seo_description", templateConfig.seoDescription || "");
+        formData.append("template_config", JSON.stringify(templateConfig));
+
         // Simple text/number fields
         const textFields = [
             "hero_headline",
@@ -387,6 +424,109 @@ const UpdateLandingPageSetup = () => {
                     Back
                 </Button>
             </div>
+
+            <Box className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
+                <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+                    <div>
+                        <Typography className="!text-xs !font-black uppercase tracking-[0.22em] !text-indigo-600">
+                            Choose Landing Page Template
+                        </Typography>
+                        <Typography className="mt-2 !text-2xl !font-black !text-slate-950">
+                            Select the design for this organization landing page
+                        </Typography>
+                        <p className="mt-2 text-sm font-medium text-slate-500">
+                            Classic keeps the existing page unchanged. New templates use a compact enquiry form and shared configuration.
+                        </p>
+                    </div>
+                    <div className="flex gap-3">
+                        <Button
+                            variant={templateStatus === "draft" ? "contained" : "outlined"}
+                            onClick={() => setTemplateStatus("draft")}
+                        >
+                            Save as Draft
+                        </Button>
+                        <Button
+                            variant={templateStatus === "published" ? "contained" : "outlined"}
+                            onClick={() => setTemplateStatus("published")}
+                        >
+                            Publish
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {LANDING_TEMPLATES.map((template) => {
+                        const isSelected = selectedTemplate === template.key;
+                        return (
+                            <div
+                                key={template.key}
+                                className={`rounded-2xl border p-4 transition ${
+                                    isSelected ? "border-indigo-500 bg-indigo-50 shadow-lg" : "border-slate-200 bg-white hover:border-indigo-200"
+                                }`}
+                            >
+                                <div className={`h-28 rounded-xl bg-gradient-to-br ${template.accent} p-4 text-white`}>
+                                    <div className="h-3 w-24 rounded-full bg-white/80" />
+                                    <div className="mt-5 h-4 w-36 rounded-full bg-white/70" />
+                                    <div className="mt-3 h-3 w-48 rounded-full bg-white/40" />
+                                    <div className="mt-5 h-8 w-28 rounded-lg bg-white/90" />
+                                </div>
+                                <div className="mt-4 flex items-start justify-between gap-3">
+                                    <div>
+                                        <h3 className="text-lg font-black text-slate-950">{template.name}</h3>
+                                        <p className="mt-1 text-sm font-medium leading-6 text-slate-500">{template.description}</p>
+                                    </div>
+                                    {isSelected && <span className="rounded-full bg-indigo-600 px-3 py-1 text-xs font-black text-white">Selected</span>}
+                                </div>
+                                <div className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                                    {template.bestUse}
+                                </div>
+                                <div className="mt-4 flex gap-2">
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={() => window.open(`/landing-page`, "_blank", "noopener,noreferrer")}
+                                    >
+                                        Preview
+                                    </Button>
+                                    <Button
+                                        variant={isSelected ? "contained" : "outlined"}
+                                        size="small"
+                                        onClick={() => setSelectedTemplate(template.key)}
+                                    >
+                                        Select Template
+                                    </Button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </Box>
+
+            {selectedTemplate !== "classic" && (
+                <Box className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
+                    <Typography className="!text-xl !font-black !text-slate-950">Template Configuration</Typography>
+                    <p className="mt-2 text-sm font-medium text-slate-500">
+                        These settings control the five new compact templates. Classic still uses the detailed sections below.
+                    </p>
+                    <div className="mt-5 grid gap-5 md:grid-cols-2">
+                        <TextField label="Landing Page Name" value={templateConfig.landingPageName || ""} onChange={handleTemplateConfigChange("landingPageName")} />
+                        <TextField label="Submit Button Text" value={templateConfig.ctaText || ""} onChange={handleTemplateConfigChange("ctaText")} />
+                        <TextField label="Page Headline" value={templateConfig.headline || ""} onChange={handleTemplateConfigChange("headline")} multiline rows={2} />
+                        <TextField label="Subheading" value={templateConfig.subheading || ""} onChange={handleTemplateConfigChange("subheading")} multiline rows={2} />
+                        <TextField label="Product / Service Dropdown Values (one per line)" value={(templateConfig.productOptions || []).join("\n")} onChange={handleTemplateListChange("productOptions")} multiline rows={4} />
+                        <TextField label="Benefits / Feature Points (one per line)" value={(templateConfig.benefits || []).join("\n")} onChange={handleTemplateListChange("benefits")} multiline rows={4} />
+                        <TextField label="Contact Phone" value={templateConfig.contactPhone || ""} onChange={handleTemplateConfigChange("contactPhone")} />
+                        <TextField label="Contact Email" value={templateConfig.contactEmail || ""} onChange={handleTemplateConfigChange("contactEmail")} />
+                        <TextField label="WhatsApp Number" value={templateConfig.whatsappNumber || ""} onChange={handleTemplateConfigChange("whatsappNumber")} />
+                        <TextField label="Privacy Policy URL" value={templateConfig.privacyUrl || ""} onChange={handleTemplateConfigChange("privacyUrl")} />
+                        <TextField label="Success Message" value={templateConfig.successMessage || ""} onChange={handleTemplateConfigChange("successMessage")} multiline rows={2} />
+                        <TextField label="Thank-you Redirect URL" value={templateConfig.redirectUrl || ""} onChange={handleTemplateConfigChange("redirectUrl")} />
+                        <TextField label="Campaign Offer Expiry Date" type="date" InputLabelProps={{ shrink: true }} value={templateConfig.offerExpiryDate || ""} onChange={handleTemplateConfigChange("offerExpiryDate")} />
+                        <TextField label="SEO Title" value={templateConfig.seoTitle || ""} onChange={handleTemplateConfigChange("seoTitle")} />
+                        <TextField label="SEO Description" value={templateConfig.seoDescription || ""} onChange={handleTemplateConfigChange("seoDescription")} multiline rows={2} />
+                    </div>
+                </Box>
+            )}
 
             {/* ==================== HERO SECTION ==================== */}
             <Box className="rounded-lg border bg-white p-8 shadow-lg">

@@ -53,6 +53,7 @@ exports.getAllLandingPageSetup = async (req, res) => {
       problems_list: parseJSON(setup.problems_list, []),
       customer_notice_list: parseJSON(setup.customer_notice_list, []),
       trust_points: parseJSON(setup.trust_points, []),
+      template_config: parseJSON(setup.template_config, {}),
     };
 
     res.status(200).json(transformed);
@@ -162,6 +163,14 @@ exports.updateLandingPageSetup = async (req, res) => {
     // Full update data including ALL editable fields
     const updateData = {
       org_id,
+      landing_page_name: req.body.landing_page_name || oldSetup?.landing_page_name || "Main Landing Page",
+      template_key: req.body.template_key || oldSetup?.template_key || "classic",
+      template_status: req.body.template_status || oldSetup?.template_status || "published",
+      template_config: parseJSON(req.body.template_config, oldSetup?.template_config || {}),
+      success_message: req.body.success_message || oldSetup?.success_message,
+      redirect_url: req.body.redirect_url || null,
+      seo_title: req.body.seo_title || null,
+      seo_description: req.body.seo_description || null,
 
       // Hero Section
       hero_headline: req.body.hero_headline,

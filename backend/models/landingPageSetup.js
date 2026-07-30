@@ -14,6 +14,42 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         unique: true,
       },
+      landing_page_name: {
+        type: DataTypes.STRING,
+        defaultValue: "Main Landing Page",
+      },
+      template_key: {
+        type: DataTypes.STRING,
+        defaultValue: "classic",
+      },
+      template_status: {
+        type: DataTypes.ENUM("draft", "published"),
+        defaultValue: "published",
+      },
+      template_config: {
+        type: DataTypes.JSON,
+        defaultValue: {},
+      },
+      success_message: {
+        type: DataTypes.STRING,
+        defaultValue: "Thank you. Our team will contact you shortly.",
+      },
+      redirect_url: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      seo_title: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      seo_description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      social_share_image: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
 
       // ==================== HERO SECTION (Editable) ====================
       hero_headline: {

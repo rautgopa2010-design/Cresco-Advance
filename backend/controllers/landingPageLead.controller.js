@@ -5,6 +5,25 @@ const CompanySetup = db.companySetup;
 const { sendErrorResponse } = require("../utility/sendErrorResponse");
 const { Op } = require("sequelize");
 
+const submissionWindows = new Map();
+
+const clean = (value) => String(value || "").trim();
+
+const getClientIp = (req) =>
+  clean(req.headers["x-forwarded-for"]).split(",")[0] || req.ip || "";
+
+const isRateLimited = (req) => {
+  const key = `${getClientIp(req)}:${clean(req.body.companySlug)}`;
+  const now = Date.now();
+  const recent = (submissionWindows.get(key) || []).filter(
+    (time) => now - time < 60 * 1000
+  );
+  if (recent.length >= 5) return true;
+  recent.push(now);
+  submissionWindows.set(key, recent);
+  return false;
+};
+
 function formatDateTime() {
   const now = new Date();
   const dd = String(now.getDate()).padStart(2, "0");
@@ -28,34 +47,90 @@ exports.createLandingLead = async (req, res) => {
     address,
     description,
     companySlug,
+    templateKey,
+    landingPageName,
+    interestedProduct,
+    utm = {},
   } = req.body;
 
   if (!companySlug)
     return sendErrorResponse(res, 400, "companySlug is required");
-  if (!name || !mobile || !email)
+  if (!name || !mobile)
     return sendErrorResponse(res, 400, "Required fields missing");
+
+  if (isRateLimited(req)) {
+    return sendErrorResponse(res, 429, "Too many submissions. Please try again shortly.");
+  }
 
   try {
     // Get org_id from companySlug
     const company = await CompanySetup.findOne({ where: { companySlug } });
     if (!company) return sendErrorResponse(res, 404, "Invalid company slug");
 
+    const role = await db.roles.findOne({
+      where: { org_id: company.org_id, role_name: "Super Admin" },
+    });
+    const owner = await db.users.findOne({
+      where: {
+        org_id: company.org_id,
+        ...(role?.id ? { role_id: role.id } : {}),
+        isDeleted: false,
+      },
+    });
+
+    const duplicateWhere = [{ mobile }];
+    if (email) duplicateWhere.push({ email });
+    const existingCustomer = await Customer.findOne({
+      where: {
+        org_id: company.org_id,
+        [Op.or]: duplicateWhere,
+      },
+    });
+
+    let enquiryId = existingCustomer?.id || null;
+    if (!existingCustomer && owner) {
+      const enquiry = await Customer.create({
+        org_id: company.org_id,
+        user_id: owner.id,
+        firstName: clean(name),
+        mobile: clean(mobile),
+        email: clean(email) || null,
+        companyName: clean(companyName) || null,
+        leadSource: clean(leadSource) || clean(landingPageName) || "Landing Page",
+        billingStreet: clean(address) || null,
+        assignedTo: [owner.id],
+        assignedRoleIds: role?.id ? [role.id] : [],
+      });
+      enquiryId = enquiry.id;
+    }
+
     await LandingPageLead.create({
       org_id: company.org_id,
       companySlug,
       date: formatDateTime(),
-      SENDER_NAME: name,
-      SENDER_COMPANY: companyName || null,
-      SENDER_MOBILE: mobile,
+      SENDER_NAME: clean(name),
+      SENDER_COMPANY: clean(companyName) || null,
+      SENDER_MOBILE: clean(mobile),
       SENDER_PHONE: phone || null,
-      SENDER_EMAIL: email,
+      SENDER_EMAIL: clean(email) || null,
       SENDER_ADDRESS: address || null,
-      LEAD_SOURCE: leadSource || null,
-      QUERY_MESSAGE: description || null,
+      LEAD_SOURCE: clean(leadSource) || clean(landingPageName) || null,
+      QUERY_MESSAGE: clean(description) || null,
+      landingPageName: clean(landingPageName) || null,
+      templateKey: clean(templateKey) || "classic",
+      interestedProduct: clean(interestedProduct) || null,
+      utmSource: clean(utm.utm_source || utm.source),
+      utmMedium: clean(utm.utm_medium || utm.medium),
+      utmCampaign: clean(utm.utm_campaign || utm.campaign),
+      utmTerm: clean(utm.utm_term || utm.term),
+      utmContent: clean(utm.utm_content || utm.content),
+      ipAddress: getClientIp(req),
+      userAgent: clean(req.headers["user-agent"]),
+      enquiryId,
     });
 
     // Send welcome email to the enquiry email address
-    try {
+    if (email) try {
       const { sendLandingPageWelcomeEmail } = require("../utility/leadEmails");
       await sendLandingPageWelcomeEmail({
         name,

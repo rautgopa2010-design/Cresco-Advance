@@ -7,6 +7,8 @@ import OurServices from "./OurServices";
 import Testimonials from "./Testimonials";
 import ContactUs from "./ContactUs";
 import EnquiryFloatingModal from "./EnquiryFloatingModal";
+import { usePublicCompany } from "@/context/PublicCompanyContext";
+import TemplateLandingPage from "./templates/TemplateLandingPage";
 
 // Floating Scroll to Top Button (unchanged)
 const ScrollToTopButton = () => {
@@ -51,6 +53,9 @@ const LandingHome = () => {
     const { section } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
+    const { companyData, landingPageSetup } = usePublicCompany();
+    const queryTemplate = new URLSearchParams(location.search).get("template");
+    const selectedTemplate = queryTemplate || landingPageSetup?.template_key || "classic";
     const sectionRefs = {
         home: useRef(null),
         "about-us": useRef(null),
@@ -100,6 +105,15 @@ const LandingHome = () => {
         const timer = setTimeout(scrollToSection, 100);
         return () => clearTimeout(timer);
     }, [section, location.state, location.pathname, navigate]); // Add location.state as dependency
+
+    if (selectedTemplate !== "classic") {
+        return (
+            <TemplateLandingPage
+                setup={landingPageSetup}
+                companyData={companyData}
+            />
+        );
+    }
 
     return (
         <div className="relative">
