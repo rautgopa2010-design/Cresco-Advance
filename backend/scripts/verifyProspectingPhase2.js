@@ -58,7 +58,7 @@ const putEntitlement = (api, status, limits = {}) =>
   });
   must(res.status < 300, `provider connection failed: ${res.status}`);
 
-  res = await putEntitlement(providerApi, "trial", { researchLimit: 2, verifiedProspectLimit: 10, providerCreditLimit: 10 });
+  res = await putEntitlement(providerApi, "trial", { researchLimit: 100, verifiedProspectLimit: 300, providerCreditLimit: 300 });
   must(res.status < 300, `trial entitlement failed: ${res.status}`);
 
   res = await orgApi.get("/prospecting/summary");
@@ -91,7 +91,17 @@ const putEntitlement = (api, status, limits = {}) =>
   });
   must(res.status === 403, "expired research should be blocked");
 
-  res = await putEntitlement(providerApi, "trial", { researchLimit: 0, verifiedProspectLimit: 0, providerCreditLimit: 0 });
+  res = await putEntitlement(providerApi, "trial", { researchLimit: 1, verifiedProspectLimit: 1, providerCreditLimit: 1 });
+  must(res.status < 300, "exhausted entitlement failed");
+
+  res = await orgApi.post("/prospecting/research", {
+    title: "Blocked exhausted research",
+    criteria: { industry: "CRM Services" },
+    providers: ["phase2-test-provider"],
+  });
+  must(res.status === 429, "exhausted research should be blocked");
+
+  res = await putEntitlement(providerApi, "trial", { researchLimit: 100, verifiedProspectLimit: 300, providerCreditLimit: 300 });
   must(res.status < 300, "reset entitlement failed");
 
   console.log("Phase 2 prospecting verification passed.");
