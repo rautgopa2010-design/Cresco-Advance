@@ -27,6 +27,30 @@ const parseJSON = (value, fallback) => {
   }
 };
 
+const HEX_COLOR_RE = /^#[0-9A-F]{6}$/i;
+const THEME_KEYS = [
+  "primaryColor",
+  "secondaryColor",
+  "accentColor",
+  "textColor",
+  "backgroundColor",
+];
+
+const sanitizeTemplateConfig = (config) => {
+  if (!config || typeof config !== "object") return {};
+
+  const sanitized = { ...config };
+  if (sanitized.theme && typeof sanitized.theme === "object") {
+    sanitized.theme = THEME_KEYS.reduce((theme, key) => {
+      const value = String(sanitized.theme[key] || "").trim();
+      if (HEX_COLOR_RE.test(value)) theme[key] = value.toUpperCase();
+      return theme;
+    }, {});
+  }
+
+  return sanitized;
+};
+
 // Get Landing Page Setup - PUBLIC
 exports.getAllLandingPageSetup = async (req, res) => {
   const org_id = req.query.org_id;
@@ -166,7 +190,7 @@ exports.updateLandingPageSetup = async (req, res) => {
       landing_page_name: req.body.landing_page_name || oldSetup?.landing_page_name || "Main Landing Page",
       template_key: req.body.template_key || oldSetup?.template_key || "classic",
       template_status: req.body.template_status || oldSetup?.template_status || "published",
-      template_config: parseJSON(req.body.template_config, oldSetup?.template_config || {}),
+      template_config: sanitizeTemplateConfig(parseJSON(req.body.template_config, oldSetup?.template_config || {})),
       success_message: req.body.success_message || oldSetup?.success_message,
       redirect_url: req.body.redirect_url || null,
       seo_title: req.body.seo_title || null,

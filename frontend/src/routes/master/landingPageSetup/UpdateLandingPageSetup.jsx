@@ -22,7 +22,35 @@ import { Box, TextField, Button, CircularProgress, Snackbar, Alert, IconButton, 
 import { MdOutlineSettingsAccessibility } from "react-icons/md";
 import { CirclePlus, CircleMinus, Trash2 } from "lucide-react";
 import { IMAGE_BASE_URL } from "../../../utils/api";
-import { DEFAULT_TEMPLATE_CONFIG, LANDING_TEMPLATES } from "../../landing/templates/landingTemplateRegistry";
+import { COLOUR_PRESETS, DEFAULT_TEMPLATE_CONFIG, LANDING_TEMPLATES, getTemplateTheme } from "../../landing/templates/landingTemplateRegistry";
+
+const HEX_PATTERN = /^#[0-9A-F]{6}$/i;
+const THEME_FIELDS = [
+    { key: "primaryColor", label: "Primary", required: true },
+    { key: "secondaryColor", label: "Secondary", required: false },
+    { key: "accentColor", label: "Accent / CTA", required: false },
+    { key: "textColor", label: "Text", required: false },
+    { key: "backgroundColor", label: "Background", required: false },
+];
+
+const isValidHex = (value) => HEX_PATTERN.test(String(value || "").trim());
+const safeThemeValue = (theme, key, fallback) => (isValidHex(theme?.[key]) ? theme[key].trim().toUpperCase() : fallback[key]);
+
+const buildTheme = (templateKey, savedTheme = {}) => {
+    const fallback = getTemplateTheme(templateKey);
+    return THEME_FIELDS.reduce((theme, field) => {
+        theme[field.key] = safeThemeValue(savedTheme, field.key, fallback);
+        return theme;
+    }, {});
+};
+
+const hexToRgba = (hex, alpha) => {
+    const value = String(hex || "#2563EB").replace("#", "");
+    const r = parseInt(value.substring(0, 2), 16);
+    const g = parseInt(value.substring(2, 4), 16);
+    const b = parseInt(value.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
 
 const UpdateLandingPageSetup = () => {
     const dispatch = useDispatch();
@@ -160,14 +188,17 @@ const UpdateLandingPageSetup = () => {
         if (landingPageSetup.hero_image) {
             setHeroPreview(`${IMAGE_BASE_URL}${landingPageSetup.hero_image}`);
         }
-        setSelectedTemplate(landingPageSetup.template_key || "classic");
+        const activeTemplateKey = landingPageSetup.template_key || "classic";
+        const savedTemplateConfig = landingPageSetup.template_config || {};
+        setSelectedTemplate(activeTemplateKey);
         setTemplateStatus(landingPageSetup.template_status || "published");
         setTemplateConfig({
             ...DEFAULT_TEMPLATE_CONFIG,
-            ...(landingPageSetup.template_config || {}),
+            ...savedTemplateConfig,
+            theme: buildTheme(activeTemplateKey, savedTemplateConfig.theme),
             formFields: {
                 ...DEFAULT_TEMPLATE_CONFIG.formFields,
-                ...(landingPageSetup.template_config?.formFields || {}),
+                ...(savedTemplateConfig.formFields || {}),
             },
         });
     }, [landingPageSetup]);
@@ -198,6 +229,32 @@ const UpdateLandingPageSetup = () => {
                 .split("\n")
                 .map((item) => item.trim())
                 .filter(Boolean),
+        }));
+    };
+
+    const handleSelectTemplate = (templateKey) => {
+        setSelectedTemplate(templateKey);
+        setTemplateConfig((prev) => ({
+            ...prev,
+            theme: buildTheme(templateKey, getTemplateTheme(templateKey)),
+        }));
+    };
+
+    const handleThemeValueChange = (field, value) => {
+        const normalizedValue = field === "primaryColor" && !value ? getTemplateTheme(selectedTemplate).primaryColor : value;
+        setTemplateConfig((prev) => ({
+            ...prev,
+            theme: {
+                ...buildTheme(selectedTemplate, prev.theme),
+                [field]: String(normalizedValue || "").trim().toUpperCase(),
+            },
+        }));
+    };
+
+    const handleRestoreTemplateTheme = () => {
+        setTemplateConfig((prev) => ({
+            ...prev,
+            theme: buildTheme(selectedTemplate, getTemplateTheme(selectedTemplate)),
         }));
     };
 
@@ -314,15 +371,19 @@ const UpdateLandingPageSetup = () => {
         }
 
         const formData = new FormData();
+        const configToSave = {
+            ...templateConfig,
+            theme: buildTheme(selectedTemplate, templateConfig.theme),
+        };
 
-        formData.append("landing_page_name", templateConfig.landingPageName || "Main Landing Page");
+        formData.append("landing_page_name", configToSave.landingPageName || "Main Landing Page");
         formData.append("template_key", selectedTemplate);
         formData.append("template_status", templateStatus);
-        formData.append("success_message", templateConfig.successMessage || "");
-        formData.append("redirect_url", templateConfig.redirectUrl || "");
-        formData.append("seo_title", templateConfig.seoTitle || "");
-        formData.append("seo_description", templateConfig.seoDescription || "");
-        formData.append("template_config", JSON.stringify(templateConfig));
+        formData.append("success_message", configToSave.successMessage || "");
+        formData.append("redirect_url", configToSave.redirectUrl || "");
+        formData.append("seo_title", configToSave.seoTitle || "");
+        formData.append("seo_description", configToSave.seoDescription || "");
+        formData.append("template_config", JSON.stringify(configToSave));
 
         // Simple text/number fields
         const textFields = [
@@ -491,7 +552,7 @@ const UpdateLandingPageSetup = () => {
                                     <Button
                                         variant={isSelected ? "contained" : "outlined"}
                                         size="small"
-                                        onClick={() => setSelectedTemplate(template.key)}
+                                        onClick={() => handleSelectTemplate(template.key)}
                                     >
                                         Select Template
                                     </Button>
@@ -508,6 +569,101 @@ const UpdateLandingPageSetup = () => {
                     <p className="mt-2 text-sm font-medium text-slate-500">
                         These settings control the five new compact templates. Classic still uses the detailed sections below.
                     </p>
+                    <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+                            <div>
+                                <Typography className="!text-base !font-black !text-slate-950">Brand Colours</Typography>
+                                <p className="mt-1 text-sm font-medium text-slate-500">
+                                    Choose colours for this template. Primary is required; empty or invalid values fall back to the template default.
+                                </p>
+                            </div>
+                            <Button variant="outlined" size="small" onClick={handleRestoreTemplateTheme}>
+                                Restore template default
+                            </Button>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                            {COLOUR_PRESETS.map((preset) => (
+                                <button
+                                    key={preset.value}
+                                    type="button"
+                                    onClick={() => handleThemeValueChange("primaryColor", preset.value)}
+                                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                                >
+                                    <span className="h-4 w-4 rounded-full border border-slate-200" style={{ backgroundColor: preset.value }} />
+                                    {preset.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_360px]">
+                            <div className="grid gap-4 md:grid-cols-2">
+                                {THEME_FIELDS.map((field) => {
+                                    const theme = buildTheme(selectedTemplate, templateConfig.theme);
+                                    const value = templateConfig.theme?.[field.key] || theme[field.key];
+                                    const hasValue = !!String(value || "").trim();
+                                    const valid = field.required ? isValidHex(value) : !hasValue || isValidHex(value);
+                                    return (
+                                        <div key={field.key} className="rounded-xl border border-slate-200 bg-white p-4">
+                                            <div className="mb-3 flex items-center justify-between gap-3">
+                                                <span className="text-sm font-black text-slate-800">
+                                                    {field.label}
+                                                    {field.required ? " *" : ""}
+                                                </span>
+                                                <input
+                                                    type="color"
+                                                    value={isValidHex(value) ? value : theme[field.key]}
+                                                    onChange={(event) => handleThemeValueChange(field.key, event.target.value)}
+                                                    className="h-9 w-12 cursor-pointer rounded border border-slate-200 bg-white p-1"
+                                                />
+                                            </div>
+                                            <TextField
+                                                size="small"
+                                                fullWidth
+                                                value={value}
+                                                error={!valid}
+                                                helperText={valid ? (field.required ? "Required HEX colour" : "Optional HEX colour") : "Use format #RRGGBB"}
+                                                onChange={(event) => handleThemeValueChange(field.key, event.target.value)}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                {(() => {
+                                    const theme = buildTheme(selectedTemplate, templateConfig.theme);
+                                    return (
+                                        <div className="overflow-hidden rounded-xl border" style={{ borderColor: hexToRgba(theme.primaryColor, 0.18), backgroundColor: theme.backgroundColor }}>
+                                            <div className="p-5" style={{ background: `linear-gradient(135deg, ${theme.primaryColor}, ${theme.secondaryColor})` }}>
+                                                <div className="h-3 w-24 rounded-full bg-white/80" />
+                                                <div className="mt-5 h-5 w-48 rounded-full bg-white/90" />
+                                                <div className="mt-3 h-3 w-60 max-w-full rounded-full bg-white/50" />
+                                            </div>
+                                            <div className="p-5">
+                                                <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: theme.primaryColor }}>
+                                                    Live preview
+                                                </p>
+                                                <h3 className="mt-2 text-xl font-black" style={{ color: theme.textColor }}>
+                                                    {templateConfig.headline || "Landing page headline"}
+                                                </h3>
+                                                <p className="mt-2 text-sm font-medium leading-6" style={{ color: hexToRgba(theme.textColor, 0.68) }}>
+                                                    Form buttons, badges, borders and highlights will use these colours.
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    className="mt-4 rounded-lg px-4 py-2 text-sm font-black text-white"
+                                                    style={{ background: `linear-gradient(135deg, ${theme.primaryColor}, ${theme.accentColor})` }}
+                                                >
+                                                    {templateConfig.ctaText || "Submit Enquiry"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>
                     <div className="mt-5 grid gap-5 md:grid-cols-2">
                         <TextField label="Landing Page Name" value={templateConfig.landingPageName || ""} onChange={handleTemplateConfigChange("landingPageName")} />
                         <TextField label="Submit Button Text" value={templateConfig.ctaText || ""} onChange={handleTemplateConfigChange("ctaText")} />
