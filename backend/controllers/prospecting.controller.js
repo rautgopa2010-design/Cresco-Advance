@@ -14,15 +14,16 @@ const buildTestProspects = ({ org_id, user_id, requestId, criteria = {}, provide
   const industry = clean(criteria.industry) || "CRM Services";
   const region = clean(criteria.region) || "India";
   const provider = providers[0] || "phase2-test-provider";
+  const requestSuffix = String(requestId || Date.now()).replace(/\D/g, "").slice(-8);
   return [1, 2, 3].map((index) => ({
     org_id,
     requestId,
-    companyName: `TEST DATA - ${industry} Prospect ${index}`,
+    companyName: `TEST DATA - ${industry} Prospect ${requestSuffix}-${index}`,
     contactName: `TEST DATA - Decision Maker ${index}`,
     designation: index === 1 ? "Founder" : index === 2 ? "Sales Head" : "Operations Head",
-    email: `test.prospect${index}@example.invalid`,
-    mobile: `90000000${index}${index}`,
-    website: `https://test-prospect-${index}.example.invalid`,
+    email: `test.prospect.${requestSuffix}.${index}@example.invalid`,
+    mobile: `90${requestSuffix.padStart(8, "0").slice(-8)}${index}`.slice(0, 10),
+    website: `https://test-prospect-${requestSuffix}-${index}.example.invalid`,
     industry,
     sourceProvider: provider,
     status: "review",
