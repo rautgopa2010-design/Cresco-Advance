@@ -82,6 +82,16 @@ db.bankDetails = require("./BankDetails")(sequelize, Sequelize);
 db.t_and_c_and_dec = require("./TAndCAndDec")(sequelize, Sequelize);
 db.fieldVisit = require("./FieldVisit")(sequelize, Sequelize);
 db.referral = require("./Referral")(sequelize, Sequelize);
+db.prospectingPlan = require("./ProspectingPlan")(sequelize, Sequelize);
+db.prospectingEntitlement = require("./ProspectingEntitlement")(sequelize, Sequelize);
+db.prospectingOrgSetting = require("./ProspectingOrgSetting")(sequelize, Sequelize);
+db.prospectingProviderConnection = require("./ProspectingProviderConnection")(sequelize, Sequelize);
+db.prospectingResearchRequest = require("./ProspectingResearchRequest")(sequelize, Sequelize);
+db.prospectingProspect = require("./ProspectingProspect")(sequelize, Sequelize);
+db.prospectingEvidence = require("./ProspectingEvidence")(sequelize, Sequelize);
+db.prospectingApprovalHistory = require("./ProspectingApprovalHistory")(sequelize, Sequelize);
+db.prospectingUsageLedger = require("./ProspectingUsageLedger")(sequelize, Sequelize);
+db.prospectingAuditLog = require("./ProspectingAuditLog")(sequelize, Sequelize);
 
 // Setup association
 Object.keys(db).forEach((modelName) => {

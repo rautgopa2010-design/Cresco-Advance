@@ -26,6 +26,7 @@ export const packageModuleGroups = [
             { id: "crm-sales-automation", name: "Sales Automation" },
             { id: "crm-engagement-hub", name: "Engagement Hub" },
             { id: "crm-ai-sales-assistant", name: "AI Sales Assistant" },
+            { id: "crm-ai-prospecting", name: "AI Prospecting" },
             { id: "crm-field-visits", name: "Field Visits" },
         ],
     },

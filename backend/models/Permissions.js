@@ -18,7 +18,20 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       permission_type: {
-        type: DataTypes.ENUM("view", "create", "edit", "delete", "print"),
+        type: DataTypes.ENUM(
+          "view",
+          "create",
+          "edit",
+          "delete",
+          "print",
+          "research",
+          "review",
+          "approve",
+          "reject",
+          "create_enquiry",
+          "configure",
+          "view_audit"
+        ),
         allowNull: false,
       },
       permission_code: {

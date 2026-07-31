@@ -1,4 +1,4 @@
-import { Building2, CreditCard, Dot, HandCoins, Home, MapPinned, Settings, CircleDot, UserRound, User } from "lucide-react";
+import { Bot, Building2, CreditCard, Dot, HandCoins, Home, MapPinned, Settings, CircleDot, UserRound, User } from "lucide-react";
 import { MdOutlineLeaderboard, MdOutlineSettingsAccessibility, MdPages } from "react-icons/md";
 import { RiUserFollowLine } from "react-icons/ri";
 import { SiWikiquote } from "react-icons/si";
@@ -74,6 +74,7 @@ export const providerAdminNavbarLinks = [
                             { label: "Packages", path: "/provider/settings/master/package", icon: Dot },
                             { label: "Payment", path: "/provider/settings/master/payment", icon: Dot },
                             { label: "Refer & Earn", path: "/provider/settings/master/referrals", icon: HandCoins },
+                            { label: "AI Prospecting", path: "/provider/settings/master/ai-prospecting", icon: Bot },
                         ],
                     },
                     { label: "Bank Setup", icon: AiFillBank, path: "/settings/bank-setup" },
@@ -195,6 +196,7 @@ export const adminNavbarLinks = [
     { links: [{ label: "Reports", icon: TbReportAnalytics, path: "/reports" }] },
     { links: [{ label: "Analytics", moduleName: "Reports", icon: TbReportAnalytics, path: "/analytics" }] },
     { links: [{ label: "Incentive", icon: GiTargetShot, path: "/incentive" }] },
+    { links: [{ label: "AI Prospecting", moduleName: "AI Prospecting", icon: Bot, path: "/ai-prospecting" }] },
     {
         links: [
             {
