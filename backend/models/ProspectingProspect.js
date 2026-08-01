@@ -21,18 +21,7 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: "review",
       },
       verificationStatus: {
-        type: DataTypes.ENUM(
-          "Verified",
-          "Partially Verified",
-          "Unverified",
-          "Duplicate",
-          "Existing Customer",
-          "Insufficient Evidence",
-          "Disqualified",
-          "verified",
-          "unverified",
-          "failed"
-        ),
+        type: DataTypes.STRING,
         allowNull: false,
         defaultValue: "Unverified",
       },
