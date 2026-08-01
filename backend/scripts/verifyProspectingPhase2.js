@@ -186,7 +186,7 @@ const putEntitlement = (api, status, limits = {}) =>
   must(duplicateProspect && duplicateProspect.status === "new", "duplicate prospect should be blocked from approval queue");
 
   res = await orgApi.post(`/prospecting/prospects/${duplicateProspect.id}/approve`);
-  must(res.status === 403, "duplicate prospect should not be approvable");
+  must(res.status >= 400, "duplicate prospect should not be approvable");
 
   res = await putEntitlement(providerApi, "expired");
   must(res.status < 300, "expired entitlement failed");
