@@ -15,11 +15,105 @@ const {
   fingerprintCredentialPayload,
 } = require("../utility/prospectingCredentials");
 const { createProvider } = require("../utility/prospectingProviders/providerRegistry");
-const { existingEngagementScore } = require("../utility/prospectingVerificationScoring");
+const { existingEngagementScore, verifyAndScoreProspect } = require("../utility/prospectingVerificationScoring");
 
 const clean = (value) => String(value || "").trim();
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const reviewableVerificationStatuses = ["Verified", "Partially Verified"];
+const mandatoryApprovalFields = [
+  ["companyName", "Company name"],
+  ["contactName", "Contact name"],
+  ["mobile", "Mobile"],
+  ["email", "Email"],
+  ["industry", "Industry"],
+];
+
+const splitName = (name) => {
+  const parts = clean(name || "AI Prospect").split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || "AI",
+    lastName: parts.slice(1).join(" ") || "Prospect",
+  };
+};
+
+const missingMandatoryFields = (prospect) =>
+  mandatoryApprovalFields
+    .filter(([field]) => !clean(prospect?.[field]))
+    .map(([, label]) => label);
+
+const appendActivity = (prospect, entry) => [
+  ...(Array.isArray(prospect.activityHistory) ? prospect.activityHistory : []),
+  { ...entry, at: new Date().toISOString() },
+];
+
+const buildAiDrafts = (prospect, enquiry) => ({
+  email: {
+    aiGenerated: true,
+    subject: `Following up with ${prospect.companyName}`,
+    body: `Hi ${prospect.contactName || "there"}, we noticed your interest signals around ${prospect.crmRecommendation || "CRM"}. Sharing this as a draft for the sales team to personalize before sending.`,
+  },
+  whatsapp: {
+    aiGenerated: true,
+    message: `Hi ${prospect.contactName || "there"}, this is a draft follow-up about ${prospect.crmRecommendation || "CRM"} support for ${prospect.companyName}.`,
+  },
+  call: {
+    aiGenerated: true,
+    script: `Confirm requirement, current process, timeline, decision makers and next follow-up for enquiry #${enquiry.id}.`,
+  },
+  followup: {
+    aiGenerated: true,
+    title: `Follow up on AI Prospecting enquiry #${enquiry.id}`,
+    dueInDays: 2,
+  },
+});
+
+const enquiryPayloadFromProspect = ({ prospect, user }) => {
+  const { firstName, lastName } = splitName(prospect.contactName);
+  const requirement = [
+    prospect.suggestedNextAction,
+    prospect.evidenceSummary,
+    `Classification: ${prospect.classification}`,
+    `Score: ${prospect.score}`,
+    `Provider: ${prospect.sourceProvider}`,
+    `Research ID: ${prospect.requestId || "-"}`,
+  ].filter(Boolean).join("\n");
+
+  return {
+    org_id: user.org_id,
+    user_id: user.id,
+    salutation: "Mr./Ms.",
+    firstName,
+    middleName: null,
+    lastName,
+    mobile: clean(prospect.mobile),
+    email: clean(prospect.email),
+    customerCategory: prospect.classification,
+    industry: prospect.industry,
+    designation: prospect.designation,
+    leadSource: "AI Prospecting",
+    companyName: prospect.companyName,
+    billingStreet: "AI Prospecting",
+    billingCity: "Not Provided",
+    billingState: "Not Provided",
+    billingPincode: "000000",
+    billingCountry: "Not Provided",
+    shippingStreet: "AI Prospecting",
+    shippingCity: "Not Provided",
+    shippingState: "Not Provided",
+    shippingPincode: "000000",
+    shippingCountry: "Not Provided",
+    assignedTo: [user.id],
+    assignedRoleIds: [user.role_id],
+    prospectingRequirement: requirement,
+  };
+};
+
+const validateProspectForApproval = (prospect) => {
+  if (!reviewableVerificationStatuses.includes(prospect.verificationStatus)) {
+    return ["Only verified or partially verified prospects can be approved."];
+  }
+  return missingMandatoryFields(prospect);
+};
 
 exports.getSummary = async (req, res) => {
   try {
@@ -314,10 +408,47 @@ exports.getProspects = async (req, res) => {
 
     const prospects = await db.prospectingProspect.findAll({
       where,
-      include: [{ model: db.customer, as: "createdEnquiry", attributes: ["id", "companyName", "mobile", "email"] }],
+      include: [
+        { model: db.customer, as: "createdEnquiry", attributes: ["id", "companyName", "mobile", "email"] },
+        { model: db.prospectingResearchRequest, as: "request", attributes: ["id", "title", "costEstimate", "providerCreditsUsed", "verifiedProspectCount", "completedAt"] },
+      ],
       order: [["createdAt", "DESC"]],
     });
-    res.json({ prospects });
+    const prospectIds = prospects.map((item) => item.id);
+    const [evidenceRows, historyRows] = await Promise.all([
+      db.prospectingEvidence.findAll({
+        where: { org_id: req.user.org_id, prospectId: { [Op.in]: prospectIds.length ? prospectIds : [0] } },
+        order: [["createdAt", "DESC"]],
+      }),
+      db.prospectingApprovalHistory.findAll({
+        where: { org_id: req.user.org_id, prospectId: { [Op.in]: prospectIds.length ? prospectIds : [0] } },
+        order: [["createdAt", "DESC"]],
+      }),
+    ]);
+    const evidenceByProspect = evidenceRows.reduce((acc, item) => {
+      acc[item.prospectId] = acc[item.prospectId] || [];
+      acc[item.prospectId].push(item);
+      return acc;
+    }, {});
+    const historyByProspect = historyRows.reduce((acc, item) => {
+      acc[item.prospectId] = acc[item.prospectId] || [];
+      acc[item.prospectId].push(item);
+      return acc;
+    }, {});
+    res.json({
+      prospects: prospects.map((prospect) => {
+        const json = prospect.toJSON();
+        return {
+          ...json,
+          evidence: evidenceByProspect[prospect.id] || [],
+          approvalHistory: historyByProspect[prospect.id] || [],
+          missingMandatoryFields: missingMandatoryFields(prospect),
+          enquiryLink: prospect.enquiryId ? `/customer/edit/${prospect.enquiryId}` : null,
+          estimatedCreditUsage: prospect.request?.costEstimate?.maximumEstimatedCharge || prospect.request?.costEstimate?.estimatedProviderCredits || 0,
+          actualCreditUsage: prospect.request?.providerCreditsUsed || 0,
+        };
+      }),
+    });
   } catch (error) {
     console.error("Get prospecting prospects error:", error);
     return sendErrorResponse(res, 500, "Failed to load AI Prospecting results.");
@@ -348,20 +479,25 @@ exports.approveProspect = async (req, res) => {
       where: { id: req.params.id, org_id: req.user.org_id },
     });
     if (!prospect) return sendErrorResponse(res, 404, "Prospect not found.");
-    if (!reviewableVerificationStatuses.includes(prospect.verificationStatus)) {
-      return sendErrorResponse(res, 403, "Only verified or partially verified prospects can be approved.");
-    }
+    const missing = validateProspectForApproval(prospect);
+    if (missing.length) return sendErrorResponse(res, 400, `Missing mandatory fields before approval: ${missing.join(", ")}`);
     if (prospect.status !== "review") {
       return sendErrorResponse(res, 409, "Only prospects in the approval queue can be approved.");
     }
 
-    await prospect.update({ status: "approved", approvedBy: req.user.id, approvedAt: new Date() });
+    await prospect.update({
+      status: "approved",
+      approvedBy: req.user.id,
+      approvedAt: new Date(),
+      activityHistory: appendActivity(prospect, { action: "approved", user_id: req.user.id }),
+    });
     await db.prospectingApprovalHistory.create({
       org_id: req.user.org_id,
       prospectId: prospect.id,
       user_id: req.user.id,
       action: "approved",
       notes: clean(req.body.notes) || null,
+      metadata: { missingMandatoryFields: missing, bulk: false },
     });
     await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.approved", entityType: "prospecting_prospect", entityId: prospect.id });
 
@@ -374,18 +510,25 @@ exports.approveProspect = async (req, res) => {
 
 exports.rejectProspect = async (req, res) => {
   try {
+    const rejectionReason = clean(req.body.rejectionReason || req.body.reason);
+    if (!rejectionReason) return sendErrorResponse(res, 400, "Rejection reason is required.");
     const prospect = await db.prospectingProspect.findOne({
       where: { id: req.params.id, org_id: req.user.org_id },
     });
     if (!prospect) return sendErrorResponse(res, 404, "Prospect not found.");
 
-    await prospect.update({ status: "rejected" });
+    await prospect.update({
+      status: "rejected",
+      activityHistory: appendActivity(prospect, { action: "rejected", user_id: req.user.id, rejectionReason }),
+    });
     await db.prospectingApprovalHistory.create({
       org_id: req.user.org_id,
       prospectId: prospect.id,
       user_id: req.user.id,
       action: "rejected",
+      rejectionReason,
       notes: clean(req.body.notes) || null,
+      metadata: { bulk: false },
     });
     await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.rejected", entityType: "prospecting_prospect", entityId: prospect.id });
 
@@ -398,66 +541,246 @@ exports.rejectProspect = async (req, res) => {
 
 exports.createEnquiryFromProspect = async (req, res) => {
   try {
-    const prospect = await db.prospectingProspect.findOne({
-      where: {
-        id: req.params.id,
+    const idempotencyKey = clean(req.body.idempotencyKey || req.headers["idempotency-key"]) || `prospecting-enquiry:${req.user.org_id}:${req.params.id}`;
+    const result = await db.sequelize.transaction(async (transaction) => {
+      const prospect = await db.prospectingProspect.findOne({
+        where: {
+          id: req.params.id,
+          org_id: req.user.org_id,
+          status: { [Op.in]: ["approved", "enquiry_created"] },
+        },
+        lock: true,
+        transaction,
+      });
+      if (!prospect) {
+        const error = new Error("Approved prospect not found.");
+        error.statusCode = 404;
+        throw error;
+      }
+      if (prospect.enquiryId) {
+        const existing = await db.customer.findOne({ where: { id: prospect.enquiryId, org_id: req.user.org_id }, transaction });
+        return { enquiry: existing, prospect, reused: true };
+      }
+      if (!reviewableVerificationStatuses.includes(prospect.verificationStatus)) {
+        const error = new Error("Only verified or partially verified approved prospects can become enquiries.");
+        error.statusCode = 403;
+        throw error;
+      }
+
+      const missing = missingMandatoryFields(prospect);
+      if (missing.length) {
+        const error = new Error(`Missing mandatory fields before enquiry creation: ${missing.join(", ")}`);
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const duplicate = await db.customer.findOne({
+        where: {
+          org_id: req.user.org_id,
+          [Op.or]: [
+            prospect.email ? { email: prospect.email } : null,
+            prospect.mobile ? { mobile: prospect.mobile } : null,
+          ].filter(Boolean),
+        },
+        transaction,
+      });
+      if (duplicate) {
+        await prospect.update({
+          status: "enquiry_created",
+          enquiryId: duplicate.id,
+          enquiryIdempotencyKey: idempotencyKey,
+          activityHistory: appendActivity(prospect, { action: "linked_existing_enquiry", user_id: req.user.id, enquiryId: duplicate.id }),
+        }, { transaction });
+        return { enquiry: duplicate, prospect, reused: true };
+      }
+
+      const payload = enquiryPayloadFromProspect({ prospect, user: req.user });
+      const enquiry = await db.customer.create(payload, { transaction });
+      const aiGeneratedDrafts = buildAiDrafts(prospect, enquiry);
+      await prospect.update({
+        status: "enquiry_created",
+        enquiryId: enquiry.id,
+        enquiryIdempotencyKey: idempotencyKey,
+        aiGeneratedDrafts,
+        activityHistory: appendActivity(prospect, { action: "created_enquiry", user_id: req.user.id, enquiryId: enquiry.id }),
+      }, { transaction });
+      await db.prospectingApprovalHistory.create({
         org_id: req.user.org_id,
-        status: "approved",
-      },
-    });
-    if (!prospect) return sendErrorResponse(res, 404, "Approved prospect not found.");
-    if (!reviewableVerificationStatuses.includes(prospect.verificationStatus)) {
-      return sendErrorResponse(res, 403, "Only verified or partially verified approved prospects can become enquiries.");
-    }
-    if (prospect.enquiryId) return sendErrorResponse(res, 409, "Enquiry already created for this prospect.");
-
-    const duplicate = await db.customer.findOne({
-      where: {
-        org_id: req.user.org_id,
-        [Op.or]: [
-          prospect.email ? { email: prospect.email } : null,
-          prospect.mobile ? { mobile: prospect.mobile } : null,
-        ].filter(Boolean),
-      },
-    });
-    if (duplicate) return sendErrorResponse(res, 409, "A matching enquiry already exists.");
-
-    const [firstName, ...lastNameParts] = clean(prospect.contactName || "AI Prospect").split(" ");
-    const enquiry = await db.customer.create({
-      org_id: req.user.org_id,
-      user_id: req.user.id,
-      firstName: firstName || "AI",
-      middleName: null,
-      lastName: lastNameParts.join(" ") || "Prospect",
-      mobile: prospect.mobile || "0000000000",
-      email: prospect.email,
-      companyName: prospect.companyName,
-      industry: prospect.industry,
-      designation: prospect.designation,
-      leadSource: "AI Prospecting",
-      assignedTo: [req.user.id],
-      assignedRoleIds: [req.user.role_id],
+        prospectId: prospect.id,
+        user_id: req.user.id,
+        action: "created_enquiry",
+        notes: clean(req.body.notes) || null,
+        metadata: { idempotencyKey, enquiryId: enquiry.id, mappedFields: Object.keys(payload), aiDraftsCreated: true },
+      }, { transaction });
+      return { enquiry, prospect, reused: false, aiGeneratedDrafts };
     });
 
-    await prospect.update({ status: "enquiry_created", enquiryId: enquiry.id });
+    await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.enquiry_created", entityType: "customer", entityId: result.enquiry?.id });
+
+    res.status(201).json({
+      message: result.reused ? "Existing enquiry linked from prospect." : "Enquiry created from prospect.",
+      enquiry: result.enquiry,
+      prospect: await db.prospectingProspect.findByPk(req.params.id),
+      enquiryLink: result.enquiry?.id ? `/customer/edit/${result.enquiry.id}` : null,
+      aiGeneratedDrafts: result.aiGeneratedDrafts || result.prospect?.aiGeneratedDrafts,
+      existingEngagementScore: existingEngagementScore({ enquiry: result.enquiry }),
+    });
+  } catch (error) {
+    if (error.statusCode) return sendErrorResponse(res, error.statusCode, error.message);
+    console.error("Create enquiry from prospect error:", error);
+    return sendErrorResponse(res, 500, "Failed to create enquiry from prospect.");
+  }
+};
+
+exports.updateProspectForReview = async (req, res) => {
+  try {
+    const editable = [
+      "companyName",
+      "contactName",
+      "designation",
+      "email",
+      "mobile",
+      "website",
+      "industry",
+      "classification",
+      "crmRecommendation",
+      "suggestedNextAction",
+      "evidenceSummary",
+    ];
+    const updates = {};
+    editable.forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) updates[field] = req.body[field];
+    });
+    const prospect = await db.prospectingProspect.findOne({ where: { id: req.params.id, org_id: req.user.org_id } });
+    if (!prospect) return sendErrorResponse(res, 404, "Prospect not found.");
+    if (["enquiry_created"].includes(prospect.status)) return sendErrorResponse(res, 409, "Prospect with created enquiry cannot be edited.");
+
+    await prospect.update({
+      ...updates,
+      activityHistory: appendActivity(prospect, { action: "edited", user_id: req.user.id, fields: Object.keys(updates) }),
+    });
     await db.prospectingApprovalHistory.create({
       org_id: req.user.org_id,
       prospectId: prospect.id,
       user_id: req.user.id,
-      action: "created_enquiry",
+      action: "edited",
       notes: clean(req.body.notes) || null,
+      metadata: { fields: Object.keys(updates), missingMandatoryFields: missingMandatoryFields(prospect) },
     });
-    await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.enquiry_created", entityType: "customer", entityId: enquiry.id });
+    await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.edited", entityType: "prospecting_prospect", entityId: prospect.id });
+    res.json({ message: "Prospect updated.", prospect: await db.prospectingProspect.findByPk(prospect.id) });
+  } catch (error) {
+    console.error("Update prospect error:", error);
+    return sendErrorResponse(res, 500, "Failed to update prospect.");
+  }
+};
 
-    res.status(201).json({
-      message: "Enquiry created from prospect.",
-      enquiry,
+exports.requestReverification = async (req, res) => {
+  try {
+    const prospect = await db.prospectingProspect.findOne({
+      where: { id: req.params.id, org_id: req.user.org_id },
+      include: [{ model: db.prospectingResearchRequest, as: "request" }],
+    });
+    if (!prospect) return sendErrorResponse(res, 404, "Prospect not found.");
+    if (prospect.status === "enquiry_created") return sendErrorResponse(res, 409, "Created enquiries cannot be re-verified.");
+    const scoring = await verifyAndScoreProspect({
       prospect,
-      existingEngagementScore: existingEngagementScore({ enquiry }),
+      org_id: req.user.org_id,
+      criteria: prospect.request?.normalizedCriteria || {},
+    });
+    await prospect.update({
+      ...scoring,
+      activityHistory: appendActivity(prospect, { action: "reverification_requested", user_id: req.user.id }),
+    });
+    await db.prospectingApprovalHistory.create({
+      org_id: req.user.org_id,
+      prospectId: prospect.id,
+      user_id: req.user.id,
+      action: "reverification_requested",
+      notes: clean(req.body.notes) || null,
+      metadata: { verificationStatus: scoring.verificationStatus, score: scoring.score },
+    });
+    await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.reverification_requested", entityType: "prospecting_prospect", entityId: prospect.id });
+    res.json({ message: "Prospect re-verification completed.", prospect: await db.prospectingProspect.findByPk(prospect.id) });
+  } catch (error) {
+    console.error("Reverify prospect error:", error);
+    return sendErrorResponse(res, 500, "Failed to request re-verification.");
+  }
+};
+
+exports.bulkApproveProspects = async (req, res) => {
+  try {
+    const ids = asArray(req.body.prospectIds).map(Number).filter(Boolean);
+    if (!ids.length) return sendErrorResponse(res, 400, "Select at least one prospect.");
+    const prospects = await db.prospectingProspect.findAll({
+      where: { id: { [Op.in]: ids }, org_id: req.user.org_id },
+    });
+    const approved = [];
+    const skipped = [];
+    for (const prospect of prospects) {
+      const missing = validateProspectForApproval(prospect);
+      if (prospect.status !== "review" || missing.length) {
+        skipped.push({ id: prospect.id, companyName: prospect.companyName, reason: prospect.status !== "review" ? "Not in approval queue" : `Missing: ${missing.join(", ")}` });
+        continue;
+      }
+      await prospect.update({
+        status: "approved",
+        approvedBy: req.user.id,
+        approvedAt: new Date(),
+        activityHistory: appendActivity(prospect, { action: "bulk_approved", user_id: req.user.id }),
+      });
+      await db.prospectingApprovalHistory.create({
+        org_id: req.user.org_id,
+        prospectId: prospect.id,
+        user_id: req.user.id,
+        action: "bulk_approved",
+        notes: clean(req.body.notes) || null,
+        metadata: { bulk: true },
+      });
+      approved.push(prospect.id);
+    }
+    await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.bulk_approved", entityType: "prospecting_prospect", entityId: approved.join(",") });
+    res.json({
+      message: `${approved.length} prospect(s) approved. Exact enquiry count after approval: ${approved.length}.`,
+      approved,
+      skipped,
+      exactEnquiryCount: approved.length,
     });
   } catch (error) {
-    console.error("Create enquiry from prospect error:", error);
-    return sendErrorResponse(res, 500, "Failed to create enquiry from prospect.");
+    console.error("Bulk approve prospects error:", error);
+    return sendErrorResponse(res, 500, "Failed to bulk approve prospects.");
+  }
+};
+
+exports.bulkRejectProspects = async (req, res) => {
+  try {
+    const ids = asArray(req.body.prospectIds).map(Number).filter(Boolean);
+    const rejectionReason = clean(req.body.rejectionReason || req.body.reason);
+    if (!ids.length) return sendErrorResponse(res, 400, "Select at least one prospect.");
+    if (!rejectionReason) return sendErrorResponse(res, 400, "Rejection reason is required.");
+    const prospects = await db.prospectingProspect.findAll({
+      where: { id: { [Op.in]: ids }, org_id: req.user.org_id, status: { [Op.in]: ["new", "review", "approved"] } },
+    });
+    for (const prospect of prospects) {
+      await prospect.update({
+        status: "rejected",
+        activityHistory: appendActivity(prospect, { action: "bulk_rejected", user_id: req.user.id, rejectionReason }),
+      });
+      await db.prospectingApprovalHistory.create({
+        org_id: req.user.org_id,
+        prospectId: prospect.id,
+        user_id: req.user.id,
+        action: "bulk_rejected",
+        rejectionReason,
+        notes: clean(req.body.notes) || null,
+        metadata: { bulk: true },
+      });
+    }
+    await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.bulk_rejected", entityType: "prospecting_prospect", entityId: ids.join(",") });
+    res.json({ message: `${prospects.length} prospect(s) rejected.`, rejected: prospects.map((item) => item.id) });
+  } catch (error) {
+    console.error("Bulk reject prospects error:", error);
+    return sendErrorResponse(res, 500, "Failed to bulk reject prospects.");
   }
 };
 

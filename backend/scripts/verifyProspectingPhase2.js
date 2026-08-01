@@ -134,11 +134,36 @@ const putEntitlement = (api, status, limits = {}) =>
   );
 
   const prospectId = res.data.prospects[0].id;
+  const rejectProspectId = res.data.prospects[1].id;
+  const bulkProspectId = res.data.prospects[2].id;
+
+  res = await orgApi.post(`/prospecting/prospects/${rejectProspectId}/reject`, {});
+  must(res.status === 400, "rejection should require a reason");
+
+  res = await orgApi.post(`/prospecting/prospects/${rejectProspectId}/reject`, { rejectionReason: "Phase 5 verification rejection" });
+  must(res.status === 200, "reject with reason failed");
+
+  res = await orgApi.post(`/prospecting/prospects/${bulkProspectId}/reverify`);
+  must(res.status === 200 && res.data.prospect?.score >= 0, "request re-verification failed");
+
+  res = await orgApi.post("/prospecting/prospects/bulk-approve", { prospectIds: [bulkProspectId] });
+  must(res.status === 200 && res.data.exactEnquiryCount === 1, "bulk approval exact enquiry count failed");
+
   res = await orgApi.post(`/prospecting/prospects/${prospectId}/approve`);
   must(res.status === 200, "approve failed");
 
-  res = await orgApi.post(`/prospecting/prospects/${prospectId}/create-enquiry`);
+  res = await orgApi.post(`/prospecting/prospects/${prospectId}/create-enquiry`, { idempotencyKey: `phase5:${prospectId}` });
   must(res.status === 201 && Number.isInteger(res.data.existingEngagementScore), "create enquiry or engagement score failed");
+  const createdEnquiryId = res.data.enquiry.id;
+  must(res.data.enquiry.leadSource === "AI Prospecting", "enquiry lead source mapping failed");
+  must(res.data.aiGeneratedDrafts?.email?.aiGenerated === true, "AI-generated drafts missing");
+
+  res = await orgApi.post(`/prospecting/prospects/${prospectId}/create-enquiry`, { idempotencyKey: `phase5:${prospectId}` });
+  must(res.status === 201 && res.data.enquiry.id === createdEnquiryId, "idempotent retry created a second enquiry");
+
+  res = await orgApi.get("/prospecting/prospects");
+  const detailed = res.data.prospects.find((item) => item.id === prospectId);
+  must(detailed?.evidence?.length && detailed?.approvalHistory?.some((item) => item.action === "created_enquiry"), "approval queue details or audit history missing");
 
   res = await orgApi.post("/prospecting/research/estimate", {
     researchName: "Phase 4 duplicate verification research",

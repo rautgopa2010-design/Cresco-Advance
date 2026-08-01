@@ -5,6 +5,8 @@ import {
     Bot,
     CheckCircle2,
     Database,
+    Edit3,
+    Eye,
     FileSearch,
     Plus,
     RefreshCw,
@@ -51,7 +53,7 @@ const StatusBanner = ({ summary }) => {
     if (summary.active && !summary.exhausted) {
         return (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
-                AI Prospecting is active. Phase 4 verifies evidence, checks duplicates, scores prospects, and sends only verified records to approval.
+                AI Prospecting is active. Phase 5 supports governed approval, audit history, and idempotent enquiry creation.
             </div>
         );
     }
@@ -99,6 +101,8 @@ const ProspectingWorkspace = () => {
     });
     const [pendingEstimate, setPendingEstimate] = useState(null);
     const [confirming, setConfirming] = useState(false);
+    const [selectedProspects, setSelectedProspects] = useState([]);
+    const [expandedProspectId, setExpandedProspectId] = useState(null);
     const [settingsForm, setSettingsForm] = useState({
         idealCustomerProfile: {
             industries: "CRM, HRMS, SaaS",
@@ -202,7 +206,14 @@ const ProspectingWorkspace = () => {
 
     const actOnProspect = async (id, action) => {
         try {
-            await api.post(`/prospecting/prospects/${id}/${action}`);
+            const body = {};
+            if (action === "reject") {
+                const rejectionReason = window.prompt("Enter rejection reason");
+                if (!rejectionReason) return;
+                body.rejectionReason = rejectionReason;
+            }
+            if (action === "create-enquiry") body.idempotencyKey = `ui-prospecting-enquiry-${id}`;
+            await api.post(`/prospecting/prospects/${id}/${action}`, body);
             toast.success(action === "create-enquiry" ? "Enquiry created." : `Prospect ${action}d.`);
             loadData();
         } catch (error) {
@@ -210,12 +221,110 @@ const ProspectingWorkspace = () => {
         }
     };
 
-    const renderProspectTable = (rows) => (
+    const editProspect = async (prospect) => {
+        const companyName = window.prompt("Company name", prospect.companyName || "");
+        if (!companyName) return;
+        const contactName = window.prompt("Contact name", prospect.contactName || "");
+        const mobile = window.prompt("Mobile", prospect.mobile || "");
+        const email = window.prompt("Email", prospect.email || "");
+        try {
+            await api.put(`/prospecting/prospects/${prospect.id}`, { companyName, contactName, mobile, email });
+            toast.success("Prospect updated.");
+            loadData();
+        } catch (error) {
+            toast.error(getError(error, "Could not update prospect."));
+        }
+    };
+
+    const reverifyProspect = async (id) => {
+        try {
+            await api.post(`/prospecting/prospects/${id}/reverify`);
+            toast.success("Re-verification completed.");
+            loadData();
+        } catch (error) {
+            toast.error(getError(error, "Could not re-verify prospect."));
+        }
+    };
+
+    const bulkAction = async (action) => {
+        if (!selectedProspects.length) return toast.error("Select at least one prospect.");
+        const body = { prospectIds: selectedProspects };
+        if (action === "bulk-reject") {
+            const rejectionReason = window.prompt("Enter rejection reason for selected prospects");
+            if (!rejectionReason) return;
+            body.rejectionReason = rejectionReason;
+        }
+        try {
+            const res = await api.post(`/prospecting/prospects/${action}`, body);
+            toast.success(res.data.message || "Bulk action completed.");
+            setSelectedProspects([]);
+            loadData();
+        } catch (error) {
+            toast.error(getError(error, "Bulk action failed."));
+        }
+    };
+
+    const toggleSelected = (id) => {
+        setSelectedProspects((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
+    };
+
+    const renderProspectDetails = (prospect) => (
+        <tr>
+            <td className="bg-slate-50 px-4 py-4" colSpan={7}>
+                <div className="grid gap-4 text-sm md:grid-cols-3">
+                    <div>
+                        <p className="font-black text-slate-950">Evidence and buying signals</p>
+                        {(prospect.evidence || []).map((item) => (
+                            <p key={item.id} className="mt-2 text-slate-600">
+                                <span className="font-bold">{item.title}</span>: {item.value} ({item.confidence}%) - {new Date(item.createdAt).toLocaleDateString()}
+                            </p>
+                        ))}
+                        {!prospect.evidence?.length && <p className="mt-2 text-slate-500">No evidence attached.</p>}
+                    </div>
+                    <div>
+                        <p className="font-black text-slate-950">Duplicate results</p>
+                        {(prospect.duplicateSummary?.confirmedDuplicates || []).map((item, index) => (
+                            <p key={`${item.source}-${item.id}-${index}`} className="mt-2 text-slate-600">{item.type} from {item.source} by {item.rule}</p>
+                        ))}
+                        {!prospect.duplicateSummary?.confirmedDuplicates?.length && <p className="mt-2 text-emerald-700">No deterministic duplicate found.</p>}
+                        {!!prospect.missingMandatoryFields?.length && (
+                            <p className="mt-3 rounded-md bg-amber-50 p-2 font-bold text-amber-800">Missing before approval: {prospect.missingMandatoryFields.join(", ")}</p>
+                        )}
+                    </div>
+                    <div>
+                        <p className="font-black text-slate-950">AI summary and audit</p>
+                        <p className="mt-2 text-slate-600">{prospect.evidenceSummary || prospect.suggestedNextAction || "-"}</p>
+                        <p className="mt-2 text-slate-600">Recommended: {prospect.crmRecommendation || "CRM"} - {prospect.suggestedNextAction || "Review before action."}</p>
+                        <p className="mt-2 text-slate-600">Credits: estimated {prospect.estimatedCreditUsage || 0}, actual {prospect.actualCreditUsage || 0}</p>
+                        {prospect.enquiryLink && <a className="mt-2 inline-block font-bold text-blue-600" href={prospect.enquiryLink}>Open created enquiry #{prospect.enquiryId}</a>}
+                        <div className="mt-3 max-h-28 overflow-auto rounded-md border border-slate-200 bg-white p-2">
+                            {(prospect.approvalHistory || []).map((item) => (
+                                <p key={item.id} className="text-xs text-slate-600">{item.action} - {item.rejectionReason || item.notes || "-"} - {new Date(item.createdAt).toLocaleString()}</p>
+                            ))}
+                            {!prospect.approvalHistory?.length && <p className="text-xs text-slate-500">No approval history yet.</p>}
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    );
+
+    const renderProspectTable = (rows, { approvalQueue = false } = {}) => (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            {approvalQueue && (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-3">
+                    <p className="text-sm font-bold text-slate-700">{selectedProspects.length} selected - Exact enquiry count after bulk approval: {selectedProspects.length}</p>
+                    <div className="flex gap-2">
+                        <button type="button" onClick={() => bulkAction("bulk-approve")} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Bulk approve</button>
+                        <button type="button" onClick={() => bulkAction("bulk-reject")} className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white">Bulk reject</button>
+                    </div>
+                </div>
+            )}
             <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
                     <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                         <tr>
+                            {approvalQueue && <th className="px-4 py-3">Select</th>}
                             <th className="px-4 py-3">Company</th>
                             <th className="px-4 py-3">Contact</th>
                             <th className="px-4 py-3">Verification</th>
@@ -226,7 +335,13 @@ const ProspectingWorkspace = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {rows.map((prospect) => (
-                            <tr key={prospect.id}>
+                            <React.Fragment key={prospect.id}>
+                            <tr>
+                                {approvalQueue && (
+                                    <td className="px-4 py-3">
+                                        <input type="checkbox" checked={selectedProspects.includes(prospect.id)} onChange={() => toggleSelected(prospect.id)} />
+                                    </td>
+                                )}
                                 <td className="px-4 py-3">
                                     <p className="font-bold text-slate-950">{prospect.companyName}</p>
                                     <p className="text-xs text-slate-500">{prospect.sourceProvider}</p>
@@ -244,13 +359,13 @@ const ProspectingWorkspace = () => {
                                             {prospect.verificationStatus || "Unverified"}
                                         </span>
                                         <p className="text-xs font-semibold text-slate-600">{prospect.classification || "Potential Prospect"}</p>
-                                        <p className="text-xs text-slate-500">{prospect.priority || "Warm"} priority • {prospect.crmRecommendation || "CRM"}</p>
+                                        <p className="text-xs text-slate-500">{prospect.priority || "Warm"} priority - {prospect.crmRecommendation || "CRM"}</p>
                                     </div>
                                 </td>
                                 <td className="px-4 py-3">
                                     <p className="font-black text-slate-950">{prospect.score}</p>
                                     <p className="text-xs text-slate-500">
-                                        Fit {prospect.prospectFitScore ?? 0} • Intent {prospect.intentScore ?? 0} • Quality {prospect.dataQualityScore ?? 0}
+                                        Fit {prospect.prospectFitScore ?? 0} - Intent {prospect.intentScore ?? 0} - Quality {prospect.dataQualityScore ?? 0}
                                     </p>
                                 </td>
                                 <td className="px-4 py-3">
@@ -264,16 +379,21 @@ const ProspectingWorkspace = () => {
                                                 <button type="button" onClick={() => actOnProspect(prospect.id, "reject")} className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white">Reject</button>
                                             </>
                                         )}
+                                        <button type="button" onClick={() => setExpandedProspectId(expandedProspectId === prospect.id ? null : prospect.id)} className="rounded-md border border-slate-200 px-2 py-1.5 text-xs font-bold text-slate-700" title="View"><Eye size={14} /></button>
+                                        {prospect.status !== "enquiry_created" && <button type="button" onClick={() => editProspect(prospect)} className="rounded-md border border-slate-200 px-2 py-1.5 text-xs font-bold text-slate-700" title="Edit"><Edit3 size={14} /></button>}
+                                        {prospect.status !== "enquiry_created" && <button type="button" onClick={() => reverifyProspect(prospect.id)} className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700">Re-verify</button>}
                                         {prospect.status === "approved" && (
                                             <button type="button" onClick={() => actOnProspect(prospect.id, "create-enquiry")} className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-bold text-white">Create Enquiry</button>
                                         )}
                                     </div>
                                 </td>
                             </tr>
+                            {expandedProspectId === prospect.id && renderProspectDetails(prospect)}
+                            </React.Fragment>
                         ))}
                         {!rows.length && (
                             <tr>
-                                <td className="px-4 py-8 text-center text-sm font-semibold text-slate-500" colSpan={5}>No records found.</td>
+                                <td className="px-4 py-8 text-center text-sm font-semibold text-slate-500" colSpan={approvalQueue ? 7 : 6}>No records found.</td>
                             </tr>
                         )}
                     </tbody>
@@ -384,7 +504,7 @@ const ProspectingWorkspace = () => {
         }
 
         if (activeTab === "Results") return renderProspectTable(prospects);
-        if (activeTab === "Approval Queue") return renderProspectTable(prospects.filter((item) => item.status === "review"));
+        if (activeTab === "Approval Queue") return renderProspectTable(prospects.filter((item) => item.status === "review"), { approvalQueue: true });
         if (activeTab === "Created Enquiries") return renderProspectTable(prospects.filter((item) => item.status === "enquiry_created"));
 
         if (activeTab === "History") {
@@ -393,7 +513,7 @@ const ProspectingWorkspace = () => {
                     {requests.map((request) => (
                         <div key={request.id} className="rounded-lg border border-slate-200 bg-white p-4">
                             <p className="font-black text-slate-950">{request.title}</p>
-                            <p className="text-sm text-slate-500">{request.status} • {request.verifiedProspectCount} verified prospects • {new Date(request.createdAt).toLocaleString()}</p>
+                            <p className="text-sm text-slate-500">{request.status} - {request.verifiedProspectCount} verified prospects - {new Date(request.createdAt).toLocaleString()}</p>
                         </div>
                     ))}
                     {!requests.length && <p className="rounded-lg border border-slate-200 bg-white p-6 text-center text-sm font-semibold text-slate-500">No research history yet.</p>}
@@ -459,7 +579,7 @@ const ProspectingWorkspace = () => {
                             <Bot size={14} /> Controlled Agent
                         </div>
                         <h1 className="mt-3 text-3xl font-black">AI Prospecting</h1>
-                        <p className="mt-2 max-w-3xl text-sm font-semibold text-blue-100">Provider-gated research, cost confirmation, review, approval, usage and audit foundation. Mock/Test Provider is clearly labelled when no live credentials exist.</p>
+                        <p className="mt-2 max-w-3xl text-sm font-semibold text-blue-100">Provider-gated research, evidence review, approval controls, audit history, and retry-safe enquiry creation. Mock/Test Provider is clearly labelled when no live credentials exist.</p>
                     </div>
                     <div className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-bold">
                         {summary.active ? <CheckCircle2 className="text-emerald-300" size={18} /> : <AlertTriangle className="text-amber-300" size={18} />}

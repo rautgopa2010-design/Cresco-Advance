@@ -23,6 +23,10 @@ router.post("/research/:id/cancel", auth, prospectingAccess("prospect_agent.rese
 router.get("/requests", auth, prospectingAccess("prospect_agent.view"), controller.getRequests);
 router.get("/prospects", auth, prospectingAccess("prospect_agent.review"), controller.getProspects);
 router.get("/prospects/:id/evidence", auth, prospectingAccess("prospect_agent.review"), controller.getProspectEvidence);
+router.put("/prospects/:id", auth, prospectingAccess("prospect_agent.review"), controller.updateProspectForReview);
+router.post("/prospects/:id/reverify", auth, prospectingAccess("prospect_agent.review"), controller.requestReverification);
+router.post("/prospects/bulk-approve", auth, prospectingAccess("prospect_agent.approve"), controller.bulkApproveProspects);
+router.post("/prospects/bulk-reject", auth, prospectingAccess("prospect_agent.reject"), controller.bulkRejectProspects);
 router.post("/prospects/:id/approve", auth, prospectingAccess("prospect_agent.approve"), controller.approveProspect);
 router.post("/prospects/:id/reject", auth, prospectingAccess("prospect_agent.reject"), controller.rejectProspect);
 router.post(

@@ -9,10 +9,12 @@ module.exports = (sequelize, DataTypes) => {
       prospectId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
       user_id: { type: DataTypes.INTEGER, allowNull: false },
       action: {
-        type: DataTypes.ENUM("reviewed", "approved", "rejected", "created_enquiry"),
+        type: DataTypes.STRING,
         allowNull: false,
       },
+      rejectionReason: { type: DataTypes.TEXT, allowNull: true },
       notes: { type: DataTypes.TEXT, allowNull: true },
+      metadata: { type: DataTypes.JSON, allowNull: true },
     },
     {
       tableName: `${dbConfig.tablePrefix}prospecting_approval_history`,
