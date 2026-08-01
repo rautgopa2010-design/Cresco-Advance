@@ -214,7 +214,7 @@ const putEntitlement = (api, status, limits = {}) =>
   res = await putEntitlement(providerApi, "trial", { researchLimit: 100, verifiedProspectLimit: 300, providerCreditLimit: 300 });
   must(res.status < 300, "reset entitlement failed");
 
-  console.log("Phase 4 prospecting verification passed.");
+  console.log("Phase 5 prospecting verification passed.");
 })().catch((error) => {
   console.error(error.message);
   process.exit(1);
