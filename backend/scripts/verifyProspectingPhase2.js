@@ -197,6 +197,11 @@ const putEntitlement = (api, status, limits = {}) =>
   res = await orgApi.get("/prospecting/summary");
   must(res.data.dashboard?.duplicatesPrevented >= 1, "duplicates prevented dashboard metric missing");
 
+  for (const path of ["/customer", "/lead", "/dashboard", "/ai-suggestions", "/automation/sales-summary"]) {
+    res = await orgApi.get(path);
+    must(res.status < 500, `${path} regression check failed with ${res.status}`);
+  }
+
   res = await putEntitlement(providerApi, "expired");
   must(res.status < 300, "expired entitlement failed");
 
@@ -223,7 +228,7 @@ const putEntitlement = (api, status, limits = {}) =>
   res = await putEntitlement(providerApi, "trial", { researchLimit: 100, verifiedProspectLimit: 300, providerCreditLimit: 300 });
   must(res.status < 300, "reset entitlement failed");
 
-  console.log("Phase 5 prospecting verification passed.");
+  console.log("Phase 6 prospecting verification passed.");
 })().catch((error) => {
   console.error(error.message);
   process.exit(1);
