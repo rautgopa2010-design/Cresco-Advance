@@ -97,6 +97,11 @@ db.chatbotPlan = require("./ChatbotPlan")(sequelize, Sequelize);
 db.chatbotEntitlement = require("./ChatbotEntitlement")(sequelize, Sequelize);
 db.chatbotUsageLedger = require("./ChatbotUsageLedger")(sequelize, Sequelize);
 db.chatbotAuditLog = require("./ChatbotAuditLog")(sequelize, Sequelize);
+db.chatbotConfiguration = require("./ChatbotConfiguration")(sequelize, Sequelize);
+db.chatbotAllowedDomain = require("./ChatbotAllowedDomain")(sequelize, Sequelize);
+db.chatbotKnowledgeSource = require("./ChatbotKnowledgeSource")(sequelize, Sequelize);
+db.chatbotFaq = require("./ChatbotFaq")(sequelize, Sequelize);
+db.chatbotLeadForm = require("./ChatbotLeadForm")(sequelize, Sequelize);
 
 // Setup association
 Object.keys(db).forEach((modelName) => {
