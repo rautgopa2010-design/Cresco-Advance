@@ -22,6 +22,7 @@ const iconByLabel = {
     Opportunities: Target,
     "Revenue Forecast": TrendingUp,
     "Lead Scoring": TrendingUp,
+    "Lead Priority": TrendingUp,
     Engagement: Mail,
     "Email Inbox": Mail,
     "Call Center": PhoneCall,

@@ -135,11 +135,33 @@ const getScoreBand = (score) => {
 };
 
 const buildSuggestion = (lead, score) => {
-    if (score >= 75) return "Prioritize today. Strong engagement and deal value indicate high conversion potential.";
-    if (!lead?.followupDate && !lead?.nextFollowUpDate) return "Add a follow-up date to improve sales tracking.";
-    if (!numberValue(lead?.expectedAmount)) return "Add expected amount so forecast and score become more accurate.";
-    if (!lead?.email && !lead?.mobile) return "Add contact details before moving this lead forward.";
-    return "Nurture with call or email and move to next stage after customer response.";
+    if (!lead?.followupDate && !lead?.nextFollowUpDate) return "Create follow-up";
+    if (!lead?.mobile && lead?.email) return "Send email";
+    if (lead?.mobile && score >= 50) return "Call today";
+    if (!numberValue(lead?.expectedAmount)) return "Add expected amount";
+    if (/qualified/i.test(lead?.leadStage || lead?.leadStatus || "")) return "Move to proposal";
+    if (score >= 75) return "Prioritize today";
+    return "Nurture with call or email";
+};
+
+const needsFollowup = (lead) => {
+    const dueIn = daysUntil(lead?.followupDate || lead?.nextFollowUpDate);
+    return dueIn === null || dueIn < 0;
+};
+
+const buildScoreReason = (lead, score, parts) => {
+    const reasons = [];
+    if (score >= 75) reasons.push("high priority");
+    else if (score >= 50) reasons.push("warm priority");
+    else reasons.push("cold priority");
+
+    if (parts.amount >= 16) reasons.push("high deal amount");
+    if (parts.activity >= 14) reasons.push("active follow-up");
+    if (parts.engagement >= 8) reasons.push("email/call engagement");
+    if (parts.source >= 14) reasons.push("good lead source");
+    if (needsFollowup(lead)) reasons.push("needs follow-up");
+
+    return `${score >= 75 ? "Hot" : score >= 50 ? "Warm" : "Cold"} because this lead has ${reasons.slice(1, 4).join(", ") || "limited activity"}.`;
 };
 
 const MetricCard = ({ icon: Icon, label, value, caption, tone }) => (
@@ -186,6 +208,8 @@ const LeadScoring = () => {
                         score,
                         parts,
                         band,
+                        needsFollowup: needsFollowup(lead),
+                        scoreReason: buildScoreReason(lead, score, parts),
                         suggestion: buildSuggestion(lead, score),
                     };
                 })
@@ -196,7 +220,7 @@ const LeadScoring = () => {
     const filteredLeads = useMemo(() => {
         const term = query.trim().toLowerCase();
         return scoredLeads.filter((lead) => {
-            const matchesBand = bandFilter === "All" || lead.band.label === bandFilter;
+            const matchesBand = bandFilter === "All" || (bandFilter === "Needs Follow-up" ? lead.needsFollowup : lead.band.label === bandFilter);
             const matchesQuery =
                 !term ||
                 [lead.companyName, getLeadName(lead), lead.mobile, lead.email, lead.leadSource, lead.leadStage, lead.leadStatus]
@@ -224,11 +248,11 @@ const LeadScoring = () => {
                     <div>
                         <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-blue-50">
                             <Sparkles size={15} />
-                            Deal Intelligence
+                            Smart Lead Priority
                         </span>
-                        <h1 className="mt-4 text-[34px] font-black leading-tight md:text-[42px]">Lead Scoring</h1>
+                        <h1 className="mt-4 text-[34px] font-black leading-tight md:text-[42px]">Lead Priority</h1>
                         <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-blue-100">
-                            Automatically prioritize leads using source quality, follow-up activity, deal amount, stage progress, calls, and email engagement.
+                            See which leads need attention first, why they are important, and what action to take next.
                         </p>
                     </div>
                     <button
@@ -252,8 +276,8 @@ const LeadScoring = () => {
             <section className="rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h2 className="text-xl font-black text-slate-950">Scoring Queue</h2>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">Highest-priority leads are shown first for sales follow-up.</p>
+                        <h2 className="text-xl font-black text-slate-950">Priority Leads</h2>
+                        <p className="mt-1 text-sm font-semibold text-slate-500">Highest-priority leads are shown first with a simple reason and next action.</p>
                     </div>
                     <div className="flex flex-col gap-3 md:flex-row">
                         <div className="relative min-w-[280px]">
@@ -276,6 +300,7 @@ const LeadScoring = () => {
                                 <option>Hot</option>
                                 <option>Warm</option>
                                 <option>Cold</option>
+                                <option>Needs Follow-up</option>
                             </select>
                         </div>
                     </div>
@@ -288,16 +313,15 @@ const LeadScoring = () => {
                         </div>
                     ) : filteredLeads.length ? (
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[1080px] text-left text-sm">
+                            <table className="w-full min-w-[1040px] text-left text-sm">
                                 <thead className="bg-slate-950 text-xs uppercase tracking-[0.12em] text-white">
                                     <tr>
                                         <th className="px-4 py-4">Lead</th>
-                                        <th className="px-4 py-4">Score</th>
+                                        <th className="px-4 py-4">Priority</th>
+                                        <th className="px-4 py-4">Score Reason</th>
+                                        <th className="px-4 py-4">Recommended Action</th>
                                         <th className="px-4 py-4">Source</th>
-                                        <th className="px-4 py-4">Activity</th>
                                         <th className="px-4 py-4">Deal Amount</th>
-                                        <th className="px-4 py-4">Engagement</th>
-                                        <th className="px-4 py-4">Suggestion</th>
                                         <th className="px-4 py-4">Action</th>
                                     </tr>
                                 </thead>
@@ -319,15 +343,21 @@ const LeadScoring = () => {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <p className="font-bold text-slate-700">{lead.leadSource || "-"}</p>
-                                                <p className="mt-1 text-xs font-semibold text-slate-400">+{lead.parts.source} pts</p>
+                                                <p className="max-w-sm text-xs font-semibold leading-5 text-slate-600">{lead.scoreReason}</p>
+                                                {lead.needsFollowup && (
+                                                    <span className="mt-2 inline-flex rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700">
+                                                        Needs follow-up
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-4">
-                                                <p className="flex items-center gap-2 font-bold text-slate-700">
-                                                    <CalendarClock size={15} className="text-blue-600" />
-                                                    {formatDate(lead.followupDate || lead.nextFollowUpDate)}
-                                                </p>
-                                                <p className="mt-1 text-xs font-semibold text-slate-400">+{lead.parts.activity} pts</p>
+                                                <span className="inline-flex rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-700">
+                                                    {lead.suggestion}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <p className="font-bold text-slate-700">{lead.leadSource || "-"}</p>
+                                                <p className="mt-1 text-xs font-semibold text-slate-400">+{lead.parts.source} pts</p>
                                             </td>
                                             <td className="px-4 py-4">
                                                 <p className="flex items-center gap-2 font-black text-slate-800">
@@ -335,22 +365,6 @@ const LeadScoring = () => {
                                                     {formatCurrency(lead.expectedAmount)}
                                                 </p>
                                                 <p className="mt-1 text-xs font-semibold text-slate-400">+{lead.parts.amount} pts</p>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex gap-2 text-xs font-black">
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-blue-700">
-                                                        <Mail size={13} />
-                                                        Email
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">
-                                                        <PhoneCall size={13} />
-                                                        Call
-                                                    </span>
-                                                </div>
-                                                <p className="mt-2 text-xs font-semibold text-slate-400">+{lead.parts.engagement} pts</p>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <p className="max-w-xs text-xs font-semibold leading-5 text-slate-600">{lead.suggestion}</p>
                                             </td>
                                             <td className="px-4 py-4">
                                                 <button

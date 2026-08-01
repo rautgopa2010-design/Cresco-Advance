@@ -102,6 +102,7 @@ export const adminNavbarLinks = [
                 children: [
                     { label: "Leads", moduleName: "Leads", path: "/leads", icon: Dot },
                     { label: "API Leads", path: "/api-leads", icon: Dot },
+                    { label: "Lead Priority", moduleName: "Sales Pipeline", path: "/leads/scoring", icon: Dot },
                 ],
             },
         ],
@@ -118,7 +119,6 @@ export const adminNavbarLinks = [
                     { label: "Pipeline", moduleName: "Sales Pipeline", path: "/leads/pipeline", icon: Dot },
                     { label: "Opportunities", moduleName: "Sales Pipeline", path: "/leads/opportunities", icon: Dot },
                     { label: "Revenue Forecast", moduleName: "Sales Pipeline", path: "/leads/revenue-forecast", icon: Dot },
-                    { label: "Lead Scoring", moduleName: "Sales Pipeline", path: "/leads/scoring", icon: Dot },
                 ],
             },
         ],
