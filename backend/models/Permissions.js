@@ -30,7 +30,14 @@ module.exports = (sequelize, DataTypes) => {
           "reject",
           "create_enquiry",
           "configure",
-          "view_audit"
+          "view_audit",
+          "knowledge_manage",
+          "appearance_manage",
+          "conversations_view",
+          "conversations_reply",
+          "handover_manage",
+          "analytics_view",
+          "install_manage"
         ),
         allowNull: false,
       },

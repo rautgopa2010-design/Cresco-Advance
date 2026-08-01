@@ -93,6 +93,10 @@ db.prospectingEvidence = require("./ProspectingEvidence")(sequelize, Sequelize);
 db.prospectingApprovalHistory = require("./ProspectingApprovalHistory")(sequelize, Sequelize);
 db.prospectingUsageLedger = require("./ProspectingUsageLedger")(sequelize, Sequelize);
 db.prospectingAuditLog = require("./ProspectingAuditLog")(sequelize, Sequelize);
+db.chatbotPlan = require("./ChatbotPlan")(sequelize, Sequelize);
+db.chatbotEntitlement = require("./ChatbotEntitlement")(sequelize, Sequelize);
+db.chatbotUsageLedger = require("./ChatbotUsageLedger")(sequelize, Sequelize);
+db.chatbotAuditLog = require("./ChatbotAuditLog")(sequelize, Sequelize);
 
 // Setup association
 Object.keys(db).forEach((modelName) => {

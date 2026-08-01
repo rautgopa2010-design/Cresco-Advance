@@ -75,6 +75,7 @@ export const providerAdminNavbarLinks = [
                             { label: "Payment", path: "/provider/settings/master/payment", icon: Dot },
                             { label: "Refer & Earn", path: "/provider/settings/master/referrals", icon: HandCoins },
                             { label: "AI Prospecting", path: "/provider/settings/master/ai-prospecting", icon: Bot },
+                            { label: "Website AI Chatbot", path: "/provider/settings/master/website-ai-chatbot", icon: Bot },
                         ],
                     },
                     { label: "Bank Setup", icon: AiFillBank, path: "/settings/bank-setup" },
@@ -197,6 +198,7 @@ export const adminNavbarLinks = [
     { links: [{ label: "Analytics", moduleName: "Reports", icon: TbReportAnalytics, path: "/analytics" }] },
     { links: [{ label: "Incentive", icon: GiTargetShot, path: "/incentive" }] },
     { links: [{ label: "AI Prospecting", moduleName: "AI Prospecting", icon: Bot, path: "/ai-prospecting" }] },
+    { links: [{ label: "Website AI Chatbot", moduleName: "Website AI Chatbot", icon: Bot, path: "/website-ai-chatbot" }] },
     {
         links: [
             {
