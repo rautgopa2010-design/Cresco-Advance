@@ -15,9 +15,11 @@ const {
   fingerprintCredentialPayload,
 } = require("../utility/prospectingCredentials");
 const { createProvider } = require("../utility/prospectingProviders/providerRegistry");
+const { existingEngagementScore } = require("../utility/prospectingVerificationScoring");
 
 const clean = (value) => String(value || "").trim();
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const reviewableVerificationStatuses = ["Verified", "Partially Verified"];
 
 exports.getSummary = async (req, res) => {
   try {
@@ -346,6 +348,12 @@ exports.approveProspect = async (req, res) => {
       where: { id: req.params.id, org_id: req.user.org_id },
     });
     if (!prospect) return sendErrorResponse(res, 404, "Prospect not found.");
+    if (!reviewableVerificationStatuses.includes(prospect.verificationStatus)) {
+      return sendErrorResponse(res, 403, "Only verified or partially verified prospects can be approved.");
+    }
+    if (prospect.status !== "review") {
+      return sendErrorResponse(res, 409, "Only prospects in the approval queue can be approved.");
+    }
 
     await prospect.update({ status: "approved", approvedBy: req.user.id, approvedAt: new Date() });
     await db.prospectingApprovalHistory.create({
@@ -394,10 +402,13 @@ exports.createEnquiryFromProspect = async (req, res) => {
       where: {
         id: req.params.id,
         org_id: req.user.org_id,
-        status: { [Op.in]: ["approved", "review"] },
+        status: "approved",
       },
     });
     if (!prospect) return sendErrorResponse(res, 404, "Approved prospect not found.");
+    if (!reviewableVerificationStatuses.includes(prospect.verificationStatus)) {
+      return sendErrorResponse(res, 403, "Only verified or partially verified approved prospects can become enquiries.");
+    }
     if (prospect.enquiryId) return sendErrorResponse(res, 409, "Enquiry already created for this prospect.");
 
     const duplicate = await db.customer.findOne({
@@ -438,7 +449,12 @@ exports.createEnquiryFromProspect = async (req, res) => {
     });
     await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.enquiry_created", entityType: "customer", entityId: enquiry.id });
 
-    res.status(201).json({ message: "Enquiry created from prospect.", enquiry, prospect });
+    res.status(201).json({
+      message: "Enquiry created from prospect.",
+      enquiry,
+      prospect,
+      existingEngagementScore: existingEngagementScore({ enquiry }),
+    });
   } catch (error) {
     console.error("Create enquiry from prospect error:", error);
     return sendErrorResponse(res, 500, "Failed to create enquiry from prospect.");

@@ -3,6 +3,7 @@ const { Op } = require("sequelize");
 const { createProvider } = require("./prospectingProviders/providerRegistry");
 const { getEntitlementState } = require("./prospectingAuthorization");
 const { ProspectingProviderError } = require("./prospectingProviders/BaseProspectProvider");
+const { verifyAndScoreProspect } = require("./prospectingVerificationScoring");
 
 const asArray = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean);
@@ -172,7 +173,7 @@ const executeConfirmedResearch = async ({ request, user, entitlement }) => {
       website: normalized.website,
       industry: normalized.industry,
       sourceProvider: normalized.sourceProvider,
-      status: "review",
+      status: "new",
       verificationStatus: normalized.verificationStatus,
       score: normalized.score,
       scoreBreakdown: normalized.scoreBreakdown,
@@ -190,11 +191,22 @@ const executeConfirmedResearch = async ({ request, user, entitlement }) => {
         confidence: Number(item.confidence || 0),
       }))
     );
+    const scoring = await verifyAndScoreProspect({
+      prospect,
+      org_id: request.org_id,
+      criteria: request.normalizedCriteria,
+    });
+    await prospect.update(scoring);
+    await prospect.reload();
     prospects.push(prospect);
   }
 
+  const reviewableProspects = prospects.filter((prospect) =>
+    ["Verified", "Partially Verified"].includes(prospect.verificationStatus)
+  );
+
   await writeLedger({ org_id: request.org_id, user_id: user.id, requestId: request.id, entryType: "research", quantity: 1, lifecycle: "consumed", reason: "phase3_completed_research" });
-  await writeLedger({ org_id: request.org_id, user_id: user.id, requestId: request.id, entryType: "verified_prospect", quantity: prospects.length, lifecycle: "consumed", reason: "phase3_verified_prospects" });
+  await writeLedger({ org_id: request.org_id, user_id: user.id, requestId: request.id, entryType: "verified_prospect", quantity: reviewableProspects.length, lifecycle: "consumed", reason: "phase4_verified_prospects" });
   await writeLedger({ org_id: request.org_id, user_id: user.id, requestId: request.id, entryType: "provider_credit", quantity: request.costEstimate.estimatedProviderCredits, lifecycle: "consumed", reason: "phase3_provider_credits" });
 
   const unusedCredits = Math.max(Number(request.costEstimate.estimatedProviderCredits || 0) - prospects.length, 0);
@@ -204,7 +216,7 @@ const executeConfirmedResearch = async ({ request, user, entitlement }) => {
 
   await request.update({
     status: "ready_for_review",
-    verifiedProspectCount: prospects.length,
+    verifiedProspectCount: reviewableProspects.length,
     providerCreditsUsed: request.costEstimate.estimatedProviderCredits - unusedCredits,
     aiTokensUsed: 0,
     completedAt: new Date(),

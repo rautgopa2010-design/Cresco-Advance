@@ -26,10 +26,11 @@ class MockProspectProvider extends BaseProspectProvider {
 
   async searchCompanies(criteria = {}) {
     const count = Math.max(1, Math.min(Number(criteria.numberOfProspects || 3), 50));
+    const slug = String(criteria.industry || "crm").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "crm";
     return Array.from({ length: count }, (_, index) => ({
       externalId: `mock-company-${index + 1}`,
       name: `TEST DATA - ${criteria.industry || "CRM"} Company ${index + 1}`,
-      website: `https://phase3-company-${index + 1}.example.invalid`,
+      website: `https://phase3-${slug}-company-${index + 1}.example.invalid`,
       industry: criteria.industry || "CRM Services",
       location: criteria.targetLocation || "India",
       rawProviderPayload: { provider: this.providerCode, index: index + 1 },

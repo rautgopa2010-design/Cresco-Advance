@@ -35,6 +35,8 @@ const toneClasses = {
     amber: "bg-amber-50 text-amber-600",
 };
 
+const reviewableVerificationStatuses = ["Verified", "Partially Verified"];
+
 const StatCard = ({ label, value, icon: Icon, tone = "blue" }) => (
     <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${toneClasses[tone] || toneClasses.blue}`}>
@@ -49,7 +51,7 @@ const StatusBanner = ({ summary }) => {
     if (summary.active && !summary.exhausted) {
         return (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
-                AI Prospecting is active. Phase 3 uses provider adapters and requires cost confirmation before credits are consumed.
+                AI Prospecting is active. Phase 4 verifies evidence, checks duplicates, scores prospects, and sends only verified records to approval.
             </div>
         );
     }
@@ -104,7 +106,7 @@ const ProspectingWorkspace = () => {
             companySize: "10-200 employees",
             buyerRoles: "Founder, Sales Head, Operations Head",
         },
-        selectedProviders: ["phase2-test-provider"],
+        selectedProviders: ["phase3-mock-provider"],
         defaultReviewMode: "manual",
     });
 
@@ -134,7 +136,7 @@ const ProspectingWorkspace = () => {
                 if (nextSummary.settings) {
                     setSettingsForm({
                         idealCustomerProfile: nextSummary.settings.idealCustomerProfile || settingsForm.idealCustomerProfile,
-                        selectedProviders: nextSummary.settings.selectedProviders || ["phase2-test-provider"],
+                        selectedProviders: nextSummary.settings.selectedProviders || ["phase3-mock-provider"],
                         defaultReviewMode: nextSummary.settings.defaultReviewMode || "manual",
                     });
                 }
@@ -216,8 +218,9 @@ const ProspectingWorkspace = () => {
                         <tr>
                             <th className="px-4 py-3">Company</th>
                             <th className="px-4 py-3">Contact</th>
+                            <th className="px-4 py-3">Verification</th>
                             <th className="px-4 py-3">Score</th>
-                            <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3">Workflow</th>
                             <th className="px-4 py-3">Actions</th>
                         </tr>
                     </thead>
@@ -227,24 +230,41 @@ const ProspectingWorkspace = () => {
                                 <td className="px-4 py-3">
                                     <p className="font-bold text-slate-950">{prospect.companyName}</p>
                                     <p className="text-xs text-slate-500">{prospect.sourceProvider}</p>
+                                    {prospect.suggestedNextAction && (
+                                        <p className="mt-1 max-w-xs text-xs font-semibold text-slate-500">{prospect.suggestedNextAction}</p>
+                                    )}
                                 </td>
                                 <td className="px-4 py-3 text-slate-600">
                                     <p>{prospect.contactName || "-"}</p>
                                     <p className="text-xs">{prospect.email || prospect.mobile || "-"}</p>
                                 </td>
-                                <td className="px-4 py-3 font-black text-slate-950">{prospect.score}</td>
+                                <td className="px-4 py-3">
+                                    <div className="space-y-1">
+                                        <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${reviewableVerificationStatuses.includes(prospect.verificationStatus) ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                                            {prospect.verificationStatus || "Unverified"}
+                                        </span>
+                                        <p className="text-xs font-semibold text-slate-600">{prospect.classification || "Potential Prospect"}</p>
+                                        <p className="text-xs text-slate-500">{prospect.priority || "Warm"} priority • {prospect.crmRecommendation || "CRM"}</p>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <p className="font-black text-slate-950">{prospect.score}</p>
+                                    <p className="text-xs text-slate-500">
+                                        Fit {prospect.prospectFitScore ?? 0} • Intent {prospect.intentScore ?? 0} • Quality {prospect.dataQualityScore ?? 0}
+                                    </p>
+                                </td>
                                 <td className="px-4 py-3">
                                     <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">{prospect.status}</span>
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex flex-wrap gap-2">
-                                        {prospect.status === "review" && (
+                                        {prospect.status === "review" && reviewableVerificationStatuses.includes(prospect.verificationStatus) && (
                                             <>
                                                 <button type="button" onClick={() => actOnProspect(prospect.id, "approve")} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Approve</button>
                                                 <button type="button" onClick={() => actOnProspect(prospect.id, "reject")} className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white">Reject</button>
                                             </>
                                         )}
-                                        {["review", "approved"].includes(prospect.status) && (
+                                        {prospect.status === "approved" && (
                                             <button type="button" onClick={() => actOnProspect(prospect.id, "create-enquiry")} className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-bold text-white">Create Enquiry</button>
                                         )}
                                     </div>
