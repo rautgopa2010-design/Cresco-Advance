@@ -25,7 +25,13 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: `${dbConfig.tablePrefix}prospecting_provider_credentials`,
       timestamps: true,
-      indexes: [{ unique: true, fields: ["providerOrgId", "org_id", "providerCode", "accountType"] }],
+      indexes: [
+        {
+          name: "prospect_cred_scope_uq",
+          unique: true,
+          fields: ["providerOrgId", "org_id", "providerCode", "accountType"],
+        },
+      ],
     }
   );
 
