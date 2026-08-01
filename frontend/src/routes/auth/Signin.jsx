@@ -113,12 +113,11 @@ const Signin = () => {
     };
 
     return (
-        <main className="relative min-h-screen overflow-hidden bg-slate-950">
-            <div className="pointer-events-none absolute -left-40 top-1/3 size-[460px] rounded-full bg-indigo-600/25 blur-[130px]" />
-            <div className="pointer-events-none absolute -right-40 -top-40 size-[520px] rounded-full bg-cyan-500/15 blur-[140px]" />
+        <main className="relative min-h-screen overflow-hidden bg-[#f8fbff]">
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#ffffff_0%,#f1f6ff_54%,#ffffff_100%)]" />
 
             {loading && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 backdrop-blur-sm">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/25 backdrop-blur-sm">
                     <div className="rounded-2xl bg-white p-6 shadow-2xl">
                         <CircularProgress size={38} />
                     </div>
@@ -126,20 +125,20 @@ const Signin = () => {
             )}
 
             <div className="relative mx-auto grid min-h-screen max-w-[1500px] lg:grid-cols-[1.05fr_0.95fr]">
-                <section className="hidden flex-col justify-between px-12 py-10 text-white lg:flex xl:px-20 xl:py-14">
-                    <Link to="/marketing-website" className="w-fit rounded-xl bg-white px-4 py-2 shadow-lg">
+                <section className="hidden flex-col justify-between px-12 py-10 text-slate-950 lg:flex xl:px-20 xl:py-14">
+                    <Link to="/marketing-website" className="w-fit rounded-xl bg-white px-4 py-2 shadow-sm ring-1 ring-slate-200">
                         <img src={logo} alt="Crescosoft" className="h-14 w-auto object-contain" />
                     </Link>
 
                     <div className="max-w-2xl py-12">
-                        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-indigo-100">
+                        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm">
                             <LockKeyhole size={16} />
                             Secure access to your CRM workspace
                         </div>
-                        <h1 className="text-4xl font-bold leading-tight tracking-[-0.03em] xl:text-5xl">
+                        <h1 className="text-4xl font-bold leading-tight tracking-[-0.03em] text-slate-950 xl:text-5xl">
                             Welcome back to smarter customer relationship management.
                         </h1>
-                        <p className="mt-6 max-w-xl text-base leading-7 text-slate-300 xl:text-lg">
+                        <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 xl:text-lg">
                             Sign in to manage your sales pipeline, customer conversations, follow-ups, quotations, orders, and business performance.
                         </p>
                         <div className="mt-9 space-y-5">
@@ -147,10 +146,10 @@ const Signin = () => {
                                 const Icon = benefit.icon;
                                 return (
                                     <div key={benefit.text} className="flex items-center gap-4">
-                                        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-indigo-200">
+                                        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-indigo-100 bg-white text-indigo-600 shadow-sm">
                                             <Icon size={20} />
                                         </span>
-                                        <span className="text-sm font-medium text-slate-200">{benefit.text}</span>
+                                        <span className="text-sm font-semibold text-slate-700">{benefit.text}</span>
                                     </div>
                                 );
                             })}
@@ -160,7 +159,7 @@ const Signin = () => {
                     <p className="text-xs text-slate-500">Cresco Software Solutions. Connected teams. Better customer experiences.</p>
                 </section>
 
-                <section className="flex min-h-screen items-center justify-center bg-slate-50 px-5 py-10 sm:px-8 lg:rounded-l-[40px] lg:px-12">
+                <section className="flex min-h-screen items-center justify-center bg-white/70 px-5 py-10 sm:px-8 lg:px-12">
                     <div className="w-full max-w-[480px]">
                         <div className="mb-8 flex items-center justify-between lg:hidden">
                             <Link to="/marketing-website" className="rounded-xl bg-white px-3 py-2 shadow-sm">
@@ -172,7 +171,7 @@ const Signin = () => {
                             </Link>
                         </div>
 
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-200/70 sm:p-9">
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-blue-100/70 sm:p-9">
                             <div>
                                 <p className="text-sm font-bold uppercase tracking-[0.18em] text-indigo-600">Welcome back</p>
                                 <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">Sign in to CRESCO</h2>
