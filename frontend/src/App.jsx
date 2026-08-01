@@ -138,7 +138,7 @@ import Prefix from "./routes/master/Prefix";
 import BankDetails from "./routes/master/bankdetailsAndQRCode/BankDetails";
 import AddBankAccount from "./routes/master/bankdetailsAndQRCode/AddBankAccount";
 import EditBankAccount from "./routes/master/bankdetailsAndQRCode/EditBankAccount";
-import TawkToWidget from "./TawkToWidget";
+
 import TAndCAndDec from "./routes/master/TAndCAndDec";
 import { isSuperProviderUser } from "./utils/businessSuite";
 
@@ -1091,7 +1091,7 @@ function App() {
         <Provider store={store}>
             <BrowserRouter>
                 <AppRoutes />
-                <TawkToWidget />
+
             </BrowserRouter>
             <ToastContainer autoClose={3000} />
         </Provider>
