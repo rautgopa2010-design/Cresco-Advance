@@ -408,10 +408,22 @@ const ProspectingWorkspace = () => {
                 <div className="space-y-5">
                     <StatusBanner summary={summary} />
                     <div className="grid gap-4 md:grid-cols-4">
-                        <StatCard label="Research left" value={remaining.research} icon={FileSearch} />
-                        <StatCard label="Verified left" value={remaining.verified} icon={ShieldCheck} tone="emerald" />
-                        <StatCard label="Provider credits" value={remaining.credits} icon={Database} tone="violet" />
-                        <StatCard label="AI tokens" value={remaining.tokens} icon={Activity} tone="amber" />
+                        <StatCard label="Research requests" value={summary.dashboard?.researchRequests || 0} icon={FileSearch} />
+                        <StatCard label="Prospects found" value={summary.dashboard?.prospectsFound || 0} icon={ShieldCheck} tone="emerald" />
+                        <StatCard label="Approval queue" value={summary.dashboard?.approvalQueue || 0} icon={Database} tone="violet" />
+                        <StatCard label="Enquiries created" value={summary.dashboard?.enquiriesCreated || 0} icon={Activity} tone="amber" />
+                        <StatCard label="Verified prospects" value={summary.dashboard?.verifiedProspects || 0} icon={ShieldCheck} tone="emerald" />
+                        <StatCard label="Approved prospects" value={summary.dashboard?.approvedProspects || 0} icon={CheckCircle2} tone="blue" />
+                        <StatCard label="Rejected prospects" value={summary.dashboard?.rejectedProspects || 0} icon={AlertTriangle} tone="amber" />
+                        <StatCard label="Duplicates prevented" value={summary.dashboard?.duplicatesPrevented || 0} icon={Database} tone="violet" />
+                        <StatCard label="Average score" value={summary.dashboard?.averageScore || 0} icon={Activity} />
+                        <StatCard label="Conversion rate" value={`${summary.dashboard?.conversionRate || 0}%`} icon={CheckCircle2} tone="emerald" />
+                        <StatCard label="Cresco credits left" value={summary.dashboard?.creditsRemaining?.crescosoft ?? remaining.verified} icon={ShieldCheck} tone="violet" />
+                        <StatCard label="Provider credits left" value={summary.dashboard?.creditsRemaining?.provider ?? remaining.credits} icon={Database} tone="amber" />
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-600">
+                        <p>Credits used: Crescosoft {summary.dashboard?.creditsUsed?.crescosoft || 0}, provider charged {summary.dashboard?.creditsUsed?.provider || 0}, provider cost incurred {summary.dashboard?.creditsUsed?.providerCost || 0}.</p>
+                        <p className="mt-1">Reset or renewal date: {summary.dashboard?.resetOrRenewalDate ? new Date(summary.dashboard.resetOrRenewalDate).toLocaleDateString() : "-"}</p>
                     </div>
                 </div>
             );

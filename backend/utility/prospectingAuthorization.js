@@ -92,7 +92,23 @@ const getUsageTotals = async (org_id) => {
       acc[row.entryType] = (acc[row.entryType] || 0) + Number(row.quantity || 0) * multiplier;
       return acc;
     },
-    { research: 0, verified_prospect: 0, provider_credit: 0, ai_token: 0 }
+    {
+      research: 0,
+      verified_prospect: 0,
+      provider_credit: 0,
+      ai_token: 0,
+      companies_searched: 0,
+      people_searched: 0,
+      enrichments: 0,
+      emails_unlocked: 0,
+      phones_unlocked: 0,
+      ai_summary: 0,
+      approved_prospect: 0,
+      enquiry: 0,
+      provider_cost: 0,
+      cresco_credit: 0,
+      duplicate_prevented: 0,
+    }
   );
 };
 

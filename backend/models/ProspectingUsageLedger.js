@@ -8,10 +8,7 @@ module.exports = (sequelize, DataTypes) => {
       org_id: { type: DataTypes.INTEGER, allowNull: false },
       user_id: { type: DataTypes.INTEGER, allowNull: true },
       requestId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
-      entryType: {
-        type: DataTypes.ENUM("research", "verified_prospect", "provider_credit", "ai_token", "extra_credit"),
-        allowNull: false,
-      },
+      entryType: { type: DataTypes.STRING, allowNull: false },
       quantity: { type: DataTypes.INTEGER, allowNull: false },
       direction: {
         type: DataTypes.ENUM("debit", "credit"),

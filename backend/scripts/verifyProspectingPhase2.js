@@ -165,6 +165,12 @@ const putEntitlement = (api, status, limits = {}) =>
   const detailed = res.data.prospects.find((item) => item.id === prospectId);
   must(detailed?.evidence?.length && detailed?.approvalHistory?.some((item) => item.action === "created_enquiry"), "approval queue details or audit history missing");
 
+  res = await orgApi.get("/prospecting/summary");
+  must(res.status === 200 && res.data.dashboard?.researchRequests >= 1, "dashboard research metrics missing");
+  must(res.data.dashboard?.enquiriesCreated >= 1, "dashboard enquiry metric missing");
+  must(res.data.dashboard?.creditsUsed?.providerCost >= 1, "provider cost tracking missing");
+  must(res.data.dashboard?.creditsUsed?.crescosoft >= 1, "Crescosoft credit tracking missing");
+
   res = await orgApi.post("/prospecting/research/estimate", {
     researchName: "Phase 4 duplicate verification research",
     targetLocation: "India",
@@ -187,6 +193,9 @@ const putEntitlement = (api, status, limits = {}) =>
 
   res = await orgApi.post(`/prospecting/prospects/${duplicateProspect.id}/approve`);
   must(res.status >= 400, "duplicate prospect should not be approvable");
+
+  res = await orgApi.get("/prospecting/summary");
+  must(res.data.dashboard?.duplicatesPrevented >= 1, "duplicates prevented dashboard metric missing");
 
   res = await putEntitlement(providerApi, "expired");
   must(res.status < 300, "expired entitlement failed");

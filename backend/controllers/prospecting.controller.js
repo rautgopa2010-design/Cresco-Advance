@@ -9,6 +9,7 @@ const {
 const {
   estimateResearchCost,
   executeConfirmedResearch,
+  writeLedger,
 } = require("../utility/prospectingOrchestrator");
 const {
   encryptCredentialPayload,
@@ -115,6 +116,44 @@ const validateProspectForApproval = (prospect) => {
   return missingMandatoryFields(prospect);
 };
 
+const buildDashboard = async (org_id, usage, limits, entitlement) => {
+  const [requests, prospects] = await Promise.all([
+    db.prospectingResearchRequest.findAll({ where: { org_id }, attributes: ["id", "status", "completedAt", "createdAt"] }),
+    db.prospectingProspect.findAll({ where: { org_id }, attributes: ["id", "status", "verificationStatus", "score", "enquiryId"] }),
+  ]);
+  const prospectsFound = prospects.length;
+  const verifiedProspects = prospects.filter((item) => reviewableVerificationStatuses.includes(item.verificationStatus)).length;
+  const approvedProspects = prospects.filter((item) => ["approved", "enquiry_created"].includes(item.status)).length;
+  const rejectedProspects = prospects.filter((item) => item.status === "rejected").length;
+  const enquiriesCreated = prospects.filter((item) => item.enquiryId).length;
+  const totalScore = prospects.reduce((sum, item) => sum + Number(item.score || 0), 0);
+  const renewalDate = entitlement?.expiresAt || entitlement?.updatedAt || null;
+
+  return {
+    researchRequests: requests.length,
+    prospectsFound,
+    verifiedProspects,
+    approvalQueue: prospects.filter((item) => item.status === "review").length,
+    approvedProspects,
+    rejectedProspects,
+    enquiriesCreated,
+    duplicatesPrevented: Number(usage.duplicate_prevented || 0),
+    averageScore: prospectsFound ? Math.round(totalScore / prospectsFound) : 0,
+    conversionRate: approvedProspects ? Math.round((enquiriesCreated / approvedProspects) * 100) : 0,
+    creditsUsed: {
+      crescosoft: Number(usage.cresco_credit || usage.verified_prospect || 0),
+      provider: Number(usage.provider_credit || 0),
+      providerCost: Number(usage.provider_cost || 0),
+    },
+    creditsRemaining: {
+      crescosoft: Math.max(Number(limits.verified_prospect || 0) - Number(usage.verified_prospect || 0), 0),
+      provider: Math.max(Number(limits.provider_credit || 0) - Number(usage.provider_credit || 0), 0),
+      research: Math.max(Number(limits.research || 0) - Number(usage.research || 0), 0),
+    },
+    resetOrRenewalDate: renewalDate,
+  };
+};
+
 exports.getSummary = async (req, res) => {
   try {
     await ensureProspectingModuleForOrg(req.user.org_id);
@@ -130,6 +169,7 @@ exports.getSummary = async (req, res) => {
       usage: state.usage,
       limits: state.limits,
       settings,
+      dashboard: await buildDashboard(req.user.org_id, state.usage, state.limits, state.entitlement),
     });
   } catch (error) {
     console.error("Get prospecting summary error:", error);
@@ -499,6 +539,16 @@ exports.approveProspect = async (req, res) => {
       notes: clean(req.body.notes) || null,
       metadata: { missingMandatoryFields: missing, bulk: false },
     });
+    await writeLedger({
+      org_id: req.user.org_id,
+      user_id: req.user.id,
+      requestId: prospect.requestId,
+      entryType: "approved_prospect",
+      quantity: 1,
+      lifecycle: "consumed",
+      reason: "phase6_approved_prospect",
+      idempotencyKey: `approved_prospect:${prospect.id}`,
+    });
     await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.approved", entityType: "prospecting_prospect", entityId: prospect.id });
 
     res.json({ message: "Prospect approved.", prospect });
@@ -612,6 +662,16 @@ exports.createEnquiryFromProspect = async (req, res) => {
         notes: clean(req.body.notes) || null,
         metadata: { idempotencyKey, enquiryId: enquiry.id, mappedFields: Object.keys(payload), aiDraftsCreated: true },
       }, { transaction });
+      await writeLedger({
+        org_id: req.user.org_id,
+        user_id: req.user.id,
+        requestId: prospect.requestId,
+        entryType: "enquiry",
+        quantity: 1,
+        lifecycle: "consumed",
+        reason: "phase6_enquiry_created",
+        idempotencyKey: `enquiry:${prospect.id}:${enquiry.id}`,
+      });
       return { enquiry, prospect, reused: false, aiGeneratedDrafts };
     });
 
@@ -736,6 +796,16 @@ exports.bulkApproveProspects = async (req, res) => {
         action: "bulk_approved",
         notes: clean(req.body.notes) || null,
         metadata: { bulk: true },
+      });
+      await writeLedger({
+        org_id: req.user.org_id,
+        user_id: req.user.id,
+        requestId: prospect.requestId,
+        entryType: "approved_prospect",
+        quantity: 1,
+        lifecycle: "consumed",
+        reason: "phase6_bulk_approved_prospect",
+        idempotencyKey: `approved_prospect:${prospect.id}`,
       });
       approved.push(prospect.id);
     }
