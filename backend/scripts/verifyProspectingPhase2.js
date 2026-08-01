@@ -1,6 +1,9 @@
 require("dotenv").config();
 
 const axios = require("axios");
+const ApolloProvider = require("../utility/prospectingProviders/ApolloProvider");
+const MockProspectProvider = require("../utility/prospectingProviders/MockProspectProvider");
+const { BaseProspectProvider } = require("../utility/prospectingProviders/BaseProspectProvider");
 
 const baseURL = process.env.PHASE2_VERIFY_BASE_URL || "https://staging.crescosoftcrm.com/api";
 const providerEmail = process.env.PHASE2_PROVIDER_EMAIL;
@@ -37,12 +40,37 @@ const putEntitlement = (api, status, limits = {}) =>
     verifiedProspectLimit: limits.verifiedProspectLimit ?? 10,
     providerCreditLimit: limits.providerCreditLimit ?? 10,
     aiTokenLimit: limits.aiTokenLimit ?? 0,
-    supportedProviders: ["phase2-test-provider"],
+    supportedProviders: ["phase3-mock-provider"],
     allowOrgOwnedProviderAccounts: false,
   });
 
 (async () => {
   must(providerEmail && providerPassword && orgEmail && orgPassword, "Set PHASE2 provider/org credentials in the environment.");
+
+  const apolloWithoutCredentials = new ApolloProvider();
+  try {
+    await apolloWithoutCredentials.validateConnection();
+    throw new Error("Apollo validation should fail without credentials");
+  } catch (error) {
+    must(error.code === "MISSING_CREDENTIALS", "provider failure handling failed");
+  }
+
+  const baseProvider = new BaseProspectProvider();
+  try {
+    baseProvider.handleRateLimit({ response: { status: 429, headers: { "retry-after": "7" } } });
+    throw new Error("Rate limit handling should throw");
+  } catch (error) {
+    must(error.code === "RATE_LIMITED" && error.retryAfterSeconds === 7, "rate limit handling failed");
+  }
+
+  const mockProvider = new MockProspectProvider({ providerCode: "phase3-mock-provider" });
+  const normalized = mockProvider.normalizeResult({
+    company: { name: "TEST DATA - Normalize Co", industry: "CRM", website: "https://normalize.example.invalid", rawProviderPayload: { secret: "raw" } },
+    person: { name: "TEST DATA - Buyer", title: "Founder", email: "normalize@example.invalid", phone: "9000000000", verified: true, rawProviderPayload: { secret: "raw" } },
+    criteria: { minimumScore: 70 },
+    evidence: [{ type: "intent", value: "TEST DATA - signal", confidence: 80 }],
+  });
+  must(!JSON.stringify(normalized).includes("rawProviderPayload"), "provider-specific raw payload leaked from adapter");
 
   const providerToken = await signin(providerEmail, providerPassword);
   const orgToken = await signin(orgEmail, orgPassword);
@@ -50,13 +78,18 @@ const putEntitlement = (api, status, limits = {}) =>
   const orgApi = client(orgToken);
 
   let res = await providerApi.post("/provider/prospecting/provider-connections", {
-    providerCode: "phase2-test-provider",
-    displayName: "Phase 2 Test Provider",
+    providerCode: "phase3-mock-provider",
+    displayName: "Phase 3 Mock/Test Provider",
     credentialStatus: "configured",
     healthStatus: "healthy",
     isEnabled: true,
+    credentials: { apiKey: "staging-secret-should-not-be-returned" },
   });
   must(res.status < 300, `provider connection failed: ${res.status}`);
+  must(!JSON.stringify(res.data).includes("staging-secret-should-not-be-returned"), "provider secret leaked in response");
+
+  res = await providerApi.post("/provider/prospecting/provider-connections/phase3-mock-provider/validate");
+  must(res.status === 200 && res.data.validation?.ok, "provider validation failed");
 
   res = await putEntitlement(providerApi, "trial", { researchLimit: 100, verifiedProspectLimit: 300, providerCreditLimit: 300 });
   must(res.status < 300, `trial entitlement failed: ${res.status}`);
@@ -64,12 +97,23 @@ const putEntitlement = (api, status, limits = {}) =>
   res = await orgApi.get("/prospecting/summary");
   must(res.status === 200 && res.data.canResearch === true, "active entitlement summary failed");
 
-  res = await orgApi.post("/prospecting/research", {
-    title: "Phase 2 verification research",
-    criteria: { industry: "CRM Services", region: "India" },
-    providers: ["phase2-test-provider"],
+  res = await orgApi.post("/prospecting/research/estimate", {
+    researchName: "Phase 3 verification research",
+    targetLocation: "India",
+    industry: "CRM Services",
+    companySize: "10-200 employees",
+    productFocus: "CRM",
+    numberOfProspects: 3,
+    jobRoles: "Founder, Sales Head",
+    minimumScore: 70,
+    preferredProvider: "phase3-mock-provider",
+    naturalLanguageInstructions: "Find high-fit CRM prospects and estimate before spending.",
   });
-  must(res.status === 201 && res.data.prospects?.every((item) => item.companyName.startsWith("TEST DATA -")), "mock research failed");
+  must(res.status === 201 && res.data.estimate?.requiresConfirmation, "cost estimate failed");
+  const requestId = res.data.request.id;
+
+  res = await orgApi.post(`/prospecting/research/${requestId}/confirm`);
+  must(res.status === 201 && res.data.prospects?.every((item) => item.companyName.startsWith("TEST DATA -")), "confirmed mock research failed");
 
   const prospectId = res.data.prospects[0].id;
   res = await orgApi.post(`/prospecting/prospects/${prospectId}/approve`);
@@ -84,27 +128,27 @@ const putEntitlement = (api, status, limits = {}) =>
   res = await orgApi.get("/prospecting/prospects");
   must(res.status === 200, "historical prospects should remain viewable after expiry");
 
-  res = await orgApi.post("/prospecting/research", {
+  res = await orgApi.post("/prospecting/research/estimate", {
     title: "Blocked expired research",
-    criteria: { industry: "CRM Services" },
-    providers: ["phase2-test-provider"],
+    industry: "CRM Services",
+    preferredProvider: "phase3-mock-provider",
   });
   must(res.status === 403, "expired research should be blocked");
 
   res = await putEntitlement(providerApi, "trial", { researchLimit: 1, verifiedProspectLimit: 1, providerCreditLimit: 1 });
   must(res.status < 300, "exhausted entitlement failed");
 
-  res = await orgApi.post("/prospecting/research", {
+  res = await orgApi.post("/prospecting/research/estimate", {
     title: "Blocked exhausted research",
-    criteria: { industry: "CRM Services" },
-    providers: ["phase2-test-provider"],
+    industry: "CRM Services",
+    preferredProvider: "phase3-mock-provider",
   });
   must(res.status === 429, "exhausted research should be blocked");
 
   res = await putEntitlement(providerApi, "trial", { researchLimit: 100, verifiedProspectLimit: 300, providerCreditLimit: 300 });
   must(res.status < 300, "reset entitlement failed");
 
-  console.log("Phase 2 prospecting verification passed.");
+  console.log("Phase 3 prospecting verification passed.");
 })().catch((error) => {
   console.error(error.message);
   process.exit(1);

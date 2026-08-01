@@ -12,7 +12,7 @@ const defaultPlan = {
     verifiedProspectLimit: 15,
     providerCreditLimit: 15,
     aiTokenLimit: 0,
-    supportedProviders: ["phase2-test-provider"],
+    supportedProviders: ["phase3-mock-provider"],
     allowOrgOwnedProviderAccounts: false,
 };
 
@@ -27,15 +27,16 @@ const ProviderProspecting = () => {
         providerCreditLimit: 15,
         aiTokenLimit: 0,
         extraCreditPacks: 0,
-        supportedProviders: ["phase2-test-provider"],
+        supportedProviders: ["phase3-mock-provider"],
         allowOrgOwnedProviderAccounts: false,
     });
     const [providerForm, setProviderForm] = useState({
-        providerCode: "phase2-test-provider",
-        displayName: "Phase 2 Test Provider",
+        providerCode: "phase3-mock-provider",
+        displayName: "Phase 3 Mock/Test Provider",
         credentialStatus: "configured",
         healthStatus: "healthy",
         isEnabled: true,
+        credentialJson: "",
     });
 
     const loadOverview = async () => {
@@ -71,7 +72,12 @@ const ProviderProspecting = () => {
 
     const saveProviderConnection = async () => {
         try {
-            await api.post("/provider/prospecting/provider-connections", providerForm);
+            const payload = { ...providerForm };
+            if (payload.credentialJson?.trim()) {
+                payload.credentials = JSON.parse(payload.credentialJson);
+            }
+            delete payload.credentialJson;
+            await api.post("/provider/prospecting/provider-connections", payload);
             toast.success("Provider connection saved.");
             loadOverview();
         } catch (error) {
@@ -157,6 +163,17 @@ const ProviderProspecting = () => {
                     <div className="space-y-3">
                         {field(providerForm, setProviderForm, "providerCode")}
                         {field(providerForm, setProviderForm, "displayName")}
+                        <label className="text-sm font-bold text-slate-700">
+                            credentials JSON
+                            <textarea
+                                value={providerForm.credentialJson}
+                                onChange={(event) => setProviderForm((prev) => ({ ...prev, credentialJson: event.target.value }))}
+                                rows={3}
+                                placeholder='{"apiKey":"staging-test-key"}'
+                                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500"
+                            />
+                            <span className="mt-1 block text-xs font-semibold text-slate-500">Secrets are encrypted on the backend and are never returned.</span>
+                        </label>
                         <label className="flex items-center gap-3 text-sm font-bold text-slate-700">
                             <input type="checkbox" checked={providerForm.isEnabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, isEnabled: event.target.checked }))} />
                             Enabled for plans

@@ -8,6 +8,11 @@ const {
   getEntitlementState,
   writeAudit,
 } = require("../utility/prospectingAuthorization");
+const {
+  encryptCredentialPayload,
+  fingerprintCredentialPayload,
+} = require("../utility/prospectingCredentials");
+const { createProvider } = require("../utility/prospectingProviders/providerRegistry");
 
 const clean = (value) => String(value || "").trim();
 const asArray = (value) => (Array.isArray(value) ? value : []);
@@ -45,7 +50,10 @@ exports.getOverview = async (req, res) => {
 
     const usageRows = await db.prospectingUsageLedger.findAll({
       attributes: ["org_id", "entryType", "direction", "quantity"],
-      where: { org_id: { [Op.in]: entitlements.map((item) => item.org_id) } },
+      where: {
+        org_id: { [Op.in]: entitlements.map((item) => item.org_id) },
+        lifecycle: { [Op.in]: ["consumed", "released", "refunded"] },
+      },
     });
 
     const aggregateUsage = usageRows.reduce(
@@ -197,19 +205,52 @@ exports.upsertProviderConnection = async (req, res) => {
     const providerCode = clean(req.body.providerCode).toLowerCase();
     if (!providerCode) return sendErrorResponse(res, 400, "Provider code is required.");
 
-    const [connection] = await db.prospectingProviderConnection.upsert({
-      id: req.body.id || undefined,
+    let credentialRef = clean(req.body.credentialRef) || null;
+    let credentialStatus = req.body.credentialStatus || "not_configured";
+
+    if (req.body.credentials && Object.keys(req.body.credentials).length) {
+      const encryptedPayload = encryptCredentialPayload(req.body.credentials);
+      const secretFingerprint = fingerprintCredentialPayload(req.body.credentials);
+      let credential = await db.prospectingProviderCredential.findOne({
+        where: { providerOrgId: req.user.org_id, org_id: null, providerCode, accountType: "platform" },
+      });
+      if (credential) {
+        await credential.update({ encryptedPayload, secretFingerprint, status: "active" });
+      } else {
+        credential = await db.prospectingProviderCredential.create({
+          providerOrgId: req.user.org_id,
+          org_id: null,
+          providerCode,
+          accountType: "platform",
+          encryptedPayload,
+          secretFingerprint,
+          status: "active",
+        });
+      }
+      credentialRef = `credential:${credential?.id || providerCode}`;
+      credentialStatus = "configured";
+    }
+
+    const connectionPayload = {
       providerOrgId: req.user.org_id,
       org_id: null,
       providerCode,
       accountType: "platform",
       displayName: clean(req.body.displayName) || providerCode,
-      credentialStatus: req.body.credentialStatus || "not_configured",
-      credentialRef: clean(req.body.credentialRef) || null,
+      credentialStatus,
+      credentialRef,
       healthStatus: req.body.healthStatus || "unknown",
       isEnabled: !!req.body.isEnabled,
       metadata: req.body.metadata || null,
-    });
+    };
+    let connection = req.body.id
+      ? await db.prospectingProviderConnection.findOne({ where: { id: req.body.id, providerOrgId: req.user.org_id } })
+      : await db.prospectingProviderConnection.findOne({ where: { providerOrgId: req.user.org_id, org_id: null, providerCode, accountType: "platform" } });
+    if (connection) {
+      await connection.update(connectionPayload);
+    } else {
+      connection = await db.prospectingProviderConnection.create(connectionPayload);
+    }
 
     await writeAudit({
       req,
@@ -217,13 +258,51 @@ exports.upsertProviderConnection = async (req, res) => {
       action: "prospecting.provider_connection.updated",
       entityType: "prospecting_provider_connection",
       entityId: connection?.id || providerCode,
-      metadata: { providerCode, liveProviderIntegrated: false },
+      metadata: { providerCode, liveProviderIntegrated: false, credentialsStored: credentialStatus === "configured" },
     });
 
-    res.json({ message: "Provider connection saved. Live provider integration is disabled in Phase 2.", connection });
+    res.json({
+      message: "Provider connection saved. Secrets are stored encrypted and are never returned.",
+      connection: {
+        ...(connection?.toJSON?.() || {}),
+        credentialRef: credentialRef ? "configured" : null,
+      },
+    });
   } catch (error) {
     console.error("Upsert prospecting provider connection error:", error);
     return sendErrorResponse(res, 500, "Failed to save provider connection.");
+  }
+};
+
+exports.validateProviderConnection = async (req, res) => {
+  if (!requireProvider(req, res)) return;
+
+  const providerCode = clean(req.params.providerCode).toLowerCase();
+  try {
+    const provider = await createProvider({
+      providerCode,
+      providerOrgId: req.user.org_id,
+      org_id: null,
+      accountType: "platform",
+    });
+    const validation = await provider.validateConnection();
+    const health = await provider.healthCheck();
+
+    await db.prospectingProviderConnection.update(
+      {
+        healthStatus: health.status === "healthy" ? "healthy" : "degraded",
+        lastHealthCheckAt: new Date(),
+      },
+      { where: { providerOrgId: req.user.org_id, providerCode, org_id: null } }
+    );
+
+    res.json({ validation, health });
+  } catch (error) {
+    await db.prospectingProviderConnection.update(
+      { healthStatus: error.code === "RATE_LIMITED" ? "degraded" : "down", lastHealthCheckAt: new Date() },
+      { where: { providerOrgId: req.user.org_id, providerCode, org_id: null } }
+    );
+    return sendErrorResponse(res, error.code === "RATE_LIMITED" ? 429 : 400, error.message || "Provider validation failed.");
   }
 };
 

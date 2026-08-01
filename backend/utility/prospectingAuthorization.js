@@ -80,7 +80,12 @@ const getEntitlement = async (org_id) =>
   });
 
 const getUsageTotals = async (org_id) => {
-  const rows = await db.prospectingUsageLedger.findAll({ where: { org_id } });
+  const rows = await db.prospectingUsageLedger.findAll({
+    where: {
+      org_id,
+      lifecycle: { [Op.in]: ["consumed", "released", "refunded"] },
+    },
+  });
   return rows.reduce(
     (acc, row) => {
       const multiplier = row.direction === "credit" ? -1 : 1;

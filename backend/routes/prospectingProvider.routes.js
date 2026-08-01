@@ -9,5 +9,6 @@ router.post("/orgs/:orgId/suspend", auth, controller.suspendOrg);
 router.get("/orgs/:orgId/usage", auth, controller.getOrgAggregateUsage);
 router.post("/orgs/:orgId/permissions", auth, controller.seedPermissionsForOrg);
 router.post("/provider-connections", auth, controller.upsertProviderConnection);
+router.post("/provider-connections/:providerCode/validate", auth, controller.validateProviderConnection);
 
 module.exports = router;

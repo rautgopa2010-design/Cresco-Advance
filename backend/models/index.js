@@ -86,6 +86,7 @@ db.prospectingPlan = require("./ProspectingPlan")(sequelize, Sequelize);
 db.prospectingEntitlement = require("./ProspectingEntitlement")(sequelize, Sequelize);
 db.prospectingOrgSetting = require("./ProspectingOrgSetting")(sequelize, Sequelize);
 db.prospectingProviderConnection = require("./ProspectingProviderConnection")(sequelize, Sequelize);
+db.prospectingProviderCredential = require("./ProspectingProviderCredential")(sequelize, Sequelize);
 db.prospectingResearchRequest = require("./ProspectingResearchRequest")(sequelize, Sequelize);
 db.prospectingProspect = require("./ProspectingProspect")(sequelize, Sequelize);
 db.prospectingEvidence = require("./ProspectingEvidence")(sequelize, Sequelize);

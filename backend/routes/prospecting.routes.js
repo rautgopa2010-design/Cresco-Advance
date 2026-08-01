@@ -5,12 +5,21 @@ const controller = require("../controllers/prospecting.controller");
 
 router.get("/summary", auth, prospectingAccess("prospect_agent.view"), controller.getSummary);
 router.put("/settings", auth, prospectingAccess("prospect_agent.configure"), controller.updateSettings);
+router.post("/provider-connections", auth, prospectingAccess("prospect_agent.configure"), controller.upsertOrgProviderConnection);
+router.post("/provider-connections/:providerCode/validate", auth, prospectingAccess("prospect_agent.configure"), controller.validateOrgProviderConnection);
 router.post(
-  "/research",
+  "/research/estimate",
   auth,
   prospectingAccess("prospect_agent.research", { requireResearchCapacity: true }),
-  controller.createResearchRequest
+  controller.estimateResearchRequest
 );
+router.post(
+  "/research/:id/confirm",
+  auth,
+  prospectingAccess("prospect_agent.research", { requireResearchCapacity: true }),
+  controller.confirmResearchRequest
+);
+router.post("/research/:id/cancel", auth, prospectingAccess("prospect_agent.research"), controller.cancelResearchRequest);
 router.get("/requests", auth, prospectingAccess("prospect_agent.view"), controller.getRequests);
 router.get("/prospects", auth, prospectingAccess("prospect_agent.review"), controller.getProspects);
 router.get("/prospects/:id/evidence", auth, prospectingAccess("prospect_agent.review"), controller.getProspectEvidence);

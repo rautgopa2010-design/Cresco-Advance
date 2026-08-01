@@ -7,6 +7,7 @@ import {
     Database,
     FileSearch,
     Plus,
+    RefreshCw,
     ShieldCheck,
 } from "lucide-react";
 import { toast } from "react-toastify";
@@ -48,7 +49,7 @@ const StatusBanner = ({ summary }) => {
     if (summary.active && !summary.exhausted) {
         return (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
-                AI Prospecting is active. Live provider integration is disabled in Phase 2; new research creates TEST DATA only.
+                AI Prospecting is active. Phase 3 uses provider adapters and requires cost confirmation before credits are consumed.
             </div>
         );
     }
@@ -75,11 +76,27 @@ const ProspectingWorkspace = () => {
     const [auditLogs, setAuditLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [researchForm, setResearchForm] = useState({
-        title: "Phase 2 test research",
+        researchName: "Phase 3 test research",
+        targetLocation: "India",
         industry: "CRM Services",
-        region: "India",
         companySize: "10-200 employees",
+        revenueRange: "Not specified",
+        productFocus: "CRM",
+        numberOfProspects: 3,
+        jobRoles: "Founder, Sales Head, Operations Head",
+        seniority: "Senior",
+        keywords: "CRM automation, lead management",
+        technologies: "CRM, HRMS",
+        buyingSignals: "Hiring sales team, evaluating CRM",
+        hiringSignals: "Sales hiring",
+        excludedIndustries: "Gambling, Adult",
+        excludedCompanies: "",
+        minimumScore: 70,
+        preferredProvider: "phase3-mock-provider",
+        naturalLanguageInstructions: "Find Indian B2B companies likely to need CRM or HRMS software. Keep only high-fit decision makers.",
     });
+    const [pendingEstimate, setPendingEstimate] = useState(null);
+    const [confirming, setConfirming] = useState(false);
     const [settingsForm, setSettingsForm] = useState({
         idealCustomerProfile: {
             industries: "CRM, HRMS, SaaS",
@@ -138,22 +155,36 @@ const ProspectingWorkspace = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const runResearch = async () => {
+    const estimateResearch = async () => {
         try {
-            await api.post("/prospecting/research", {
-                title: researchForm.title,
-                criteria: {
-                    industry: researchForm.industry,
-                    region: researchForm.region,
-                    companySize: researchForm.companySize,
-                },
-                providers: settingsForm.selectedProviders,
+            const res = await api.post("/prospecting/research/estimate", {
+                ...researchForm,
+                jobRoles: researchForm.jobRoles,
+                technologies: researchForm.technologies,
+                buyingSignals: researchForm.buyingSignals,
+                excludedIndustries: researchForm.excludedIndustries,
+                excludedCompanies: researchForm.excludedCompanies,
             });
-            toast.success("Phase 2 test research created.");
+            setPendingEstimate(res.data);
+            toast.success("Cost estimated. Confirm before credits are consumed.");
+        } catch (error) {
+            toast.error(getError(error, "Could not estimate research."));
+        }
+    };
+
+    const confirmResearch = async () => {
+        if (!pendingEstimate?.request?.id) return;
+        setConfirming(true);
+        try {
+            await api.post(`/prospecting/research/${pendingEstimate.request.id}/confirm`);
+            toast.success("Research confirmed and sent for review.");
+            setPendingEstimate(null);
             setActiveTab("Results");
             loadData();
         } catch (error) {
-            toast.error(getError(error, "Could not create research."));
+            toast.error(getError(error, "Could not confirm research."));
+        } finally {
+            setConfirming(false);
         }
     };
 
@@ -250,21 +281,84 @@ const ProspectingWorkspace = () => {
             return (
                 <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                     <StatusBanner summary={summary} />
-                    <div className="mt-5 grid gap-4 md:grid-cols-2">
-                        {["title", "industry", "region", "companySize"].map((field) => (
+                    <div className="mt-5 grid gap-4 md:grid-cols-3">
+                        {[
+                            ["researchName", "Research name"],
+                            ["targetLocation", "Target location"],
+                            ["industry", "Industry"],
+                            ["companySize", "Company size"],
+                            ["revenueRange", "Revenue range"],
+                            ["numberOfProspects", "Number of prospects"],
+                            ["jobRoles", "Job roles"],
+                            ["seniority", "Seniority"],
+                            ["keywords", "Keywords"],
+                            ["technologies", "Technologies"],
+                            ["buyingSignals", "Buying signals"],
+                            ["hiringSignals", "Hiring signals"],
+                            ["excludedIndustries", "Excluded industries"],
+                            ["excludedCompanies", "Excluded companies"],
+                            ["minimumScore", "Minimum score"],
+                            ["preferredProvider", "Preferred provider"],
+                        ].map(([field, label]) => (
                             <label key={field} className="text-sm font-bold text-slate-700">
-                                {field === "companySize" ? "Company Size" : field.charAt(0).toUpperCase() + field.slice(1)}
+                                {label}
                                 <input
+                                    type={["numberOfProspects", "minimumScore"].includes(field) ? "number" : "text"}
                                     value={researchForm[field]}
                                     onChange={(event) => setResearchForm((prev) => ({ ...prev, [field]: event.target.value }))}
                                     className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500"
                                 />
                             </label>
                         ))}
+                        <label className="text-sm font-bold text-slate-700">
+                            CRM, HRMS or Both
+                            <select
+                                value={researchForm.productFocus}
+                                onChange={(event) => setResearchForm((prev) => ({ ...prev, productFocus: event.target.value }))}
+                                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500"
+                            >
+                                <option value="CRM">CRM</option>
+                                <option value="HRMS">HRMS</option>
+                                <option value="Both">Both</option>
+                            </select>
+                        </label>
+                        <label className="md:col-span-3 text-sm font-bold text-slate-700">
+                            Natural-language instructions
+                            <textarea
+                                value={researchForm.naturalLanguageInstructions}
+                                onChange={(event) => setResearchForm((prev) => ({ ...prev, naturalLanguageInstructions: event.target.value }))}
+                                rows={3}
+                                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500"
+                            />
+                        </label>
                     </div>
-                    <button type="button" disabled={!summary.canResearch} onClick={runResearch} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300">
-                        <Plus size={16} /> Run Phase 2 Test Research
+                    <button type="button" disabled={!summary.canResearch} onClick={estimateResearch} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300">
+                        <RefreshCw size={16} /> Estimate Cost
                     </button>
+                    {pendingEstimate && (
+                        <div className="mt-5 rounded-lg border border-blue-200 bg-blue-50 p-5">
+                            <div className="flex flex-wrap items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-xs font-black uppercase tracking-wider text-blue-600">Cost Confirmation</p>
+                                    <h3 className="mt-1 text-xl font-black text-slate-950">{pendingEstimate.request?.title}</h3>
+                                    <div className="mt-3 grid gap-3 text-sm font-semibold text-slate-700 md:grid-cols-2">
+                                        <p>Provider: <span className="font-black">{pendingEstimate.estimate?.provider}</span></p>
+                                        <p>Requested records: <span className="font-black">{pendingEstimate.estimate?.requestedRecords}</span></p>
+                                        <p>Estimated provider credits: <span className="font-black">{pendingEstimate.estimate?.estimatedProviderCredits}</span></p>
+                                        <p>Estimated Crescosoft credits: <span className="font-black">{pendingEstimate.estimate?.estimatedCrescoCredits}</span></p>
+                                        <p>Maximum estimated charge: <span className="font-black">{pendingEstimate.estimate?.maximumEstimatedCharge}</span></p>
+                                        <p>Remaining provider balance: <span className="font-black">{pendingEstimate.estimate?.remainingBalance?.providerCredits}</span></p>
+                                    </div>
+                                    <div className="mt-4 space-y-1 text-sm text-slate-600">
+                                        {(pendingEstimate.plan?.explanation || []).map((line) => <p key={line}>{line}</p>)}
+                                    </div>
+                                </div>
+                                <button type="button" disabled={confirming} onClick={confirmResearch} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-black text-white disabled:bg-slate-300">
+                                    <Plus size={16} /> Confirm and Reserve Credits
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -345,7 +439,7 @@ const ProspectingWorkspace = () => {
                             <Bot size={14} /> Controlled Agent
                         </div>
                         <h1 className="mt-3 text-3xl font-black">AI Prospecting</h1>
-                        <p className="mt-2 max-w-3xl text-sm font-semibold text-blue-100">Entitlement-gated research, review, approval, usage and audit foundation. Phase 2 uses test data only.</p>
+                        <p className="mt-2 max-w-3xl text-sm font-semibold text-blue-100">Provider-gated research, cost confirmation, review, approval, usage and audit foundation. Mock/Test Provider is clearly labelled when no live credentials exist.</p>
                     </div>
                     <div className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-bold">
                         {summary.active ? <CheckCircle2 className="text-emerald-300" size={18} /> : <AlertTriangle className="text-amber-300" size={18} />}

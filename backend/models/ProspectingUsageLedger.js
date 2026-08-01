@@ -18,6 +18,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: "debit",
       },
+      lifecycle: {
+        type: DataTypes.ENUM("estimated", "reserved", "consumed", "released", "refunded"),
+        allowNull: false,
+        defaultValue: "consumed",
+      },
       reason: { type: DataTypes.STRING, allowNull: true },
       idempotencyKey: { type: DataTypes.STRING, allowNull: true },
     },
