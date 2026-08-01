@@ -515,6 +515,7 @@ exports.getProspectEvidence = async (req, res) => {
 
 exports.approveProspect = async (req, res) => {
   try {
+    const body = req.body || {};
     const prospect = await db.prospectingProspect.findOne({
       where: { id: req.params.id, org_id: req.user.org_id },
     });
@@ -536,7 +537,7 @@ exports.approveProspect = async (req, res) => {
       prospectId: prospect.id,
       user_id: req.user.id,
       action: "approved",
-      notes: clean(req.body.notes) || null,
+      notes: clean(body.notes) || null,
       metadata: { missingMandatoryFields: missing, bulk: false },
     });
     await writeLedger({
@@ -560,7 +561,8 @@ exports.approveProspect = async (req, res) => {
 
 exports.rejectProspect = async (req, res) => {
   try {
-    const rejectionReason = clean(req.body.rejectionReason || req.body.reason);
+    const body = req.body || {};
+    const rejectionReason = clean(body.rejectionReason || body.reason);
     if (!rejectionReason) return sendErrorResponse(res, 400, "Rejection reason is required.");
     const prospect = await db.prospectingProspect.findOne({
       where: { id: req.params.id, org_id: req.user.org_id },
@@ -577,7 +579,7 @@ exports.rejectProspect = async (req, res) => {
       user_id: req.user.id,
       action: "rejected",
       rejectionReason,
-      notes: clean(req.body.notes) || null,
+      notes: clean(body.notes) || null,
       metadata: { bulk: false },
     });
     await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.rejected", entityType: "prospecting_prospect", entityId: prospect.id });
@@ -591,7 +593,8 @@ exports.rejectProspect = async (req, res) => {
 
 exports.createEnquiryFromProspect = async (req, res) => {
   try {
-    const idempotencyKey = clean(req.body.idempotencyKey || req.headers["idempotency-key"]) || `prospecting-enquiry:${req.user.org_id}:${req.params.id}`;
+    const body = req.body || {};
+    const idempotencyKey = clean(body.idempotencyKey || req.headers["idempotency-key"]) || `prospecting-enquiry:${req.user.org_id}:${req.params.id}`;
     const result = await db.sequelize.transaction(async (transaction) => {
       const prospect = await db.prospectingProspect.findOne({
         where: {
@@ -659,7 +662,7 @@ exports.createEnquiryFromProspect = async (req, res) => {
         prospectId: prospect.id,
         user_id: req.user.id,
         action: "created_enquiry",
-        notes: clean(req.body.notes) || null,
+        notes: clean(body.notes) || null,
         metadata: { idempotencyKey, enquiryId: enquiry.id, mappedFields: Object.keys(payload), aiDraftsCreated: true },
       }, { transaction });
       await writeLedger({
@@ -694,6 +697,7 @@ exports.createEnquiryFromProspect = async (req, res) => {
 
 exports.updateProspectForReview = async (req, res) => {
   try {
+    const body = req.body || {};
     const editable = [
       "companyName",
       "contactName",
@@ -709,7 +713,7 @@ exports.updateProspectForReview = async (req, res) => {
     ];
     const updates = {};
     editable.forEach((field) => {
-      if (Object.prototype.hasOwnProperty.call(req.body, field)) updates[field] = req.body[field];
+      if (Object.prototype.hasOwnProperty.call(body, field)) updates[field] = body[field];
     });
     const prospect = await db.prospectingProspect.findOne({ where: { id: req.params.id, org_id: req.user.org_id } });
     if (!prospect) return sendErrorResponse(res, 404, "Prospect not found.");
@@ -724,7 +728,7 @@ exports.updateProspectForReview = async (req, res) => {
       prospectId: prospect.id,
       user_id: req.user.id,
       action: "edited",
-      notes: clean(req.body.notes) || null,
+      notes: clean(body.notes) || null,
       metadata: { fields: Object.keys(updates), missingMandatoryFields: missingMandatoryFields(prospect) },
     });
     await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.edited", entityType: "prospecting_prospect", entityId: prospect.id });
@@ -737,6 +741,7 @@ exports.updateProspectForReview = async (req, res) => {
 
 exports.requestReverification = async (req, res) => {
   try {
+    const body = req.body || {};
     const prospect = await db.prospectingProspect.findOne({
       where: { id: req.params.id, org_id: req.user.org_id },
       include: [{ model: db.prospectingResearchRequest, as: "request" }],
@@ -757,7 +762,7 @@ exports.requestReverification = async (req, res) => {
       prospectId: prospect.id,
       user_id: req.user.id,
       action: "reverification_requested",
-      notes: clean(req.body.notes) || null,
+      notes: clean(body.notes) || null,
       metadata: { verificationStatus: scoring.verificationStatus, score: scoring.score },
     });
     await writeAudit({ req, org_id: req.user.org_id, action: "prospecting.prospect.reverification_requested", entityType: "prospecting_prospect", entityId: prospect.id });
@@ -770,7 +775,8 @@ exports.requestReverification = async (req, res) => {
 
 exports.bulkApproveProspects = async (req, res) => {
   try {
-    const ids = asArray(req.body.prospectIds).map(Number).filter(Boolean);
+    const body = req.body || {};
+    const ids = asArray(body.prospectIds).map(Number).filter(Boolean);
     if (!ids.length) return sendErrorResponse(res, 400, "Select at least one prospect.");
     const prospects = await db.prospectingProspect.findAll({
       where: { id: { [Op.in]: ids }, org_id: req.user.org_id },
@@ -794,7 +800,7 @@ exports.bulkApproveProspects = async (req, res) => {
         prospectId: prospect.id,
         user_id: req.user.id,
         action: "bulk_approved",
-        notes: clean(req.body.notes) || null,
+        notes: clean(body.notes) || null,
         metadata: { bulk: true },
       });
       await writeLedger({
@@ -824,8 +830,9 @@ exports.bulkApproveProspects = async (req, res) => {
 
 exports.bulkRejectProspects = async (req, res) => {
   try {
-    const ids = asArray(req.body.prospectIds).map(Number).filter(Boolean);
-    const rejectionReason = clean(req.body.rejectionReason || req.body.reason);
+    const body = req.body || {};
+    const ids = asArray(body.prospectIds).map(Number).filter(Boolean);
+    const rejectionReason = clean(body.rejectionReason || body.reason);
     if (!ids.length) return sendErrorResponse(res, 400, "Select at least one prospect.");
     if (!rejectionReason) return sendErrorResponse(res, 400, "Rejection reason is required.");
     const prospects = await db.prospectingProspect.findAll({
@@ -842,7 +849,7 @@ exports.bulkRejectProspects = async (req, res) => {
         user_id: req.user.id,
         action: "bulk_rejected",
         rejectionReason,
-        notes: clean(req.body.notes) || null,
+        notes: clean(body.notes) || null,
         metadata: { bulk: true },
       });
     }
