@@ -112,7 +112,19 @@ module.exports = (sequelize, DataTypes) => {
       assignedRoleIds: {
         type: DataTypes.JSON,
         allowNull: true,
-      }
+      },
+      chatbotConversationId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: true,
+      },
+      chatbotRequirement: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      chatbotConsentAcceptedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       tableName: `${dbConfig.tablePrefix}customer`,

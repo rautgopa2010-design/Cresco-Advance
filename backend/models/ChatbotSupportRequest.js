@@ -15,6 +15,8 @@ module.exports = (sequelize, DataTypes) => {
       description: { type: DataTypes.TEXT, allowNull: false },
       referenceNumber: { type: DataTypes.STRING, allowNull: true },
       status: { type: DataTypes.ENUM("Open", "In Progress", "Resolved", "Closed"), allowNull: false, defaultValue: "Open" },
+      assignedTo: { type: DataTypes.INTEGER, allowNull: true },
+      consentAcceptedAt: { type: DataTypes.DATE, allowNull: true },
       sourceDomain: { type: DataTypes.STRING, allowNull: true },
     },
     {

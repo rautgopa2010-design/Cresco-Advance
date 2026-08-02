@@ -21,6 +21,7 @@ router.post("/widget/rotate", auth, chatbotAccess("chatbot.install.manage"), con
 
 router.get("/public/:widgetIdentifier/config", controller.getPublicConfig);
 router.post("/public/:widgetIdentifier/message", controller.publicMessage);
+router.post("/public/:widgetIdentifier/enquiry", controller.publicEnquiryCapture);
 router.post("/public/:widgetIdentifier/support", controller.publicSupportRequest);
 
 module.exports = router;

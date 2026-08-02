@@ -219,6 +219,15 @@ const SAFETY_PATTERNS = [
   /database|sql|table schema/i,
 ];
 
+const ENQUIRY_INTENT_PATTERNS = [
+  /enquir|inquir/i,
+  /book.*demo|schedule.*demo|request.*demo/i,
+  /contact.*sales|talk.*sales|sales.*call/i,
+  /call me|contact me|get in touch/i,
+  /quotation|quote|pricing|price/i,
+  /interested|buy|purchase/i,
+];
+
 const tokenizeQuestion = (value) =>
   clean(value)
     .toLowerCase()
@@ -358,6 +367,180 @@ const ensurePublicMessageCapacity = async (entitlement) => {
   }
 };
 
+const hasEnquiryIntent = (message) => ENQUIRY_INTENT_PATTERNS.some((pattern) => pattern.test(clean(message)));
+
+const splitVisitorName = (name) => {
+  const parts = clean(name || "Website Visitor").split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || "Website",
+    lastName: parts.slice(1).join(" ") || "Visitor",
+  };
+};
+
+const findAssignmentTarget = async (org_id) => {
+  const employee = await db.employee.findOne({
+    where: { org_id, isDeleted: false },
+    order: [["id", "ASC"]],
+  });
+  if (employee) {
+    return {
+      userId: employee.user_id,
+      assignedTo: employee.id,
+      roleId: employee.role_id,
+    };
+  }
+  const user = await db.users.findOne({
+    where: { org_id, isDeleted: false },
+    order: [["id", "ASC"]],
+  });
+  return {
+    userId: user?.id || 1,
+    assignedTo: user?.id || 1,
+    roleId: user?.role_id || null,
+  };
+};
+
+const findOrCreatePublicConversation = async ({ widget, domain, sessionKey, conversationId, transaction }) => {
+  if (conversationId) {
+    const existing = await db.chatbotConversation.findOne({
+      where: { id: conversationId, org_id: widget.org_id },
+      transaction,
+    });
+    if (existing) return { conversation: existing, createdConversation: false };
+  }
+  const normalizedSessionKey = clean(sessionKey) || `session-${crypto.randomBytes(8).toString("hex")}`;
+  const [conversation, createdConversation] = await db.chatbotConversation.findOrCreate({
+    where: { org_id: widget.org_id, sessionKey: normalizedSessionKey },
+    defaults: { org_id: widget.org_id, widgetId: widget.id, sessionKey: normalizedSessionKey, sourceDomain: domain },
+    transaction,
+  });
+  return { conversation, createdConversation };
+};
+
+const createOrLinkChatbotEnquiry = async ({ widget, domain, body }) => {
+  const name = clean(body.name);
+  const phone = clean(body.phone);
+  const email = clean(body.email).toLowerCase();
+  const requirement = clean(body.requirement || body.description);
+  const consentAccepted = body.consentAccepted === true || body.consentAccepted === "true";
+  if (!consentAccepted) {
+    const error = new Error("Consent is required before creating an enquiry.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!name || !phone || !requirement) {
+    const error = new Error("Name, phone and requirement are required.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return db.sequelize.transaction(async (transaction) => {
+    const { conversation, createdConversation } = await findOrCreatePublicConversation({
+      widget,
+      domain,
+      sessionKey: body.sessionKey,
+      conversationId: body.conversationId,
+      transaction,
+    });
+    const assignment = await findAssignmentTarget(widget.org_id);
+    const duplicateWhere = [{ org_id: widget.org_id, mobile: phone }];
+    if (email) duplicateWhere.push({ org_id: widget.org_id, email });
+    const duplicate = await db.customer.findOne({ where: { [Op.or]: duplicateWhere }, transaction });
+    if (duplicate) {
+      await conversation.update(
+        {
+          visitorName: name,
+          visitorEmail: email || null,
+          visitorPhone: phone,
+          enquiryId: duplicate.id,
+          assignedTo: assignment.assignedTo,
+          status: "Assigned",
+          handoverReason: "Existing enquiry linked from chatbot",
+          consentAcceptedAt: new Date(),
+        },
+        { transaction }
+      );
+      await db.chatbotMessage.create(
+        {
+          org_id: widget.org_id,
+          conversationId: conversation.id,
+          senderType: "system",
+          message: `Existing enquiry #${duplicate.id} linked from chatbot visitor consent.`,
+        },
+        { transaction }
+      );
+      return { enquiry: duplicate, conversation, createdConversation, reused: true, assignment };
+    }
+
+    const { firstName, lastName } = splitVisitorName(name);
+    const enquiry = await db.customer.create(
+      {
+        org_id: widget.org_id,
+        user_id: assignment.userId,
+        salutation: null,
+        firstName,
+        middleName: null,
+        lastName,
+        mobile: phone,
+        email: email || null,
+        customerCategory: "Website Enquiry",
+        industry: clean(body.industry) || null,
+        designation: clean(body.designation) || null,
+        leadSource: "Website AI Chatbot",
+        companyName: clean(body.companyName) || null,
+        gstinNo: null,
+        billingStreet: "Website AI Chatbot",
+        billingCity: "Not Provided",
+        billingState: "Not Provided",
+        billingPincode: "000000",
+        billingCountry: "Not Provided",
+        shippingStreet: "Website AI Chatbot",
+        shippingCity: "Not Provided",
+        shippingState: "Not Provided",
+        shippingPincode: "000000",
+        shippingCountry: "Not Provided",
+        assignedTo: [assignment.assignedTo],
+        assignedRoleIds: assignment.roleId ? [assignment.roleId] : [],
+        chatbotConversationId: conversation.id,
+        chatbotRequirement: requirement,
+        chatbotConsentAcceptedAt: new Date(),
+      },
+      { transaction }
+    );
+    await conversation.update(
+      {
+        visitorName: name,
+        visitorEmail: email || null,
+        visitorPhone: phone,
+        enquiryId: enquiry.id,
+        assignedTo: assignment.assignedTo,
+        status: "Assigned",
+        handoverReason: "Enquiry captured from chatbot",
+        consentAcceptedAt: new Date(),
+      },
+      { transaction }
+    );
+    await db.chatbotMessage.bulkCreate(
+      [
+        {
+          org_id: widget.org_id,
+          conversationId: conversation.id,
+          senderType: "visitor",
+          message: `Enquiry submitted. Name: ${name}; Phone: ${phone}; Email: ${email || "-"}; Company: ${clean(body.companyName) || "-"}; Requirement: ${requirement}`,
+        },
+        {
+          org_id: widget.org_id,
+          conversationId: conversation.id,
+          senderType: "system",
+          message: `CRM enquiry #${enquiry.id} created and assigned to support team.`,
+        },
+      ],
+      { transaction }
+    );
+    return { enquiry, conversation, createdConversation, reused: false, assignment };
+  });
+};
+
 exports.getSummary = async (req, res) => {
   try {
     const org_id = req.user.org_id;
@@ -403,7 +586,7 @@ exports.getSummary = async (req, res) => {
       knowledgeSources,
       faqs,
       validationIssues,
-      phase: "phase-5-ai-knowledge-answering",
+      phase: "phase-6-enquiry-capture-human-handover",
       message: "Website AI Chatbot setup is enabled for this organization.",
     });
   } catch (error) {
@@ -750,6 +933,12 @@ exports.publicMessage = async (req, res) => {
     if (!question) return sendErrorResponse(res, 400, "Message is required.");
     const { faqs, knowledgeSources } = await activeWidgetPayload(widget.org_id);
     const reply = answerFromKnowledge({ question, faqs, knowledgeSources });
+    const enquiryIntent = hasEnquiryIntent(question);
+    if (enquiryIntent && !reply.safetyBlocked) {
+      reply.answer = `${reply.answer}\n\nI can help create an enquiry for the team. Please share your name, phone number and requirement in the enquiry form, and confirm consent before submitting.`;
+      reply.enquiryIntent = true;
+      reply.nextAction = "capture_enquiry";
+    }
     const sessionKey = clean(req.body.sessionKey) || `session-${crypto.randomBytes(8).toString("hex")}`;
     const [conversation, createdConversation] = await db.chatbotConversation.findOrCreate({
       where: { org_id: widget.org_id, sessionKey },
@@ -773,13 +962,40 @@ exports.publicMessage = async (req, res) => {
   }
 };
 
-exports.publicSupportRequest = async (req, res) => {
+exports.publicEnquiryCapture = async (req, res) => {
   try {
     const { widget, domain } = await findWidgetContext(req, req.params.widgetIdentifier);
+    const result = await createOrLinkChatbotEnquiry({ widget, domain, body: req.body || {} });
+    const usageWrites = [
+      writeUsage({ org_id: widget.org_id, conversationId: result.conversation.id, entryType: "enquiry", reason: result.reused ? "existing_enquiry_linked" : "chatbot_enquiry_created" }),
+      writeUsage({ org_id: widget.org_id, conversationId: result.conversation.id, entryType: "handover", reason: "enquiry_assigned_to_team" }),
+    ];
+    if (result.createdConversation) {
+      usageWrites.push(writeUsage({ org_id: widget.org_id, conversationId: result.conversation.id, entryType: "conversation", reason: "widget_session_started" }));
+    }
+    await Promise.all(usageWrites);
+    res.status(result.reused ? 200 : 201).json({
+      message: result.reused ? "Existing enquiry linked and assigned to the team." : "Enquiry created and assigned to the team.",
+      enquiryId: result.enquiry.id,
+      enquiryLink: `/customer/edit/${result.enquiry.id}`,
+      conversationId: result.conversation.id,
+      assignedTo: result.assignment.assignedTo,
+      reused: result.reused,
+    });
+  } catch (error) {
+    return sendErrorResponse(res, error.statusCode || 500, error.message || "Failed to submit enquiry.");
+  }
+};
+
+exports.publicSupportRequest = async (req, res) => {
+  try {
+    const { widget, domain, entitlement } = await findWidgetContext(req, req.params.widgetIdentifier);
+    if (!entitlement.humanHandoverEnabled) return sendErrorResponse(res, 403, "Human handover is not enabled for this organization.");
     const name = clean(req.body.name);
     const subject = clean(req.body.subject);
     const description = clean(req.body.description);
     if (!name || !subject || !description) return sendErrorResponse(res, 400, "Name, subject and description are required.");
+    const assignment = await findAssignmentTarget(widget.org_id);
     const support = await db.chatbotSupportRequest.create({
       org_id: widget.org_id,
       conversationId: req.body.conversationId || null,
@@ -790,15 +1006,18 @@ exports.publicSupportRequest = async (req, res) => {
       subject,
       description,
       referenceNumber: clean(req.body.referenceNumber) || `SUP-${Date.now()}`,
+      assignedTo: assignment.assignedTo,
+      consentAcceptedAt: req.body.consentAccepted === true || req.body.consentAccepted === "true" ? new Date() : null,
       sourceDomain: domain,
     });
     if (req.body.conversationId) {
       await db.chatbotConversation.update(
-        { status: "Waiting for Agent" },
+        { status: "Assigned", assignedTo: assignment.assignedTo, handoverReason: subject },
         { where: { id: req.body.conversationId, org_id: widget.org_id } }
       );
     }
-    res.status(201).json({ message: "Support request submitted.", referenceNumber: support.referenceNumber });
+    await writeUsage({ org_id: widget.org_id, conversationId: req.body.conversationId || null, entryType: "handover", reason: "support_request_assigned" });
+    res.status(201).json({ message: "Support request submitted and assigned to the team.", referenceNumber: support.referenceNumber, assignedTo: assignment.assignedTo });
   } catch (error) {
     return sendErrorResponse(res, error.statusCode || 500, error.message || "Failed to submit support request.");
   }
@@ -819,7 +1038,7 @@ exports.widgetScript = (req, res) => {
   host.id = 'cresco-chatbot-root';
   document.body.appendChild(host);
   var shadow = host.attachShadow({ mode: 'open' });
-  var state = { open:false, tab:'home', config:null, messages:[], loading:false, conversationId:null };
+  var state = { open:false, tab:'home', formMode:'support', config:null, messages:[], loading:false, conversationId:null };
   function esc(v){return String(v||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function styles(c){return '<style>:host{all:initial;font-family:Inter,Arial,sans-serif;color:#0f172a}.cw-btn{position:fixed;z-index:2147483646;bottom:22px;'+(c.widgetPosition==='left'?'left':'right')+':22px;width:62px;height:62px;border-radius:999px;border:0;background:'+c.primaryColor+';color:#fff;box-shadow:0 18px 45px rgba(15,23,42,.25);cursor:pointer;font:700 24px Arial}.cw-panel{position:fixed;z-index:2147483646;bottom:96px;'+(c.widgetPosition==='left'?'left':'right')+':22px;width:min(380px,calc(100vw - 24px));height:min(620px,calc(100vh - 120px));background:#fff;border:1px solid #e2e8f0;border-radius:'+c.borderRadius+'px;box-shadow:0 22px 70px rgba(15,23,42,.28);overflow:hidden;display:flex;flex-direction:column}.cw-head{padding:16px;background:'+c.headerBackground+';color:'+c.textColor+';border-bottom:1px solid #e2e8f0}.cw-title{font-size:16px;font-weight:900}.cw-sub{font-size:12px;font-weight:700;opacity:.75;margin-top:3px}.cw-close{float:right;border:0;background:transparent;font-size:20px;cursor:pointer;color:inherit}.cw-body{flex:1;overflow:auto;padding:14px;background:#f8fafc}.cw-nav{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #e2e8f0;background:#fff}.cw-nav button{border:0;background:#fff;padding:10px 4px;font-size:12px;font-weight:800;color:#475569;cursor:pointer}.cw-nav button.active{color:'+c.primaryColor+'}.cw-card,.cw-input,.cw-text{width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:12px;background:#fff;padding:11px;margin:7px 0;font:700 13px Arial;color:#334155}.cw-card{cursor:pointer;text-align:left}.cw-primary{width:100%;border:0;border-radius:12px;padding:12px;background:'+c.buttonColor+';color:#fff;font-weight:900;cursor:pointer;margin-top:8px}.cw-msg{margin:8px 0;max-width:86%;padding:10px 12px;border-radius:14px;font:600 13px/1.4 Arial}.cw-user{margin-left:auto;background:'+c.primaryColor+';color:#fff}.cw-ai{background:#fff;border:1px solid #e2e8f0;color:#334155}.cw-small{font-size:12px;color:#64748b;font-weight:700}.cw-error{color:#b91c1c;font-weight:800;font-size:12px}</style>'}
   function render(){
@@ -836,24 +1055,31 @@ exports.widgetScript = (req, res) => {
     if(state.tab==='home') return (cfg.actionCards||[]).filter(function(x){return x.enabled!==false}).map(function(card){return '<button class="cw-card" data-action="'+esc(card.id||'chat')+'">'+esc(card.label)+'</button>'}).join('') || '<p class="cw-small">Start a chat or contact the team.</p>';
     if(state.tab==='chat') return '<div id="cw-messages">'+state.messages.map(function(m){return '<div class="cw-msg '+(m.sender==='user'?'cw-user':'cw-ai')+'">'+esc(m.text)+'</div>'}).join('')+'</div>'+(state.config.suggestedQuestions||[]).slice(0,3).map(function(q){return '<button class="cw-card cw-suggest">'+esc(q)+'</button>'}).join('')+'<input class="cw-input" id="cw-chat-input" placeholder="Ask a question" /><button class="cw-primary" id="cw-send">Send</button>';
     if(state.tab==='contact'){var info=cfg.contactInfo||{}; return '<div class="cw-card"><b>'+esc(info.businessName||cfg.chatbotName)+'</b><p>'+esc(info.phone||'')+'</p><p>'+esc(info.email||'')+'</p><p>'+esc(info.businessHours||'')+'</p><p>'+esc(info.address||'')+'</p></div><button class="cw-primary" data-action="send_enquiry">Send Enquiry</button>';}
-    return '<input class="cw-input" id="sup-name" placeholder="Name" /><input class="cw-input" id="sup-email" placeholder="Email" /><input class="cw-input" id="sup-phone" placeholder="Phone" /><input class="cw-input" id="sup-subject" placeholder="Subject" /><textarea class="cw-text" id="sup-desc" rows="4" placeholder="How can we help?"></textarea><button class="cw-primary" id="sup-submit">Submit Support Request</button><div class="cw-small" id="sup-result"></div>';
+    if(state.formMode==='enquiry') return '<input class="cw-input" id="sup-name" placeholder="Name *" /><input class="cw-input" id="sup-phone" placeholder="Phone *" /><input class="cw-input" id="sup-email" placeholder="Email" /><input class="cw-input" id="sup-company" placeholder="Company" /><input class="cw-input" id="sup-product" placeholder="Interested product/service" /><textarea class="cw-text" id="sup-desc" rows="4" placeholder="Requirement *"></textarea><label class="cw-small"><input type="checkbox" id="sup-consent" /> '+esc(state.config.leadForm && state.config.leadForm.consentText || 'I agree to be contacted about this enquiry.')+'</label><button class="cw-primary" id="sup-submit">Submit Enquiry</button><button class="cw-card" id="sup-switch">Need support instead?</button><div class="cw-small" id="sup-result"></div>';
+    return '<input class="cw-input" id="sup-name" placeholder="Name" /><input class="cw-input" id="sup-email" placeholder="Email" /><input class="cw-input" id="sup-phone" placeholder="Phone" /><input class="cw-input" id="sup-subject" placeholder="Subject" /><textarea class="cw-text" id="sup-desc" rows="4" placeholder="How can we help?"></textarea><button class="cw-primary" id="sup-submit">Submit Support Request</button><button class="cw-card" id="sup-enquiry">Send an enquiry instead</button><div class="cw-small" id="sup-result"></div>';
   }
   function bind(){
     var toggle=shadow.getElementById('cw-toggle'); if(toggle) toggle.onclick=function(){state.open=!state.open; render();};
     var close=shadow.getElementById('cw-close'); if(close) close.onclick=function(){state.open=false; render();};
     shadow.querySelectorAll('[data-tab]').forEach(function(btn){btn.onclick=function(){state.tab=btn.getAttribute('data-tab'); render();};});
-    shadow.querySelectorAll('[data-action]').forEach(function(btn){btn.onclick=function(){state.tab=btn.getAttribute('data-action')==='contact_team'?'contact':btn.getAttribute('data-action')==='get_support'?'support':'chat'; render();};});
+    shadow.querySelectorAll('[data-action]').forEach(function(btn){btn.onclick=function(){var a=btn.getAttribute('data-action'); if(a==='send_enquiry'||a==='request_demo'){state.formMode='enquiry';state.tab='support';}else{state.tab=a==='contact_team'?'contact':a==='get_support'?'support':'chat';} render();};});
     shadow.querySelectorAll('.cw-suggest').forEach(function(btn){btn.onclick=function(){sendMessage(btn.textContent);};});
     var send=shadow.getElementById('cw-send'); if(send) send.onclick=function(){var input=shadow.getElementById('cw-chat-input'); sendMessage(input && input.value);};
-    var sup=shadow.getElementById('sup-submit'); if(sup) sup.onclick=submitSupport;
+    var sup=shadow.getElementById('sup-submit'); if(sup) sup.onclick=function(){state.formMode==='enquiry'?submitEnquiry():submitSupport();};
+    var sw=shadow.getElementById('sup-switch'); if(sw) sw.onclick=function(){state.formMode='support';render();};
+    var enq=shadow.getElementById('sup-enquiry'); if(enq) enq.onclick=function(){state.formMode='enquiry';render();};
   }
   function sendMessage(text){
     text=(text||'').trim(); if(!text) return;
     state.messages.push({sender:'user',text:text}); render();
-    fetch(apiBase+'/'+encodeURIComponent(widgetId)+'/message',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:text,sessionKey:sessionKey})}).then(function(r){return r.json().then(function(j){if(!r.ok) throw j; return j;});}).then(function(j){state.conversationId=j.conversationId; state.messages.push({sender:'ai',text:j.answer}); render();}).catch(function(){state.messages.push({sender:'ai',text:'Sorry, I could not answer right now. Please try again or contact support.'}); render();});
+    fetch(apiBase+'/'+encodeURIComponent(widgetId)+'/message',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:text,sessionKey:sessionKey})}).then(function(r){return r.json().then(function(j){if(!r.ok) throw j; return j;});}).then(function(j){state.conversationId=j.conversationId; state.messages.push({sender:'ai',text:j.answer}); if(j.nextAction==='capture_enquiry'){state.formMode='enquiry';state.tab='support';} render();}).catch(function(){state.messages.push({sender:'ai',text:'Sorry, I could not answer right now. Please try again or contact support.'}); render();});
+  }
+  function submitEnquiry(){
+    var body={conversationId:state.conversationId,sessionKey:sessionKey,name:val('sup-name'),phone:val('sup-phone'),email:val('sup-email'),companyName:val('sup-company'),interestedProduct:val('sup-product'),requirement:val('sup-desc'),consentAccepted:!!(shadow.getElementById('sup-consent')&&shadow.getElementById('sup-consent').checked)};
+    fetch(apiBase+'/'+encodeURIComponent(widgetId)+'/enquiry',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().then(function(j){if(!r.ok) throw j; return j;});}).then(function(j){state.conversationId=j.conversationId; shadow.getElementById('sup-result').textContent='Enquiry submitted. ID: '+j.enquiryId;}).catch(function(e){shadow.getElementById('sup-result').textContent=(e.errors&&e.errors[0]&&e.errors[0].msg)||'Could not submit enquiry.';});
   }
   function submitSupport(){
-    var body={conversationId:state.conversationId,name:val('sup-name'),email:val('sup-email'),phone:val('sup-phone'),subject:val('sup-subject'),description:val('sup-desc')};
+    var body={conversationId:state.conversationId,name:val('sup-name'),email:val('sup-email'),phone:val('sup-phone'),subject:val('sup-subject'),description:val('sup-desc'),consentAccepted:true};
     fetch(apiBase+'/'+encodeURIComponent(widgetId)+'/support',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().then(function(j){if(!r.ok) throw j; return j;});}).then(function(j){shadow.getElementById('sup-result').textContent='Submitted. Reference: '+j.referenceNumber;}).catch(function(e){shadow.getElementById('sup-result').textContent=(e.errors&&e.errors[0]&&e.errors[0].msg)||'Could not submit support request.';});
   }
   function val(id){var el=shadow.getElementById(id); return el ? el.value : '';}
@@ -871,7 +1097,7 @@ exports.auditAccess = async (req, res) => {
       action: "chatbot.module.viewed",
       entityType: "chatbot_entitlement",
       entityId: req.chatbotEntitlement?.id,
-      metadata: { phase: "phase-5-ai-knowledge-answering" },
+      metadata: { phase: "phase-6-enquiry-capture-human-handover" },
     });
     res.json({ message: "Website AI Chatbot access verified." });
   } catch (error) {

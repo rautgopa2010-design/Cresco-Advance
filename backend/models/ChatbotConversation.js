@@ -10,6 +10,10 @@ module.exports = (sequelize, DataTypes) => {
       visitorName: { type: DataTypes.STRING, allowNull: true },
       visitorEmail: { type: DataTypes.STRING, allowNull: true },
       visitorPhone: { type: DataTypes.STRING, allowNull: true },
+      enquiryId: { type: DataTypes.INTEGER, allowNull: true },
+      assignedTo: { type: DataTypes.INTEGER, allowNull: true },
+      handoverReason: { type: DataTypes.STRING, allowNull: true },
+      consentAcceptedAt: { type: DataTypes.DATE, allowNull: true },
       status: {
         type: DataTypes.ENUM("AI Active", "Waiting for Agent", "Assigned", "Agent Active", "Resolved", "Closed"),
         allowNull: false,
