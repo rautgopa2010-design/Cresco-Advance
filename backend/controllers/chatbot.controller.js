@@ -9,6 +9,12 @@ const { writeAudit } = require("../utility/chatbotAuthorization");
 
 const clean = (value) => String(value || "").trim();
 const isHexColor = (value) => /^#[0-9a-fA-F]{6}$/.test(clean(value));
+const normalizeFaqStatus = (value, fallback = "Active") => {
+  const status = clean(value || fallback).toLowerCase();
+  if (status === "draft") return "Draft";
+  if (status === "archived") return "Archived";
+  return "Active";
+};
 
 const defaultActionCards = [
   { id: "ask_ai", label: "Ask Our AI Assistant", enabled: true, sortOrder: 1 },
@@ -233,6 +239,7 @@ const tokenizeQuestion = (value) =>
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((word) => word.length > 2 && !STOP_WORDS.has(word));
+const normalizeQuestion = (value) => clean(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 const relevantExcerpt = (text, words, limit = 420) => {
   const cleaned = clean(text).replace(/\s+/g, " ");
@@ -282,18 +289,20 @@ const answerFromKnowledge = ({ question, faqs, knowledgeSources }) => {
     };
   }
   const scoreText = (text) => words.reduce((score, word) => score + (String(text || "").toLowerCase().includes(word) ? 1 : 0), 0);
+  const normalizedQuestion = normalizeQuestion(question);
   const faqMatches = faqs
     .map((faq) => ({
       id: faq.id,
       type: "FAQ",
       title: faq.question,
       sourceText: faq.answer,
-      score: scoreText(`${faq.question} ${faq.answer}`),
+      exactMatch: normalizeQuestion(faq.question) === normalizedQuestion,
+      score: scoreText(`${faq.question} ${faq.answer}`) + (normalizeQuestion(faq.question) === normalizedQuestion ? 100 : 0),
     }))
     .sort((a, b) => b.score - a.score);
-  if (faqMatches[0]?.score >= 2) {
+  if (faqMatches[0]?.exactMatch || faqMatches[0]?.score >= 2) {
     const excerpt = relevantExcerpt(faqMatches[0].sourceText, words, 600);
-    const confidence = Math.min(95, 58 + faqMatches[0].score * 8);
+    const confidence = faqMatches[0].exactMatch ? 98 : Math.min(95, 58 + faqMatches[0].score * 8);
     return {
       answer: makeGroundedAnswer({ excerpt, sourceTitle: faqMatches[0].title, confidence }),
       confidence,
@@ -780,7 +789,7 @@ exports.createFaq = async (req, res) => {
       answer: clean(req.body.answer),
       category: clean(req.body.category) || null,
       language: clean(req.body.language) || "English",
-      status: req.body.status || "Active",
+      status: normalizeFaqStatus(req.body.status),
       sortOrder: Number(req.body.sortOrder || 0),
       createdBy: req.user.id,
     });
@@ -802,7 +811,7 @@ exports.updateFaq = async (req, res) => {
       answer: clean(req.body.answer) || faq.answer,
       category: clean(req.body.category) || null,
       language: clean(req.body.language) || faq.language,
-      status: req.body.status || faq.status,
+      status: normalizeFaqStatus(req.body.status, faq.status),
       sortOrder: Number(req.body.sortOrder ?? faq.sortOrder),
     });
     await writeAudit({ req, org_id, action: "chatbot.faq.updated", entityType: "chatbot_faq", entityId: faq.id });

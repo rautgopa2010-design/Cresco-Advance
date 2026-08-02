@@ -318,7 +318,7 @@ export default function MarketingLayout() {
     }, [isMarketingRoute, isConversionPage]);
 
     useEffect(() => {
-        const widgetId = import.meta.env.VITE_MARKETING_CHATBOT_WIDGET_ID || "cw_551d3447634afa480fc641b2186fc7ba1b06";
+        const widgetId = import.meta.env.VITE_MARKETING_CHATBOT_WIDGET_ID || "cw_bf42ff4190610e7984e24b5bd8836d18ad3f";
         const scriptId = "cresco-marketing-chatbot-script";
 
         if (!isMarketingRoute) {
