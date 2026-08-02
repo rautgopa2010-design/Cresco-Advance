@@ -17,5 +17,10 @@ router.post("/knowledge/text", auth, chatbotAccess("chatbot.knowledge.manage", {
 router.post("/knowledge/url", auth, chatbotAccess("chatbot.knowledge.manage", { requireCapacity: true }), controller.createUrlKnowledge);
 router.post("/knowledge/document", auth, chatbotAccess("chatbot.knowledge.manage", { requireCapacity: true }), uploadKnowledge.single("document"), controller.uploadDocumentKnowledge);
 router.delete("/knowledge/:id", auth, chatbotAccess("chatbot.knowledge.manage"), controller.archiveKnowledge);
+router.post("/widget/rotate", auth, chatbotAccess("chatbot.install.manage"), controller.rotateWidgetIdentifier);
+
+router.get("/public/:widgetIdentifier/config", controller.getPublicConfig);
+router.post("/public/:widgetIdentifier/message", controller.publicMessage);
+router.post("/public/:widgetIdentifier/support", controller.publicSupportRequest);
 
 module.exports = router;

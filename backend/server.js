@@ -124,6 +124,8 @@ const chatbotProviderRoutes = require("./routes/chatbotProvider.routes");
 app.use("/api/provider/chatbot", chatbotProviderRoutes);
 const chatbotRoutes = require("./routes/chatbot.routes");
 app.use("/api/chatbot", chatbotRoutes);
+const chatbotController = require("./controllers/chatbot.controller");
+app.get("/chatbot/widget.js", chatbotController.widgetScript);
 
 // ✅ Serve static uploads folder
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

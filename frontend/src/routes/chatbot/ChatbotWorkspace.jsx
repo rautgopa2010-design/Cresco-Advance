@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Bot, CheckCircle2, FileText, Globe2, MessageSquare, Palette, Plus, Settings, ShieldAlert, Trash2, Upload } from "lucide-react";
+import { Bot, CheckCircle2, Clipboard, FileText, Globe2, KeyRound, MessageSquare, Palette, Plus, Settings, ShieldAlert, Trash2, Upload } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/utils/api";
 
-const tabs = ["Dashboard", "Knowledge Base", "FAQs", "Appearance", "Lead Form", "Settings"];
+const tabs = ["Dashboard", "Knowledge Base", "FAQs", "Appearance", "Lead Form", "Install Widget", "Settings"];
 const getError = (error, fallback) => error?.response?.data?.errors?.[0]?.msg || fallback;
 
 const defaultFaq = { question: "", answer: "", category: "", language: "English", status: "Active" };
@@ -131,6 +131,25 @@ const ChatbotWorkspace = () => {
             load();
         } catch (error) {
             toast.error(getError(error, "Could not save domain."));
+        }
+    };
+
+    const rotateWidget = async () => {
+        try {
+            await api.post("/chatbot/widget/rotate");
+            toast.success("Widget key rotated.");
+            load();
+        } catch (error) {
+            toast.error(getError(error, "Could not rotate widget key."));
+        }
+    };
+
+    const copyInstallScript = async () => {
+        try {
+            await navigator.clipboard.writeText(summary?.installScript || "");
+            toast.success("Install script copied.");
+        } catch {
+            toast.error("Could not copy install script.");
         }
     };
 
@@ -278,6 +297,10 @@ const ChatbotWorkspace = () => {
                             {["primaryColor", "secondaryColor", "headerBackground", "textColor", "buttonColor"].map((key) => (
                                 <Input key={key} label={key} type="color" value={configForm[key]} onChange={(value) => setConfigForm((prev) => ({ ...prev, [key]: value }))} />
                             ))}
+                            <Input label="Contact business name" value={configForm.contactInfo?.businessName || ""} onChange={(value) => setConfigForm((prev) => ({ ...prev, contactInfo: { ...(prev.contactInfo || {}), businessName: value } }))} />
+                            <Input label="Contact phone" value={configForm.contactInfo?.phone || ""} onChange={(value) => setConfigForm((prev) => ({ ...prev, contactInfo: { ...(prev.contactInfo || {}), phone: value } }))} />
+                            <Input label="Contact email" value={configForm.contactInfo?.email || ""} onChange={(value) => setConfigForm((prev) => ({ ...prev, contactInfo: { ...(prev.contactInfo || {}), email: value } }))} />
+                            <Input label="Business hours" value={configForm.contactInfo?.businessHours || ""} onChange={(value) => setConfigForm((prev) => ({ ...prev, contactInfo: { ...(prev.contactInfo || {}), businessHours: value } }))} />
                         </div>
                         <div className="mt-4 space-y-3">
                             <h3 className="text-sm font-black text-slate-700">Home action cards</h3>
@@ -313,6 +336,34 @@ const ChatbotWorkspace = () => {
                 </Panel>
             )}
 
+            {activeTab === "Install Widget" && (
+                <div className="grid gap-5 xl:grid-cols-[1fr_420px]">
+                    <Panel title="Secure Installation" icon={Clipboard}>
+                        <div className="rounded-lg bg-slate-950 p-4 text-sm font-bold text-slate-100">
+                            <code className="break-all">{summary?.installScript || "Create setup first to generate script."}</code>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            <button type="button" onClick={copyInstallScript} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-black text-white">Copy Code</button>
+                            <button type="button" onClick={rotateWidget} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700"><KeyRound size={16} /> Rotate Key</button>
+                        </div>
+                        <div className="rounded-lg bg-blue-50 p-4 text-sm font-semibold text-blue-900">
+                            Add this script before the closing body tag of the approved website. The widget key is public but revocable, and the backend still checks the website domain before returning chatbot configuration.
+                        </div>
+                        <div className="rounded-lg bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+                            Current widget id: <span className="font-black">{summary?.widget?.widgetIdentifier || "Not generated"}</span>
+                        </div>
+                    </Panel>
+                    <Panel title="Domain Validation" icon={Globe2}>
+                        {(summary?.domains || []).filter((item) => item.isActive).map((item) => (
+                            <div key={item.id} className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">{item.domain}</div>
+                        ))}
+                        {!summary?.domains?.filter((item) => item.isActive).length && (
+                            <div className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">Add at least one allowed domain in Settings before installing.</div>
+                        )}
+                    </Panel>
+                </div>
+            )}
+
             {activeTab === "Settings" && (
                 <div className="grid gap-5 xl:grid-cols-2">
                     <Panel title="Allowed Domains" icon={Globe2}>
@@ -331,7 +382,7 @@ const ChatbotWorkspace = () => {
                         {(summary?.validationIssues || []).length ? (
                             summary.validationIssues.map((issue) => <div key={issue} className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">{issue}</div>)
                         ) : (
-                            <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">Ready for widget configuration in the next phase.</div>
+                            <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">Ready for widget installation.</div>
                         )}
                     </Panel>
                 </div>

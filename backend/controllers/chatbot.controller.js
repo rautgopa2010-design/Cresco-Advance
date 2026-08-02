@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const db = require("../models");
 const { Op } = require("sequelize");
 const validator = require("validator");
@@ -33,6 +34,13 @@ const normalizeDomain = (value) =>
     .toLowerCase();
 
 const summarize = (text) => clean(text).replace(/\s+/g, " ").slice(0, 450);
+const escapeHtml = (value) =>
+  clean(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
 const ensureSetupRows = async (org_id) => {
   const [configuration] = await db.chatbotConfiguration.findOrCreate({
@@ -125,6 +133,93 @@ const processUrl = async (url) => {
   }
 };
 
+const getRequestDomain = (req) => {
+  const origin = clean(req.headers.origin);
+  const referer = clean(req.headers.referer || req.headers.referrer);
+  const source = origin || referer;
+  if (!source) return "";
+  try {
+    return new URL(source).hostname.toLowerCase();
+  } catch {
+    return normalizeDomain(source);
+  }
+};
+
+const findWidgetContext = async (req, widgetIdentifier) => {
+  const widget = await db.chatbotWidget.findOne({ where: { widgetIdentifier, status: "active" } });
+  if (!widget) {
+    const error = new Error("Widget is not active.");
+    error.statusCode = 404;
+    throw error;
+  }
+  const domain = getRequestDomain(req);
+  const allowedDomains = await db.chatbotAllowedDomain.findAll({
+    where: { org_id: widget.org_id, isActive: true },
+  });
+  const allowed = allowedDomains.some((item) => {
+    const allowedDomain = normalizeDomain(item.domain);
+    return domain === allowedDomain || domain.endsWith(`.${allowedDomain}`);
+  });
+  if (!allowed) {
+    const error = new Error("This domain is not allowed to load the chatbot widget.");
+    error.statusCode = 403;
+    error.metadata = { domain };
+    throw error;
+  }
+  const entitlement = await db.chatbotEntitlement.findOne({ where: { org_id: widget.org_id } });
+  const expired = entitlement?.expiresAt && new Date(entitlement.expiresAt) < new Date();
+  if (!entitlement || !["trial", "active"].includes(entitlement.status) || expired) {
+    const error = new Error("Website AI Chatbot is not active for this organization.");
+    error.statusCode = 402;
+    throw error;
+  }
+  await widget.update({ lastUsedAt: new Date() });
+  return { widget, domain, entitlement };
+};
+
+const activeWidgetPayload = async (org_id) => {
+  const [configuration, leadForm, faqs, knowledgeSources, domains, widget] = await Promise.all([
+    db.chatbotConfiguration.findOne({ where: { org_id } }),
+    db.chatbotLeadForm.findOne({ where: { org_id } }),
+    db.chatbotFaq.findAll({ where: { org_id, status: "Active" }, order: [["sortOrder", "ASC"], ["updatedAt", "DESC"]] }),
+    db.chatbotKnowledgeSource.findAll({ where: { org_id, status: "Active" }, order: [["updatedAt", "DESC"]] }),
+    db.chatbotAllowedDomain.findAll({ where: { org_id, isActive: true }, order: [["createdAt", "DESC"]] }),
+    db.chatbotWidget.findOne({ where: { org_id, status: "active" } }),
+  ]);
+  return { configuration, leadForm, faqs, knowledgeSources, domains, widget };
+};
+
+const answerFromKnowledge = ({ question, faqs, knowledgeSources }) => {
+  const q = clean(question).toLowerCase();
+  const words = q.split(/[^a-z0-9]+/).filter((word) => word.length > 2);
+  const scoreText = (text) => words.reduce((score, word) => score + (String(text || "").toLowerCase().includes(word) ? 1 : 0), 0);
+  const faqMatches = faqs
+    .map((faq) => ({ type: "FAQ", title: faq.question, answer: faq.answer, score: scoreText(`${faq.question} ${faq.answer}`) }))
+    .sort((a, b) => b.score - a.score);
+  if (faqMatches[0]?.score > 0) {
+    return {
+      answer: faqMatches[0].answer,
+      confidence: Math.min(95, 55 + faqMatches[0].score * 10),
+      references: [{ type: "FAQ", title: faqMatches[0].title }],
+    };
+  }
+  const sourceMatches = knowledgeSources
+    .map((source) => ({ type: source.sourceType, title: source.title, answer: source.processedSummary || summarize(source.contentText), score: scoreText(`${source.title} ${source.contentText} ${source.processedSummary}`) }))
+    .sort((a, b) => b.score - a.score);
+  if (sourceMatches[0]?.score > 0) {
+    return {
+      answer: sourceMatches[0].answer,
+      confidence: Math.min(85, 45 + sourceMatches[0].score * 8),
+      references: [{ type: sourceMatches[0].type, title: sourceMatches[0].title }],
+    };
+  }
+  return {
+    answer: "I do not have enough approved information to answer that confidently. Please send an enquiry or contact the team for help.",
+    confidence: 20,
+    references: [],
+  };
+};
+
 exports.getSummary = async (req, res) => {
   try {
     const org_id = req.user.org_id;
@@ -134,6 +229,14 @@ exports.getSummary = async (req, res) => {
       db.chatbotKnowledgeSource.findAll({ where: { org_id, status: { [Op.ne]: "Archived" } }, order: [["updatedAt", "DESC"]] }),
       db.chatbotFaq.findAll({ where: { org_id, status: { [Op.ne]: "Archived" } }, order: [["sortOrder", "ASC"], ["updatedAt", "DESC"]] }),
     ]);
+    let [widget] = await db.chatbotWidget.findOrCreate({
+      where: { org_id },
+      defaults: {
+        org_id,
+        widgetIdentifier: `cw_${crypto.randomBytes(18).toString("hex")}`,
+        status: "active",
+      },
+    });
     const activeKnowledgeSources = knowledgeSources.filter((item) => item.status === "Active");
     const activeFaqs = faqs.filter((item) => item.status === "Active");
     const validationIssues = validateConfiguration({
@@ -157,6 +260,8 @@ exports.getSummary = async (req, res) => {
       configuration: await db.chatbotConfiguration.findOne({ where: { org_id } }),
       leadForm,
       domains,
+      widget,
+      installScript: `<script src="${req.protocol}://${req.get("host")}/chatbot/widget.js" data-widget-id="${widget.widgetIdentifier}" async></script>`,
       knowledgeSources,
       faqs,
       validationIssues,
@@ -434,6 +539,191 @@ exports.archiveKnowledge = async (req, res) => {
     console.error("Archive chatbot knowledge error:", error);
     return sendErrorResponse(res, 500, "Failed to archive knowledge source.");
   }
+};
+
+exports.rotateWidgetIdentifier = async (req, res) => {
+  try {
+    const org_id = req.user.org_id;
+    const [widget] = await db.chatbotWidget.findOrCreate({
+      where: { org_id },
+      defaults: {
+        org_id,
+        widgetIdentifier: `cw_${crypto.randomBytes(18).toString("hex")}`,
+        status: "active",
+      },
+    });
+    await widget.update({ widgetIdentifier: `cw_${crypto.randomBytes(18).toString("hex")}`, status: "active" });
+    await writeAudit({ req, org_id, action: "chatbot.widget.rotated", entityType: "chatbot_widget", entityId: widget.id });
+    res.json({
+      message: "Widget installation key rotated.",
+      widget,
+      installScript: `<script src="${req.protocol}://${req.get("host")}/chatbot/widget.js" data-widget-id="${widget.widgetIdentifier}" async></script>`,
+    });
+  } catch (error) {
+    console.error("Rotate chatbot widget error:", error);
+    return sendErrorResponse(res, 500, "Failed to rotate widget key.");
+  }
+};
+
+exports.getPublicConfig = async (req, res) => {
+  try {
+    const { widget, domain } = await findWidgetContext(req, req.params.widgetIdentifier);
+    const { configuration, leadForm, faqs, domains } = await activeWidgetPayload(widget.org_id);
+    if (!configuration?.isConfigured) return sendErrorResponse(res, 409, "Chatbot setup is not complete.");
+    res.json({
+      widgetIdentifier: widget.widgetIdentifier,
+      allowedDomain: domain,
+      configuration: {
+        chatbotName: configuration.chatbotName,
+        greeting: configuration.greeting,
+        subtitle: configuration.subtitle,
+        primaryColor: configuration.primaryColor,
+        secondaryColor: configuration.secondaryColor,
+        headerBackground: configuration.headerBackground,
+        textColor: configuration.textColor,
+        buttonColor: configuration.buttonColor,
+        widgetPosition: configuration.widgetPosition,
+        borderRadius: configuration.borderRadius,
+        styleMode: configuration.styleMode,
+        onlineText: configuration.onlineText,
+        offlineText: configuration.offlineText,
+        actionCards: configuration.actionCards || defaultActionCards,
+        contactInfo: configuration.contactInfo || {},
+        visibleContactFields: configuration.visibleContactFields || [],
+      },
+      leadForm: {
+        fields: leadForm?.fields || defaultLeadFields,
+        requireConsent: leadForm?.requireConsent !== false,
+        consentText: leadForm?.consentText,
+      },
+      suggestedQuestions: faqs.slice(0, 5).map((faq) => faq.question),
+      allowedDomains: domains.map((item) => item.domain),
+    });
+  } catch (error) {
+    return sendErrorResponse(res, error.statusCode || 500, error.message || "Failed to load chatbot widget.");
+  }
+};
+
+exports.publicMessage = async (req, res) => {
+  try {
+    const { widget, domain } = await findWidgetContext(req, req.params.widgetIdentifier);
+    const question = clean(req.body.message).slice(0, 1000);
+    if (!question) return sendErrorResponse(res, 400, "Message is required.");
+    const { faqs, knowledgeSources } = await activeWidgetPayload(widget.org_id);
+    const reply = answerFromKnowledge({ question, faqs, knowledgeSources });
+    const sessionKey = clean(req.body.sessionKey) || `session-${crypto.randomBytes(8).toString("hex")}`;
+    const [conversation] = await db.chatbotConversation.findOrCreate({
+      where: { org_id: widget.org_id, sessionKey },
+      defaults: { org_id: widget.org_id, widgetId: widget.id, sessionKey, sourceDomain: domain },
+    });
+    await db.chatbotMessage.bulkCreate([
+      { org_id: widget.org_id, conversationId: conversation.id, senderType: "visitor", message: question },
+      { org_id: widget.org_id, conversationId: conversation.id, senderType: "ai", message: reply.answer, confidence: reply.confidence, references: reply.references },
+    ]);
+    await db.chatbotUsageLedger.create({
+      org_id: widget.org_id,
+      conversationId: conversation.id,
+      entryType: "ai_message",
+      quantity: 1,
+      direction: "debit",
+      lifecycle: "consumed",
+      reason: "widget_message",
+      idempotencyKey: `chatbot-message-${conversation.id}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+    });
+    res.json({ conversationId: conversation.id, sessionKey, ...reply });
+  } catch (error) {
+    return sendErrorResponse(res, error.statusCode || 500, error.message || "Failed to answer chatbot message.");
+  }
+};
+
+exports.publicSupportRequest = async (req, res) => {
+  try {
+    const { widget, domain } = await findWidgetContext(req, req.params.widgetIdentifier);
+    const name = clean(req.body.name);
+    const subject = clean(req.body.subject);
+    const description = clean(req.body.description);
+    if (!name || !subject || !description) return sendErrorResponse(res, 400, "Name, subject and description are required.");
+    const support = await db.chatbotSupportRequest.create({
+      org_id: widget.org_id,
+      conversationId: req.body.conversationId || null,
+      name,
+      email: clean(req.body.email) || null,
+      phone: clean(req.body.phone) || null,
+      category: clean(req.body.category) || null,
+      subject,
+      description,
+      referenceNumber: clean(req.body.referenceNumber) || `SUP-${Date.now()}`,
+      sourceDomain: domain,
+    });
+    if (req.body.conversationId) {
+      await db.chatbotConversation.update(
+        { status: "Waiting for Agent" },
+        { where: { id: req.body.conversationId, org_id: widget.org_id } }
+      );
+    }
+    res.status(201).json({ message: "Support request submitted.", referenceNumber: support.referenceNumber });
+  } catch (error) {
+    return sendErrorResponse(res, error.statusCode || 500, error.message || "Failed to submit support request.");
+  }
+};
+
+exports.widgetScript = (req, res) => {
+  const script = `
+(function(){
+  if (window.__crescoChatbotLoaded) return;
+  window.__crescoChatbotLoaded = true;
+  var currentScript = document.currentScript || (function(){ var scripts=document.getElementsByTagName('script'); return scripts[scripts.length-1]; })();
+  var widgetId = currentScript && currentScript.getAttribute('data-widget-id');
+  var apiBase = new URL(currentScript.src).origin + '/api/chatbot/public';
+  if (!widgetId) return;
+  var sessionKey = localStorage.getItem('cresco_chat_session_' + widgetId) || ('cw-session-' + Math.random().toString(16).slice(2) + Date.now());
+  localStorage.setItem('cresco_chat_session_' + widgetId, sessionKey);
+  var host = document.createElement('div');
+  host.id = 'cresco-chatbot-root';
+  document.body.appendChild(host);
+  var shadow = host.attachShadow({ mode: 'open' });
+  var state = { open:false, tab:'home', config:null, messages:[], loading:false, conversationId:null };
+  function esc(v){return String(v||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function styles(c){return '<style>:host{all:initial;font-family:Inter,Arial,sans-serif;color:#0f172a}.cw-btn{position:fixed;z-index:2147483646;bottom:22px;'+(c.widgetPosition==='left'?'left':'right')+':22px;width:62px;height:62px;border-radius:999px;border:0;background:'+c.primaryColor+';color:#fff;box-shadow:0 18px 45px rgba(15,23,42,.25);cursor:pointer;font:700 24px Arial}.cw-panel{position:fixed;z-index:2147483646;bottom:96px;'+(c.widgetPosition==='left'?'left':'right')+':22px;width:min(380px,calc(100vw - 24px));height:min(620px,calc(100vh - 120px));background:#fff;border:1px solid #e2e8f0;border-radius:'+c.borderRadius+'px;box-shadow:0 22px 70px rgba(15,23,42,.28);overflow:hidden;display:flex;flex-direction:column}.cw-head{padding:16px;background:'+c.headerBackground+';color:'+c.textColor+';border-bottom:1px solid #e2e8f0}.cw-title{font-size:16px;font-weight:900}.cw-sub{font-size:12px;font-weight:700;opacity:.75;margin-top:3px}.cw-close{float:right;border:0;background:transparent;font-size:20px;cursor:pointer;color:inherit}.cw-body{flex:1;overflow:auto;padding:14px;background:#f8fafc}.cw-nav{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #e2e8f0;background:#fff}.cw-nav button{border:0;background:#fff;padding:10px 4px;font-size:12px;font-weight:800;color:#475569;cursor:pointer}.cw-nav button.active{color:'+c.primaryColor+'}.cw-card,.cw-input,.cw-text{width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:12px;background:#fff;padding:11px;margin:7px 0;font:700 13px Arial;color:#334155}.cw-card{cursor:pointer;text-align:left}.cw-primary{width:100%;border:0;border-radius:12px;padding:12px;background:'+c.buttonColor+';color:#fff;font-weight:900;cursor:pointer;margin-top:8px}.cw-msg{margin:8px 0;max-width:86%;padding:10px 12px;border-radius:14px;font:600 13px/1.4 Arial}.cw-user{margin-left:auto;background:'+c.primaryColor+';color:#fff}.cw-ai{background:#fff;border:1px solid #e2e8f0;color:#334155}.cw-small{font-size:12px;color:#64748b;font-weight:700}.cw-error{color:#b91c1c;font-weight:800;font-size:12px}</style>'}
+  function render(){
+    var c = state.config && state.config.configuration;
+    if(!c){ shadow.innerHTML='<style>.cw-btn{position:fixed;right:22px;bottom:22px;width:62px;height:62px;border-radius:999px;border:0;background:#4f46e5;color:#fff}</style><button class="cw-btn" aria-label="Loading chat">...</button>'; return; }
+    var html = styles(c) + '<button class="cw-btn" id="cw-toggle" aria-label="Open chat">Chat</button>';
+    if(state.open){
+      html += '<section class="cw-panel" role="dialog" aria-label="'+esc(c.chatbotName)+'"><header class="cw-head"><button class="cw-close" id="cw-close" aria-label="Close">×</button><div class="cw-title">'+esc(c.chatbotName)+'</div><div class="cw-sub">'+esc(c.greeting)+' '+esc(c.subtitle)+'</div><div class="cw-small">'+esc(c.onlineText||'Online')+'</div></header><main class="cw-body">'+tabHtml()+'</main><nav class="cw-nav">'+['home','chat','contact','support'].map(function(t){return '<button data-tab="'+t+'" class="'+(state.tab===t?'active':'')+'">'+t.charAt(0).toUpperCase()+t.slice(1)+'</button>'}).join('')+'</nav></section>';
+    }
+    shadow.innerHTML = html; bind();
+  }
+  function tabHtml(){
+    var cfg = state.config.configuration;
+    if(state.tab==='home') return (cfg.actionCards||[]).filter(function(x){return x.enabled!==false}).map(function(card){return '<button class="cw-card" data-action="'+esc(card.id||'chat')+'">'+esc(card.label)+'</button>'}).join('') || '<p class="cw-small">Start a chat or contact the team.</p>';
+    if(state.tab==='chat') return '<div id="cw-messages">'+state.messages.map(function(m){return '<div class="cw-msg '+(m.sender==='user'?'cw-user':'cw-ai')+'">'+esc(m.text)+'</div>'}).join('')+'</div>'+(state.config.suggestedQuestions||[]).slice(0,3).map(function(q){return '<button class="cw-card cw-suggest">'+esc(q)+'</button>'}).join('')+'<input class="cw-input" id="cw-chat-input" placeholder="Ask a question" /><button class="cw-primary" id="cw-send">Send</button>';
+    if(state.tab==='contact'){var info=cfg.contactInfo||{}; return '<div class="cw-card"><b>'+esc(info.businessName||cfg.chatbotName)+'</b><p>'+esc(info.phone||'')+'</p><p>'+esc(info.email||'')+'</p><p>'+esc(info.businessHours||'')+'</p><p>'+esc(info.address||'')+'</p></div><button class="cw-primary" data-action="send_enquiry">Send Enquiry</button>';}
+    return '<input class="cw-input" id="sup-name" placeholder="Name" /><input class="cw-input" id="sup-email" placeholder="Email" /><input class="cw-input" id="sup-phone" placeholder="Phone" /><input class="cw-input" id="sup-subject" placeholder="Subject" /><textarea class="cw-text" id="sup-desc" rows="4" placeholder="How can we help?"></textarea><button class="cw-primary" id="sup-submit">Submit Support Request</button><div class="cw-small" id="sup-result"></div>';
+  }
+  function bind(){
+    var toggle=shadow.getElementById('cw-toggle'); if(toggle) toggle.onclick=function(){state.open=!state.open; render();};
+    var close=shadow.getElementById('cw-close'); if(close) close.onclick=function(){state.open=false; render();};
+    shadow.querySelectorAll('[data-tab]').forEach(function(btn){btn.onclick=function(){state.tab=btn.getAttribute('data-tab'); render();};});
+    shadow.querySelectorAll('[data-action]').forEach(function(btn){btn.onclick=function(){state.tab=btn.getAttribute('data-action')==='contact_team'?'contact':btn.getAttribute('data-action')==='get_support'?'support':'chat'; render();};});
+    shadow.querySelectorAll('.cw-suggest').forEach(function(btn){btn.onclick=function(){sendMessage(btn.textContent);};});
+    var send=shadow.getElementById('cw-send'); if(send) send.onclick=function(){var input=shadow.getElementById('cw-chat-input'); sendMessage(input && input.value);};
+    var sup=shadow.getElementById('sup-submit'); if(sup) sup.onclick=submitSupport;
+  }
+  function sendMessage(text){
+    text=(text||'').trim(); if(!text) return;
+    state.messages.push({sender:'user',text:text}); render();
+    fetch(apiBase+'/'+encodeURIComponent(widgetId)+'/message',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:text,sessionKey:sessionKey})}).then(function(r){return r.json().then(function(j){if(!r.ok) throw j; return j;});}).then(function(j){state.conversationId=j.conversationId; state.messages.push({sender:'ai',text:j.answer}); render();}).catch(function(){state.messages.push({sender:'ai',text:'Sorry, I could not answer right now. Please try again or contact support.'}); render();});
+  }
+  function submitSupport(){
+    var body={conversationId:state.conversationId,name:val('sup-name'),email:val('sup-email'),phone:val('sup-phone'),subject:val('sup-subject'),description:val('sup-desc')};
+    fetch(apiBase+'/'+encodeURIComponent(widgetId)+'/support',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().then(function(j){if(!r.ok) throw j; return j;});}).then(function(j){shadow.getElementById('sup-result').textContent='Submitted. Reference: '+j.referenceNumber;}).catch(function(e){shadow.getElementById('sup-result').textContent=(e.errors&&e.errors[0]&&e.errors[0].msg)||'Could not submit support request.';});
+  }
+  function val(id){var el=shadow.getElementById(id); return el ? el.value : '';}
+  fetch(apiBase+'/'+encodeURIComponent(widgetId)+'/config').then(function(r){return r.json().then(function(j){if(!r.ok) throw j; return j;});}).then(function(j){state.config=j; render();}).catch(function(){shadow.innerHTML='';});
+  render();
+})();`;
+  res.type("application/javascript").send(script);
 };
 
 exports.auditAccess = async (req, res) => {
