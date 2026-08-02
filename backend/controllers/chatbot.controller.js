@@ -357,14 +357,90 @@ const getWidgetUsageTotals = async (org_id) => {
   }, {});
 };
 
-const ensurePublicMessageCapacity = async (entitlement) => {
+const ensurePublicMessageCapacity = async ({ entitlement, widget, sessionKey, checkAiMessages = true }) => {
   const usage = await getWidgetUsageTotals(entitlement.org_id);
   const aiMessageLimit = Number(entitlement.monthlyAiMessageLimit || 0) + Number(entitlement.extraAiMessagePacks || 0);
-  if (aiMessageLimit > 0 && Number(usage.ai_message || 0) >= aiMessageLimit) {
+  if (checkAiMessages && aiMessageLimit > 0 && Number(usage.ai_message || 0) >= aiMessageLimit) {
     const error = new Error("Website AI Chatbot message limit is exhausted for this organization.");
     error.statusCode = 429;
     throw error;
   }
+  const conversationLimit = Number(entitlement.monthlyConversationLimit || 0) + Number(entitlement.extraConversationPacks || 0);
+  if (conversationLimit > 0 && Number(usage.conversation || 0) >= conversationLimit) {
+    const existingConversation = clean(sessionKey)
+      ? await db.chatbotConversation.findOne({ where: { org_id: widget.org_id, sessionKey: clean(sessionKey) } })
+      : null;
+    if (!existingConversation) {
+      const error = new Error("Website AI Chatbot conversation limit is exhausted for this organization.");
+      error.statusCode = 429;
+      throw error;
+    }
+  }
+};
+
+const analyticsForOrg = async (org_id) => {
+  const [conversations, supportRequests, chatbotEnquiries, recentMessages, usageRows] = await Promise.all([
+    db.chatbotConversation.findAll({
+      where: { org_id },
+      order: [["updatedAt", "DESC"]],
+      limit: 20,
+    }),
+    db.chatbotSupportRequest.findAll({
+      where: { org_id },
+      order: [["createdAt", "DESC"]],
+      limit: 20,
+    }),
+    db.customer.findAll({
+      where: { org_id, leadSource: "Website AI Chatbot" },
+      order: [["createdAt", "DESC"]],
+      limit: 20,
+      attributes: ["id", "firstName", "lastName", "mobile", "email", "companyName", "chatbotConversationId", "createdAt"],
+    }),
+    db.chatbotMessage.findAll({
+      where: { org_id },
+      order: [["createdAt", "DESC"]],
+      limit: 50,
+      attributes: ["id", "conversationId", "senderType", "confidence", "createdAt"],
+    }),
+    db.chatbotUsageLedger.findAll({
+      where: { org_id },
+      order: [["createdAt", "DESC"]],
+      limit: 100,
+    }),
+  ]);
+  const byStatus = conversations.reduce((acc, item) => {
+    acc[item.status] = (acc[item.status] || 0) + 1;
+    return acc;
+  }, {});
+  const aiMessages = recentMessages.filter((item) => item.senderType === "ai");
+  const confidenceValues = aiMessages.map((item) => Number(item.confidence || 0)).filter((value) => value > 0);
+  const averageConfidence = confidenceValues.length
+    ? Math.round(confidenceValues.reduce((sum, value) => sum + value, 0) / confidenceValues.length)
+    : 0;
+  return {
+    totals: {
+      recentConversations: conversations.length,
+      supportRequests: supportRequests.length,
+      chatbotEnquiries: chatbotEnquiries.length,
+      handovers: conversations.filter((item) => ["Waiting for Agent", "Assigned", "Agent Active"].includes(item.status)).length,
+      averageConfidence,
+    },
+    byStatus,
+    recentConversations: conversations.map((item) => ({
+      id: item.id,
+      status: item.status,
+      visitorName: item.visitorName,
+      visitorEmail: item.visitorEmail,
+      visitorPhone: item.visitorPhone,
+      enquiryId: item.enquiryId,
+      assignedTo: item.assignedTo,
+      sourceDomain: item.sourceDomain,
+      updatedAt: item.updatedAt,
+    })),
+    recentSupportRequests: supportRequests,
+    recentEnquiries: chatbotEnquiries,
+    recentUsage: usageRows,
+  };
 };
 
 const hasEnquiryIntent = (message) => ENQUIRY_INTENT_PATTERNS.some((pattern) => pattern.test(clean(message)));
@@ -585,8 +661,9 @@ exports.getSummary = async (req, res) => {
       installScript: `<script src="${req.protocol}://${req.get("host")}/chatbot/widget.js" data-widget-id="${widget.widgetIdentifier}" async></script>`,
       knowledgeSources,
       faqs,
+      analytics: await analyticsForOrg(org_id),
       validationIssues,
-      phase: "phase-6-enquiry-capture-human-handover",
+      phase: "phase-7-analytics-security-final-qa",
       message: "Website AI Chatbot setup is enabled for this organization.",
     });
   } catch (error) {
@@ -664,11 +741,13 @@ exports.addDomain = async (req, res) => {
     const existingCount = await db.chatbotAllowedDomain.count({ where: { org_id, isActive: true } });
     const limit = Number(req.chatbotUsage.limits.domain || 0);
     if (limit > 0 && existingCount >= limit) return sendErrorResponse(res, 429, "Allowed domain limit is exhausted.");
-    const [row] = await db.chatbotAllowedDomain.findOrCreate({
+    const [row, created] = await db.chatbotAllowedDomain.findOrCreate({
       where: { org_id, domain },
       defaults: { org_id, domain, verifiedAt: new Date() },
     });
-    if (!row.isActive) await row.update({ isActive: true, verifiedAt: new Date() });
+    const reactivated = !row.isActive;
+    if (reactivated) await row.update({ isActive: true, verifiedAt: new Date() });
+    if (created || reactivated) await writeUsage({ org_id, entryType: "domain", reason: "allowed_domain_added" });
     await writeAudit({ req, org_id, action: "chatbot.domain.added", entityType: "chatbot_allowed_domain", entityId: row.id, metadata: { domain } });
     res.status(201).json({ message: "Allowed domain saved.", domain: row });
   } catch (error) {
@@ -766,6 +845,7 @@ exports.createTextKnowledge = async (req, res) => {
       createdBy: req.user.id,
       lastIndexedAt: new Date(),
     });
+    await writeUsage({ org_id, entryType: "knowledge_source", reason: "manual_text_created" });
     await writeAudit({ req, org_id, action: "chatbot.knowledge.created", entityType: "chatbot_knowledge_source", entityId: source.id });
     res.status(201).json({ message: "Knowledge source saved.", source });
   } catch (error) {
@@ -813,6 +893,15 @@ exports.uploadDocumentKnowledge = async (req, res) => {
       createdBy: req.user.id,
       lastIndexedAt: status === "Active" ? new Date() : null,
     });
+    if (status === "Active") {
+      await writeUsage({ org_id, entryType: "knowledge_source", reason: "document_knowledge_created" });
+      await writeUsage({
+        org_id,
+        entryType: "document_storage_mb",
+        quantity: Math.max(1, Math.ceil(Number(req.file.size || 0) / (1024 * 1024))),
+        reason: "document_uploaded",
+      });
+    }
     await writeAudit({ req, org_id, action: "chatbot.knowledge.document_uploaded", entityType: "chatbot_knowledge_source", entityId: source.id, metadata: { status } });
     res.status(201).json({ message: status === "Active" ? "Document processed." : "Document stored but processing failed.", source });
   } catch (error) {
@@ -840,6 +929,7 @@ exports.createUrlKnowledge = async (req, res) => {
       createdBy: req.user.id,
       lastIndexedAt: new Date(),
     });
+    await writeUsage({ org_id, entryType: "knowledge_source", reason: "url_knowledge_created" });
     await writeAudit({ req, org_id, action: "chatbot.knowledge.url_processed", entityType: "chatbot_knowledge_source", entityId: source.id, metadata: { url: processed.url } });
     res.status(201).json({ message: "URL processed.", source });
   } catch (error) {
@@ -928,7 +1018,7 @@ exports.getPublicConfig = async (req, res) => {
 exports.publicMessage = async (req, res) => {
   try {
     const { widget, domain, entitlement } = await findWidgetContext(req, req.params.widgetIdentifier);
-    await ensurePublicMessageCapacity(entitlement);
+    await ensurePublicMessageCapacity({ entitlement, widget, sessionKey: req.body.sessionKey });
     const question = clean(req.body.message).slice(0, 1000);
     if (!question) return sendErrorResponse(res, 400, "Message is required.");
     const { faqs, knowledgeSources } = await activeWidgetPayload(widget.org_id);
@@ -964,7 +1054,8 @@ exports.publicMessage = async (req, res) => {
 
 exports.publicEnquiryCapture = async (req, res) => {
   try {
-    const { widget, domain } = await findWidgetContext(req, req.params.widgetIdentifier);
+    const { widget, domain, entitlement } = await findWidgetContext(req, req.params.widgetIdentifier);
+    await ensurePublicMessageCapacity({ entitlement, widget, sessionKey: req.body.sessionKey, checkAiMessages: false });
     const result = await createOrLinkChatbotEnquiry({ widget, domain, body: req.body || {} });
     const usageWrites = [
       writeUsage({ org_id: widget.org_id, conversationId: result.conversation.id, entryType: "enquiry", reason: result.reused ? "existing_enquiry_linked" : "chatbot_enquiry_created" }),

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Bot, CheckCircle2, Clipboard, FileText, Globe2, KeyRound, MessageSquare, Palette, Plus, Settings, ShieldAlert, Trash2, Upload } from "lucide-react";
+import { Activity, Bot, CheckCircle2, Clipboard, FileText, Globe2, KeyRound, MessageSquare, Palette, Plus, Settings, ShieldAlert, Trash2, Upload, UserCheck } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/utils/api";
 
-const tabs = ["Dashboard", "Knowledge Base", "FAQs", "Appearance", "Lead Form", "Install Widget", "Settings"];
+const tabs = ["Dashboard", "Knowledge Base", "FAQs", "Appearance", "Lead Form", "Install Widget", "Analytics", "Settings"];
 const getError = (error, fallback) => error?.response?.data?.errors?.[0]?.msg || fallback;
 
 const defaultFaq = { question: "", answer: "", category: "", language: "English", status: "Active" };
@@ -213,8 +213,14 @@ const ChatbotWorkspace = () => {
                     <div className="grid gap-4 md:grid-cols-4">
                         <Stat icon={MessageSquare} label="Conversations" value={`${summary?.usage?.conversation || 0} / ${summary?.limits?.conversation || 0}`} />
                         <Stat icon={Bot} label="AI messages" value={`${summary?.usage?.ai_message || 0} / ${summary?.limits?.ai_message || 0}`} />
+                        <Stat icon={UserCheck} label="Enquiries" value={summary?.usage?.enquiry || 0} />
+                        <Stat icon={Activity} label="Handovers" value={summary?.usage?.handover || 0} />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-4">
                         <Stat icon={FileText} label="Knowledge sources" value={`${stats.activeSources} / ${summary?.limits?.knowledge_source || 0}`} />
                         <Stat icon={Globe2} label="Allowed domains" value={`${stats.activeDomains} / ${summary?.limits?.domain || 0}`} />
+                        <Stat icon={Bot} label="Avg AI confidence" value={`${summary?.analytics?.totals?.averageConfidence || 0}%`} />
+                        <Stat icon={MessageSquare} label="Open handovers" value={summary?.analytics?.totals?.handovers || 0} />
                     </div>
                     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                         <h2 className="text-lg font-black text-slate-950">Setup Health</h2>
@@ -224,7 +230,7 @@ const ChatbotWorkspace = () => {
                                     <div key={issue} className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800"><ShieldAlert size={16} /> {issue}</div>
                                 ))
                             ) : (
-                                <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700"><CheckCircle2 size={16} /> Chatbot setup is valid for Phase 3.</div>
+                                <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700"><CheckCircle2 size={16} /> Chatbot setup is valid for staging use.</div>
                             )}
                         </div>
                     </section>
@@ -361,6 +367,50 @@ const ChatbotWorkspace = () => {
                             <div className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">Add at least one allowed domain in Settings before installing.</div>
                         )}
                     </Panel>
+                </div>
+            )}
+
+            {activeTab === "Analytics" && (
+                <div className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-4">
+                        <Stat icon={MessageSquare} label="Recent conversations" value={summary?.analytics?.totals?.recentConversations || 0} />
+                        <Stat icon={UserCheck} label="Chatbot enquiries" value={summary?.analytics?.totals?.chatbotEnquiries || 0} />
+                        <Stat icon={Activity} label="Support requests" value={summary?.analytics?.totals?.supportRequests || 0} />
+                        <Stat icon={Bot} label="Average confidence" value={`${summary?.analytics?.totals?.averageConfidence || 0}%`} />
+                    </div>
+                    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div className="border-b border-slate-100 p-4"><h2 className="text-lg font-black text-slate-950">Recent Conversations</h2></div>
+                        <Rows items={summary?.analytics?.recentConversations || []} empty="No conversations yet." columns={(item) => (
+                            <>
+                                <td className="px-4 py-3 font-bold text-slate-950">#{item.id}</td>
+                                <td className="px-4 py-3 text-slate-600">{item.visitorName || "Visitor"}</td>
+                                <td className="px-4 py-3"><Pill tone={item.status === "Assigned" ? "green" : "slate"}>{item.status}</Pill></td>
+                                <td className="px-4 py-3 text-slate-600">{item.enquiryId ? `Enquiry #${item.enquiryId}` : item.sourceDomain}</td>
+                            </>
+                        )} />
+                    </section>
+                    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div className="border-b border-slate-100 p-4"><h2 className="text-lg font-black text-slate-950">Recent Enquiries</h2></div>
+                        <Rows items={summary?.analytics?.recentEnquiries || []} empty="No chatbot enquiries yet." columns={(item) => (
+                            <>
+                                <td className="px-4 py-3 font-bold text-slate-950">#{item.id}</td>
+                                <td className="px-4 py-3 text-slate-600">{[item.firstName, item.lastName].filter(Boolean).join(" ")}</td>
+                                <td className="px-4 py-3 text-slate-600">{item.companyName || item.mobile}</td>
+                                <td className="px-4 py-3 text-slate-600">{item.chatbotConversationId ? `Conversation #${item.chatbotConversationId}` : "-"}</td>
+                            </>
+                        )} />
+                    </section>
+                    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div className="border-b border-slate-100 p-4"><h2 className="text-lg font-black text-slate-950">Usage Ledger</h2></div>
+                        <Rows items={summary?.analytics?.recentUsage || []} empty="No usage recorded yet." columns={(item) => (
+                            <>
+                                <td className="px-4 py-3 font-bold text-slate-950">{item.entryType}</td>
+                                <td className="px-4 py-3 text-slate-600">{item.quantity}</td>
+                                <td className="px-4 py-3 text-slate-600">{item.reason || "-"}</td>
+                                <td className="px-4 py-3 text-slate-600">{item.lifecycle}</td>
+                            </>
+                        )} />
+                    </section>
                 </div>
             )}
 

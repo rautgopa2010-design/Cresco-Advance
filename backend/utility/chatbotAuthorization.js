@@ -93,6 +93,7 @@ const getUsageTotals = async (org_id) => {
     {
       conversation: 0,
       ai_message: 0,
+      enquiry: 0,
       knowledge_source: 0,
       document_storage_mb: 0,
       domain: 0,
@@ -112,6 +113,7 @@ const getEntitlementState = async (org_id) => {
   const limits = {
     conversation: Number(entitlement?.monthlyConversationLimit || 0) + Number(entitlement?.extraConversationPacks || 0),
     ai_message: Number(entitlement?.monthlyAiMessageLimit || 0) + Number(entitlement?.extraAiMessagePacks || 0),
+    enquiry: 0,
     knowledge_source: Number(entitlement?.knowledgeSourceLimit || 0),
     document_storage_mb: Number(entitlement?.documentStorageMbLimit || 0),
     domain: Number(entitlement?.domainLimit || 0),

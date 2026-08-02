@@ -76,8 +76,14 @@ exports.getOverview = async (req, res) => {
         acc[row.entryType] = (acc[row.entryType] || 0) + Number(row.quantity || 0) * multiplier;
         return acc;
       },
-      { conversation: 0, ai_message: 0, knowledge_source: 0, document_storage_mb: 0, domain: 0, agent: 0, handover: 0 }
+      { conversation: 0, ai_message: 0, enquiry: 0, knowledge_source: 0, document_storage_mb: 0, domain: 0, agent: 0, handover: 0 }
     );
+    const usageByOrg = usageRows.reduce((acc, row) => {
+      const multiplier = row.direction === "credit" ? -1 : 1;
+      const orgUsage = acc[row.org_id] || (acc[row.org_id] = {});
+      orgUsage[row.entryType] = (orgUsage[row.entryType] || 0) + Number(row.quantity || 0) * multiplier;
+      return acc;
+    }, {});
 
     const auditLogs = await db.chatbotAuditLog.findAll({
       where: { providerOrgId },
@@ -85,7 +91,7 @@ exports.getOverview = async (req, res) => {
       limit: 25,
     });
 
-    res.json({ plans, entitlements, aggregateUsage, auditLogs, permissions: PERMISSION_TYPES });
+    res.json({ plans, entitlements, aggregateUsage, usageByOrg, auditLogs, permissions: PERMISSION_TYPES });
   } catch (error) {
     console.error("Chatbot provider overview error:", error);
     return sendErrorResponse(res, 500, "Failed to load Website AI Chatbot overview.");

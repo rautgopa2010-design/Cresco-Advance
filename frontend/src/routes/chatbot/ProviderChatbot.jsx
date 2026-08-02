@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Activity, Bot, Building2, FileText, MessageSquare, Plus, ShieldCheck } from "lucide-react";
+import { Activity, Bot, Building2, FileText, MessageSquare, Plus, ShieldCheck, UserCheck } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/utils/api";
 
@@ -121,8 +121,15 @@ const ProviderChatbot = () => {
             <div className="mb-6 grid gap-4 md:grid-cols-4">
                 <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><MessageSquare className="mb-3 text-blue-600" /><p className="text-sm font-semibold text-slate-500">Conversations</p><p className="text-2xl font-black">{overview.aggregateUsage?.conversation || 0}</p></div>
                 <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><Bot className="mb-3 text-violet-600" /><p className="text-sm font-semibold text-slate-500">AI messages</p><p className="text-2xl font-black">{overview.aggregateUsage?.ai_message || 0}</p></div>
+                <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><UserCheck className="mb-3 text-emerald-600" /><p className="text-sm font-semibold text-slate-500">Enquiries</p><p className="text-2xl font-black">{overview.aggregateUsage?.enquiry || 0}</p></div>
+                <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><Activity className="mb-3 text-amber-600" /><p className="text-sm font-semibold text-slate-500">Handovers</p><p className="text-2xl font-black">{overview.aggregateUsage?.handover || 0}</p></div>
+            </div>
+
+            <div className="mb-6 grid gap-4 md:grid-cols-4">
                 <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><FileText className="mb-3 text-emerald-600" /><p className="text-sm font-semibold text-slate-500">Knowledge sources</p><p className="text-2xl font-black">{overview.aggregateUsage?.knowledge_source || 0}</p></div>
                 <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><ShieldCheck className="mb-3 text-rose-600" /><p className="text-sm font-semibold text-slate-500">Entitled orgs</p><p className="text-2xl font-black">{overview.entitlements?.length || 0}</p></div>
+                <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><Building2 className="mb-3 text-blue-600" /><p className="text-sm font-semibold text-slate-500">Allowed domains</p><p className="text-2xl font-black">{overview.aggregateUsage?.domain || 0}</p></div>
+                <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><Activity className="mb-3 text-violet-600" /><p className="text-sm font-semibold text-slate-500">Storage MB</p><p className="text-2xl font-black">{overview.aggregateUsage?.document_storage_mb || 0}</p></div>
             </div>
 
             <div className="grid gap-5 xl:grid-cols-2">
@@ -186,6 +193,7 @@ const ProviderChatbot = () => {
                                 <th className="px-4 py-3">Organization</th>
                                 <th className="px-4 py-3">Status</th>
                                 <th className="px-4 py-3">Limits</th>
+                                <th className="px-4 py-3">Usage</th>
                                 <th className="px-4 py-3">Features</th>
                                 <th className="px-4 py-3">Action</th>
                             </tr>
@@ -196,6 +204,9 @@ const ProviderChatbot = () => {
                                     <td className="px-4 py-3 font-bold text-slate-950">{item.organization?.company || `Org ${item.org_id}`}</td>
                                     <td className="px-4 py-3"><span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold">{item.status}</span></td>
                                     <td className="px-4 py-3 text-slate-600">{item.monthlyConversationLimit} conversations / {item.monthlyAiMessageLimit} AI messages</td>
+                                    <td className="px-4 py-3 text-slate-600">
+                                        {(overview.usageByOrg?.[item.org_id]?.conversation || 0)} conversations / {(overview.usageByOrg?.[item.org_id]?.enquiry || 0)} enquiries / {(overview.usageByOrg?.[item.org_id]?.handover || 0)} handovers
+                                    </td>
                                     <td className="px-4 py-3 text-slate-600">{item.knowledgeSourceLimit} sources / {item.domainLimit} domains</td>
                                     <td className="px-4 py-3">
                                         <div className="flex flex-wrap gap-2">
@@ -206,7 +217,7 @@ const ProviderChatbot = () => {
                                 </tr>
                             ))}
                             {!overview.entitlements?.length && (
-                                <tr><td className="px-4 py-8 text-center text-sm font-semibold text-slate-500" colSpan={5}>No organization entitlements configured.</td></tr>
+                                <tr><td className="px-4 py-8 text-center text-sm font-semibold text-slate-500" colSpan={6}>No organization entitlements configured.</td></tr>
                             )}
                         </tbody>
                     </table>
