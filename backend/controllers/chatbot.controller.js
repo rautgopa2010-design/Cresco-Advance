@@ -189,35 +189,174 @@ const activeWidgetPayload = async (org_id) => {
   return { configuration, leadForm, faqs, knowledgeSources, domains, widget };
 };
 
+const STOP_WORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "you",
+  "your",
+  "with",
+  "what",
+  "how",
+  "can",
+  "are",
+  "our",
+  "about",
+  "that",
+  "this",
+  "from",
+  "have",
+  "does",
+  "provide",
+  "please",
+]);
+
+const SAFETY_PATTERNS = [
+  /ignore (all )?(previous|prior) instructions/i,
+  /system prompt/i,
+  /developer message/i,
+  /api key|secret|credential|password|token/i,
+  /another organization|other organization|other tenant|different tenant/i,
+  /database|sql|table schema/i,
+];
+
+const tokenizeQuestion = (value) =>
+  clean(value)
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length > 2 && !STOP_WORDS.has(word));
+
+const relevantExcerpt = (text, words, limit = 420) => {
+  const cleaned = clean(text).replace(/\s+/g, " ");
+  if (!cleaned) return "";
+  const sentences = cleaned.split(/(?<=[.!?])\s+/).filter(Boolean);
+  const ranked = sentences
+    .map((sentence, index) => ({
+      sentence,
+      index,
+      score: words.reduce((count, word) => count + (sentence.toLowerCase().includes(word) ? 1 : 0), 0),
+    }))
+    .sort((a, b) => b.score - a.score || a.index - b.index);
+  const selected = ranked.filter((item) => item.score > 0).slice(0, 3);
+  const excerpt = (selected.length ? selected : ranked.slice(0, 2))
+    .sort((a, b) => a.index - b.index)
+    .map((item) => item.sentence)
+    .join(" ");
+  return excerpt.slice(0, limit);
+};
+
+const makeGroundedAnswer = ({ excerpt, sourceTitle, confidence }) => {
+  if (confidence < 45 || !excerpt) {
+    return "I do not have enough approved information to answer that confidently. Please send an enquiry or contact the team for help.";
+  }
+  return `Based on approved information from ${sourceTitle}: ${excerpt}`;
+};
+
 const answerFromKnowledge = ({ question, faqs, knowledgeSources }) => {
-  const q = clean(question).toLowerCase();
-  const words = q.split(/[^a-z0-9]+/).filter((word) => word.length > 2);
+  if (SAFETY_PATTERNS.some((pattern) => pattern.test(question))) {
+    return {
+      answer: "I can only answer from this organization's approved public knowledge. I cannot share internal instructions, credentials, private data or another organization's information.",
+      confidence: 15,
+      references: [],
+      grounded: true,
+      lowConfidence: true,
+      safetyBlocked: true,
+    };
+  }
+  const words = tokenizeQuestion(question);
+  if (!words.length) {
+    return {
+      answer: "Please ask a specific question about this organization's products, services, pricing, demo, support or contact details.",
+      confidence: 20,
+      references: [],
+      grounded: true,
+      lowConfidence: true,
+    };
+  }
   const scoreText = (text) => words.reduce((score, word) => score + (String(text || "").toLowerCase().includes(word) ? 1 : 0), 0);
   const faqMatches = faqs
-    .map((faq) => ({ type: "FAQ", title: faq.question, answer: faq.answer, score: scoreText(`${faq.question} ${faq.answer}`) }))
+    .map((faq) => ({
+      id: faq.id,
+      type: "FAQ",
+      title: faq.question,
+      sourceText: faq.answer,
+      score: scoreText(`${faq.question} ${faq.answer}`),
+    }))
     .sort((a, b) => b.score - a.score);
-  if (faqMatches[0]?.score > 0) {
+  if (faqMatches[0]?.score >= 2) {
+    const excerpt = relevantExcerpt(faqMatches[0].sourceText, words, 600);
+    const confidence = Math.min(95, 58 + faqMatches[0].score * 8);
     return {
-      answer: faqMatches[0].answer,
-      confidence: Math.min(95, 55 + faqMatches[0].score * 10),
-      references: [{ type: "FAQ", title: faqMatches[0].title }],
+      answer: makeGroundedAnswer({ excerpt, sourceTitle: faqMatches[0].title, confidence }),
+      confidence,
+      references: [{ id: faqMatches[0].id, type: "FAQ", title: faqMatches[0].title }],
+      grounded: true,
+      lowConfidence: false,
     };
   }
   const sourceMatches = knowledgeSources
-    .map((source) => ({ type: source.sourceType, title: source.title, answer: source.processedSummary || summarize(source.contentText), score: scoreText(`${source.title} ${source.contentText} ${source.processedSummary}`) }))
+    .map((source) => ({
+      id: source.id,
+      type: source.sourceType,
+      title: source.title,
+      sourceText: source.contentText || source.processedSummary,
+      score: scoreText(`${source.title} ${source.contentText} ${source.processedSummary}`),
+    }))
     .sort((a, b) => b.score - a.score);
-  if (sourceMatches[0]?.score > 0) {
+  if (sourceMatches[0]?.score >= 2) {
+    const excerpt = relevantExcerpt(sourceMatches[0].sourceText, words, 520);
+    const confidence = Math.min(88, 48 + sourceMatches[0].score * 8);
     return {
-      answer: sourceMatches[0].answer,
-      confidence: Math.min(85, 45 + sourceMatches[0].score * 8),
-      references: [{ type: sourceMatches[0].type, title: sourceMatches[0].title }],
+      answer: makeGroundedAnswer({ excerpt, sourceTitle: sourceMatches[0].title, confidence }),
+      confidence,
+      references: [{ id: sourceMatches[0].id, type: sourceMatches[0].type, title: sourceMatches[0].title }],
+      grounded: true,
+      lowConfidence: confidence < 50,
     };
   }
   return {
     answer: "I do not have enough approved information to answer that confidently. Please send an enquiry or contact the team for help.",
     confidence: 20,
     references: [],
+    grounded: true,
+    lowConfidence: true,
   };
+};
+
+const writeUsage = async ({ org_id, conversationId, entryType, reason, quantity = 1 }) =>
+  db.chatbotUsageLedger.create({
+    org_id,
+    conversationId,
+    entryType,
+    quantity,
+    direction: "debit",
+    lifecycle: "consumed",
+    reason,
+    idempotencyKey: `chatbot-${entryType}-${conversationId || "none"}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+  });
+
+const getWidgetUsageTotals = async (org_id) => {
+  const rows = await db.chatbotUsageLedger.findAll({
+    where: {
+      org_id,
+      lifecycle: { [Op.in]: ["consumed", "released", "refunded"] },
+    },
+  });
+  return rows.reduce((acc, row) => {
+    const multiplier = row.direction === "credit" ? -1 : 1;
+    acc[row.entryType] = (acc[row.entryType] || 0) + Number(row.quantity || 0) * multiplier;
+    return acc;
+  }, {});
+};
+
+const ensurePublicMessageCapacity = async (entitlement) => {
+  const usage = await getWidgetUsageTotals(entitlement.org_id);
+  const aiMessageLimit = Number(entitlement.monthlyAiMessageLimit || 0) + Number(entitlement.extraAiMessagePacks || 0);
+  if (aiMessageLimit > 0 && Number(usage.ai_message || 0) >= aiMessageLimit) {
+    const error = new Error("Website AI Chatbot message limit is exhausted for this organization.");
+    error.statusCode = 429;
+    throw error;
+  }
 };
 
 exports.getSummary = async (req, res) => {
@@ -265,7 +404,7 @@ exports.getSummary = async (req, res) => {
       knowledgeSources,
       faqs,
       validationIssues,
-      phase: "phase-3-organization-setup",
+      phase: "phase-5-ai-knowledge-answering",
       message: "Website AI Chatbot setup is enabled for this organization.",
     });
   } catch (error) {
@@ -606,13 +745,14 @@ exports.getPublicConfig = async (req, res) => {
 
 exports.publicMessage = async (req, res) => {
   try {
-    const { widget, domain } = await findWidgetContext(req, req.params.widgetIdentifier);
+    const { widget, domain, entitlement } = await findWidgetContext(req, req.params.widgetIdentifier);
+    await ensurePublicMessageCapacity(entitlement);
     const question = clean(req.body.message).slice(0, 1000);
     if (!question) return sendErrorResponse(res, 400, "Message is required.");
     const { faqs, knowledgeSources } = await activeWidgetPayload(widget.org_id);
     const reply = answerFromKnowledge({ question, faqs, knowledgeSources });
     const sessionKey = clean(req.body.sessionKey) || `session-${crypto.randomBytes(8).toString("hex")}`;
-    const [conversation] = await db.chatbotConversation.findOrCreate({
+    const [conversation, createdConversation] = await db.chatbotConversation.findOrCreate({
       where: { org_id: widget.org_id, sessionKey },
       defaults: { org_id: widget.org_id, widgetId: widget.id, sessionKey, sourceDomain: domain },
     });
@@ -620,16 +760,14 @@ exports.publicMessage = async (req, res) => {
       { org_id: widget.org_id, conversationId: conversation.id, senderType: "visitor", message: question },
       { org_id: widget.org_id, conversationId: conversation.id, senderType: "ai", message: reply.answer, confidence: reply.confidence, references: reply.references },
     ]);
-    await db.chatbotUsageLedger.create({
-      org_id: widget.org_id,
-      conversationId: conversation.id,
-      entryType: "ai_message",
-      quantity: 1,
-      direction: "debit",
-      lifecycle: "consumed",
-      reason: "widget_message",
-      idempotencyKey: `chatbot-message-${conversation.id}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
-    });
+    const usageWrites = [writeUsage({ org_id: widget.org_id, conversationId: conversation.id, entryType: "ai_message", reason: "grounded_answer" })];
+    if (createdConversation) {
+      usageWrites.push(writeUsage({ org_id: widget.org_id, conversationId: conversation.id, entryType: "conversation", reason: "widget_session_started" }));
+    }
+    if (reply.lowConfidence) {
+      usageWrites.push(writeUsage({ org_id: widget.org_id, conversationId: conversation.id, entryType: "low_confidence_fallback", reason: reply.safetyBlocked ? "safety_blocked" : "insufficient_evidence" }));
+    }
+    await Promise.all(usageWrites);
     res.json({ conversationId: conversation.id, sessionKey, ...reply });
   } catch (error) {
     return sendErrorResponse(res, error.statusCode || 500, error.message || "Failed to answer chatbot message.");
@@ -734,7 +872,7 @@ exports.auditAccess = async (req, res) => {
       action: "chatbot.module.viewed",
       entityType: "chatbot_entitlement",
       entityId: req.chatbotEntitlement?.id,
-      metadata: { phase: "phase-2-foundation" },
+      metadata: { phase: "phase-5-ai-knowledge-answering" },
     });
     res.json({ message: "Website AI Chatbot access verified." });
   } catch (error) {
