@@ -6,8 +6,83 @@ const Modules = db.modules;
 const Roles = db.roles;
 const RolePermissions = db.rolePermissions;
 const Permissions = db.permissions;
+const { ensureChatbotModuleForOrg } = require("./chatbotAuthorization");
 
 const DEFAULT_PERMISSIONS = ["view", "create", "edit", "delete", "print"];
+const CHATBOT_MODULE_NAME = "Website AI Chatbot";
+
+const syncChatbotEntitlementForPackage = async (org_id, package_id) => {
+  const pkgModules = await PackageModules.findAll({
+    where: { package_id },
+    attributes: ["module"],
+  });
+  const hasChatbotModule = pkgModules.some(
+    (item) => item.module === CHATBOT_MODULE_NAME
+  );
+
+  const org = await db.register.findByPk(org_id, {
+    attributes: [
+      "id",
+      "providerId",
+      "packageStartDate",
+      "packageExpiryDate",
+      "paymentStatus",
+    ],
+  });
+  if (!org) return;
+
+  const providerOrgId = org.providerId || org_id;
+  const entitlement = await db.chatbotEntitlement.findOne({
+    where: { org_id },
+  });
+
+  if (!hasChatbotModule) {
+    if (entitlement && entitlement.status !== "suspended") {
+      await entitlement.update({
+        status: "suspended",
+        suspendedReason: "Website AI Chatbot module is not included in the assigned package.",
+      });
+    }
+    return;
+  }
+
+  await ensureChatbotModuleForOrg(org_id);
+
+  const plan = await db.chatbotPlan.findOne({
+    where: { providerOrgId, status: "active" },
+    order: [["createdAt", "DESC"]],
+  });
+
+  const now = new Date();
+  const payload = {
+    providerOrgId,
+    org_id,
+    planId: plan?.id || entitlement?.planId || null,
+    status: org.paymentStatus === "expired" ? "expired" : "active",
+    startsAt: org.packageStartDate || entitlement?.startsAt || now,
+    expiresAt: org.packageExpiryDate || entitlement?.expiresAt || null,
+    monthlyConversationLimit:
+      entitlement?.monthlyConversationLimit || plan?.monthlyConversationLimit || 100,
+    monthlyAiMessageLimit:
+      entitlement?.monthlyAiMessageLimit || plan?.monthlyAiMessageLimit || 500,
+    knowledgeSourceLimit:
+      entitlement?.knowledgeSourceLimit || plan?.knowledgeSourceLimit || 10,
+    documentStorageMbLimit:
+      entitlement?.documentStorageMbLimit || plan?.documentStorageMbLimit || 100,
+    domainLimit: entitlement?.domainLimit || plan?.domainLimit || 1,
+    agentLimit: entitlement?.agentLimit || plan?.agentLimit || 1,
+    humanHandoverEnabled:
+      entitlement?.humanHandoverEnabled ?? plan?.humanHandoverEnabled ?? true,
+    analyticsEnabled: entitlement?.analyticsEnabled ?? plan?.analyticsEnabled ?? true,
+    extraConversationPacks: entitlement?.extraConversationPacks || 0,
+    extraAiMessagePacks: entitlement?.extraAiMessagePacks || 0,
+    supportedAiProviders:
+      entitlement?.supportedAiProviders || plan?.supportedAiProviders || ["mock"],
+    suspendedReason: null,
+  };
+
+  await db.chatbotEntitlement.upsert(payload);
+};
 
 exports.createDefaultModules = async (org_id, package_id) => {
   try {
@@ -134,6 +209,7 @@ exports.createDefaultModules = async (org_id, package_id) => {
     console.log(
       `Default modules and permissions synced for org_id=${org_id} package=${package_id}`
     );
+    await syncChatbotEntitlementForPackage(org_id, package_id);
   } catch (error) {
     console.error("Error creating default modules:", error);
   }
