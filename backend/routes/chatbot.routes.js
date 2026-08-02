@@ -4,6 +4,8 @@ const chatbotAccess = require("../middleware/chatbotAccess.middleware");
 const controller = require("../controllers/chatbot.controller");
 const uploadKnowledge = require("../middleware/uploadChatbotKnowledge");
 
+router.get("/widget.js", controller.widgetScript);
+
 router.get("/summary", auth, chatbotAccess("chatbot.view"), controller.getSummary);
 router.post("/audit-access", auth, chatbotAccess("chatbot.view"), controller.auditAccess);
 router.put("/configuration", auth, chatbotAccess("chatbot.configure"), controller.updateConfiguration);

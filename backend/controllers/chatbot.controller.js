@@ -658,7 +658,7 @@ exports.getSummary = async (req, res) => {
       leadForm,
       domains,
       widget,
-      installScript: `<script src="${req.protocol}://${req.get("host")}/chatbot/widget.js" data-widget-id="${widget.widgetIdentifier}" async></script>`,
+      installScript: `<script src="${req.protocol}://${req.get("host")}/api/chatbot/widget.js" data-widget-id="${widget.widgetIdentifier}" async></script>`,
       knowledgeSources,
       faqs,
       analytics: await analyticsForOrg(org_id),
@@ -968,7 +968,7 @@ exports.rotateWidgetIdentifier = async (req, res) => {
     res.json({
       message: "Widget installation key rotated.",
       widget,
-      installScript: `<script src="${req.protocol}://${req.get("host")}/chatbot/widget.js" data-widget-id="${widget.widgetIdentifier}" async></script>`,
+      installScript: `<script src="${req.protocol}://${req.get("host")}/api/chatbot/widget.js" data-widget-id="${widget.widgetIdentifier}" async></script>`,
     });
   } catch (error) {
     console.error("Rotate chatbot widget error:", error);

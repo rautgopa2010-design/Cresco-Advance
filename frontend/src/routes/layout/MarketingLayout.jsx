@@ -334,7 +334,7 @@ export default function MarketingLayout() {
         const script = document.createElement("script");
         script.id = scriptId;
         script.async = true;
-        script.src = `${window.location.origin}/chatbot/widget.js`;
+        script.src = `${window.location.origin}/api/chatbot/widget.js`;
         script.setAttribute("data-widget-id", widgetId);
         document.body.appendChild(script);
         chatbotLoaded.current = true;
