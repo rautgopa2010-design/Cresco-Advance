@@ -251,6 +251,7 @@ export default function MarketingLayout() {
     const [theme, setTheme] = useState("light");
     const location = useLocation();
     const gtagLoaded = useRef(false);
+    const chatbotLoaded = useRef(false);
     const conversionTracked = useRef(false); // Track if conversion already fired
 
     // Check if current path is marketing website
@@ -315,6 +316,29 @@ export default function MarketingLayout() {
         // Optional: Log for debugging
         console.log("Conversion tracked for AW-18027859516/WW8sCMmI94scELycrZRD");
     }, [isMarketingRoute, isConversionPage]);
+
+    useEffect(() => {
+        const widgetId = import.meta.env.VITE_MARKETING_CHATBOT_WIDGET_ID || "cw_551d3447634afa480fc641b2186fc7ba1b06";
+        const scriptId = "cresco-marketing-chatbot-script";
+
+        if (!isMarketingRoute) {
+            document.getElementById("cresco-chatbot-root")?.remove();
+            document.getElementById(scriptId)?.remove();
+            window.__crescoChatbotLoaded = false;
+            chatbotLoaded.current = false;
+            return;
+        }
+
+        if (chatbotLoaded.current || document.getElementById(scriptId)) return;
+
+        const script = document.createElement("script");
+        script.id = scriptId;
+        script.async = true;
+        script.src = `${window.location.origin}/chatbot/widget.js`;
+        script.setAttribute("data-widget-id", widgetId);
+        document.body.appendChild(script);
+        chatbotLoaded.current = true;
+    }, [isMarketingRoute]);
 
     useEffect(() => {
         const hadDarkClass = document.documentElement.classList.contains("dark");
