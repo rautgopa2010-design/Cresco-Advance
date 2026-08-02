@@ -207,7 +207,6 @@ const STOP_WORDS = new Set([
   "from",
   "have",
   "does",
-  "provide",
   "please",
 ]);
 
