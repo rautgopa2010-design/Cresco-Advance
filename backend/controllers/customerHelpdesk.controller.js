@@ -1030,15 +1030,13 @@ exports.loginPortalUser = async (req, res) => {
       { expiresIn: "12h" }
     );
 
+    const branding = await getPortalBrandingPayload(portal);
+
     return res.status(200).json({
       message: "Customer portal login successful.",
       token,
       user: buildPortalUserPayload(portalUser),
-      portal: {
-        publicKey: portal.publicKey,
-        portalSlug: portal.portalSlug,
-        organizationName: portal.organization.company,
-      },
+      portal: branding,
     });
   } catch (error) {
     console.error("Customer portal login error:", error);
@@ -1158,11 +1156,13 @@ exports.getPortalMe = async (req, res) => {
       return sendErrorResponse(res, 403, accessError);
     }
 
+    const branding = await getPortalBrandingPayload(portal);
+
     return res.status(200).json({
       user: buildPortalUserPayload(portalUser),
       customer: portalUser.customer,
       contact: portalUser.contact,
-      portal: buildPortalBranding(portal),
+      portal: branding,
     });
   } catch (error) {
     console.error("Customer portal me error:", error);
@@ -1198,8 +1198,10 @@ exports.getPortalDashboard = async (req, res) => {
       { total: 0, open: 0, waiting: 0, closed: 0 }
     );
 
+    const branding = await getPortalBrandingPayload(portal);
+
     return res.status(200).json({
-      portal: buildPortalBranding(portal),
+      portal: branding,
       user: buildPortalUserPayload(portalUser),
       counts,
       recentTickets: tickets.map(formatTicket),
@@ -1517,10 +1519,12 @@ exports.updatePortalProfile = async (req, res) => {
       ...(mobile !== undefined && { mobile }),
     });
 
+    const branding = await getPortalBrandingPayload(portal);
+
     return res.status(200).json({
       message: "Portal profile updated.",
       user: buildPortalUserPayload(portalUser),
-      portal: buildPortalBranding(portal),
+      portal: branding,
     });
   } catch (error) {
     console.error("Customer portal profile update error:", error);

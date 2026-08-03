@@ -598,6 +598,7 @@ export const CustomerPortalDashboard = () => {
     };
 
     const portal = profile?.portal || dashboard?.portal || {};
+    const portalLogo = getAssetUrl(portal.logo);
     const counts = dashboard?.counts || { total: 0, open: 0, waiting: 0, closed: 0 };
     const tabButton = (key, label, Icon) => (
         <button
@@ -618,14 +619,27 @@ export const CustomerPortalDashboard = () => {
         >
             <div className="mx-auto max-w-7xl">
                 <header className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-5">
-                    <div>
-                        <p
-                            className="text-sm font-semibold uppercase tracking-[0.14em]"
-                            style={{ color: portal.accentColor || "#14765f" }}
-                        >
-                            {portal.organizationName || "Support Portal"}
-                        </p>
-                        <h1 className="mt-1 text-3xl font-black">Customer Portal</h1>
+                    <div className="flex items-center gap-4">
+                        <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+                            {portalLogo ? (
+                                <img
+                                    src={portalLogo}
+                                    alt={`${portal.organizationName || "Organization"} logo`}
+                                    className="max-h-full max-w-full object-contain"
+                                />
+                            ) : (
+                                <Headphones size={24} className="text-[#10253f]" />
+                            )}
+                        </div>
+                        <div>
+                            <p
+                                className="text-sm font-semibold uppercase tracking-[0.14em]"
+                                style={{ color: portal.accentColor || "#14765f" }}
+                            >
+                                {portal.organizationName || "Support Portal"}
+                            </p>
+                            <h1 className="mt-1 text-3xl font-black">Customer Portal</h1>
+                        </div>
                     </div>
                     <PortalButton onClick={logout} tone="outline">Sign out</PortalButton>
                 </header>
