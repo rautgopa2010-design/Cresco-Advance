@@ -36,6 +36,10 @@ const Button = ({ children, type = "button", onClick, disabled, tone = "primary"
 };
 
 const emptyMaster = { name: "", description: "" };
+const customerLabel = (customer) =>
+    [customer.companyName, [customer.firstName, customer.lastName].filter(Boolean).join(" ")]
+        .filter(Boolean)
+        .join(" - ") || customer.email || customer.mobile || `Customer #${customer.id}`;
 
 const CustomerHelpdeskWorkspace = () => {
     const [workspace, setWorkspace] = useState(null);
@@ -64,6 +68,7 @@ const CustomerHelpdeskWorkspace = () => {
     const [slaForm, setSlaForm] = useState({ name: "", priority: "", category: "", firstResponseMinutes: 240, resolutionMinutes: 1440, escalationMinutes: 720, escalationTeamId: "" });
     const [ruleForm, setRuleForm] = useState({ name: "", priority: 0, conditionPriority: "", conditionCategory: "", supportTeamId: "", assignEmployeeIds: [] });
     const [articleForm, setArticleForm] = useState({ title: "", summary: "", content: "", category: "", keywords: "" });
+    const [inviteForm, setInviteForm] = useState({ customer_id: "", name: "", email: "", mobile: "", isCustomerAccountAdmin: false });
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -266,6 +271,36 @@ const CustomerHelpdeskWorkspace = () => {
         setArticleForm({ title: "", summary: "", content: "", category: "", keywords: "" });
         setMessage("Knowledge article saved.");
         await loadWorkspace();
+    };
+
+    const selectInviteCustomer = (customerId) => {
+        const customer = resources.customers.find((item) => String(item.id) === String(customerId));
+        setInviteForm({
+            customer_id: customerId,
+            name: customer ? [customer.firstName, customer.lastName].filter(Boolean).join(" ") || customer.companyName || "" : "",
+            email: customer?.email || "",
+            mobile: customer?.mobile || "",
+            isCustomerAccountAdmin: false,
+        });
+    };
+
+    const sendCustomerInvite = async (event) => {
+        event.preventDefault();
+        clearAlerts();
+        setLoading(true);
+        try {
+            await api.post("/customer-helpdesk/invitations", {
+                ...inviteForm,
+                customer_id: Number(inviteForm.customer_id),
+            });
+            setInviteForm({ customer_id: "", name: "", email: "", mobile: "", isCustomerAccountAdmin: false });
+            setMessage("Customer portal invitation sent.");
+            await loadWorkspace();
+        } catch (err) {
+            setError(getErrorMessage(err, "Unable to send customer invitation."));
+        } finally {
+            setLoading(false);
+        }
     };
 
     const runEscalationScan = async () => {
@@ -564,6 +599,32 @@ const CustomerHelpdeskWorkspace = () => {
 
             <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <h2 className="mb-3 font-black">Customer Management</h2>
+                <form className="mb-5 grid gap-3 rounded border border-slate-200 bg-slate-50 p-4 md:grid-cols-2 xl:grid-cols-4" onSubmit={sendCustomerInvite}>
+                    <div className="md:col-span-2 xl:col-span-1">
+                        <Field label="CRM customer">
+                            <select className="w-full rounded border border-slate-300 px-3 py-2 text-sm" value={inviteForm.customer_id} onChange={(event) => selectInviteCustomer(event.target.value)} required>
+                                <option value="">Select customer</option>
+                                {resources.customers.map((customer) => <option key={customer.id} value={customer.id}>{customerLabel(customer)}</option>)}
+                            </select>
+                        </Field>
+                    </div>
+                    <Field label="Name">
+                        <Input value={inviteForm.name} onChange={(event) => setInviteForm((form) => ({ ...form, name: event.target.value }))} />
+                    </Field>
+                    <Field label="Email">
+                        <Input type="email" value={inviteForm.email} onChange={(event) => setInviteForm((form) => ({ ...form, email: event.target.value }))} required />
+                    </Field>
+                    <Field label="Mobile">
+                        <Input value={inviteForm.mobile} onChange={(event) => setInviteForm((form) => ({ ...form, mobile: event.target.value }))} />
+                    </Field>
+                    <label className="flex items-center gap-2 text-sm font-bold text-slate-700 md:col-span-2">
+                        <input type="checkbox" checked={inviteForm.isCustomerAccountAdmin} onChange={(event) => setInviteForm((form) => ({ ...form, isCustomerAccountAdmin: event.target.checked }))} />
+                        Customer account admin
+                    </label>
+                    <div className="md:col-span-2">
+                        <Button type="submit" disabled={loading || !inviteForm.customer_id}>Invite Customer</Button>
+                    </div>
+                </form>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {resources.portalUsers.map((user) => (
                         <div key={user.id} className="rounded border border-slate-200 p-3">

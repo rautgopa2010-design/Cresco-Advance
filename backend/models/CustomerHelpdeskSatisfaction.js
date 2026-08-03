@@ -17,8 +17,8 @@ module.exports = (sequelize, DataTypes) => {
       tableName: `${dbConfig.tablePrefix}customer_helpdesk_satisfaction`,
       timestamps: true,
       indexes: [
-        { unique: true, fields: ["org_id", "ticketId", "portalUserId"] },
-        { fields: ["org_id", "rating"] },
+        { name: "chd_sat_org_ticket_user_uq", unique: true, fields: ["org_id", "ticketId", "portalUserId"] },
+        { name: "chd_sat_org_rating_idx", fields: ["org_id", "rating"] },
       ],
     }
   );

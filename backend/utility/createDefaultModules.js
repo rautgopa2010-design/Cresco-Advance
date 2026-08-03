@@ -10,6 +10,7 @@ const { ensureChatbotModuleForOrg } = require("./chatbotAuthorization");
 const {
   CUSTOMER_HELPDESK_MODULE,
   CUSTOMER_HELPDESK_PERMISSION_CODES,
+  DEFAULT_CUSTOMER_HELPDESK_LIMITS,
 } = require("./customerHelpdeskFoundation");
 
 const DEFAULT_PERMISSIONS = ["view", "create", "edit", "delete", "print"];
@@ -86,6 +87,64 @@ const syncChatbotEntitlementForPackage = async (org_id, package_id) => {
   };
 
   await db.chatbotEntitlement.upsert(payload);
+};
+
+const syncCustomerHelpdeskEntitlementForPackage = async (org_id, package_id) => {
+  const pkgModules = await PackageModules.findAll({
+    where: { package_id },
+    attributes: ["module"],
+  });
+  const hasHelpdeskModule = pkgModules.some(
+    (item) => item.module === CUSTOMER_HELPDESK_MODULE
+  );
+
+  const org = await db.register.findByPk(org_id, {
+    attributes: ["id", "packageStartDate", "packageExpiryDate", "paymentStatus"],
+  });
+  if (!org) return;
+
+  const entitlement = await db.customerHelpdeskEntitlement.findOne({
+    where: { org_id },
+  });
+
+  if (!hasHelpdeskModule) {
+    if (entitlement && entitlement.status !== "suspended") {
+      await entitlement.update({
+        status: "suspended",
+        limits: entitlement.limits || DEFAULT_CUSTOMER_HELPDESK_LIMITS,
+      });
+    }
+    return;
+  }
+
+  const payload = {
+    org_id,
+    status: org.paymentStatus === "expired" ? "expired" : "active",
+    limits: {
+      ...DEFAULT_CUSTOMER_HELPDESK_LIMITS,
+      ...(entitlement?.limits || {}),
+      supportAgents: entitlement?.limits?.supportAgents || 5,
+      portalUsers: entitlement?.limits?.portalUsers || 100,
+      monthlyTickets: entitlement?.limits?.monthlyTickets || 500,
+      attachmentStorageMb: entitlement?.limits?.attachmentStorageMb || 500,
+      slaEnabled: entitlement?.limits?.slaEnabled ?? true,
+      automationEnabled: entitlement?.limits?.automationEnabled ?? true,
+      knowledgeBaseEnabled: entitlement?.limits?.knowledgeBaseEnabled ?? true,
+      customBrandingEnabled: entitlement?.limits?.customBrandingEnabled ?? true,
+      reportingEnabled: entitlement?.limits?.reportingEnabled ?? true,
+      customerAccountVisibilityEnabled:
+        entitlement?.limits?.customerAccountVisibilityEnabled ?? true,
+    },
+    startsAt: org.packageStartDate || entitlement?.startsAt || new Date(),
+    expiresAt: org.packageExpiryDate || entitlement?.expiresAt || null,
+    configuredBy: entitlement?.configuredBy || null,
+  };
+
+  const [record] = await db.customerHelpdeskEntitlement.findOrCreate({
+    where: { org_id },
+    defaults: payload,
+  });
+  await record.update(payload);
 };
 
 const getPermissionRowsForModule = (org_id, module) => {
@@ -252,6 +311,7 @@ exports.createDefaultModules = async (org_id, package_id) => {
       `Default modules and permissions synced for org_id=${org_id} package=${package_id}`
     );
     await syncChatbotEntitlementForPackage(org_id, package_id);
+    await syncCustomerHelpdeskEntitlementForPackage(org_id, package_id);
   } catch (error) {
     console.error("Error creating default modules:", error);
   }
