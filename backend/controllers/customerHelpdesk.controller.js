@@ -40,6 +40,7 @@ const {
   rolePermissions: RolePermissions,
   packageModules: PackageModules,
   register: Register,
+  companySetup: CompanySetup,
 } = db;
 
 const requireProvider = (req, res) => {
@@ -130,6 +131,23 @@ const buildPortalBranding = (portal) => ({
   primaryColor: portal.branding?.primaryColor || "#10253f",
   accentColor: portal.branding?.accentColor || "#14765f",
 });
+
+const getPortalBrandingPayload = async (portal) => {
+  const companySetup = await CompanySetup.findOne({
+    where: { org_id: portal.org_id },
+    attributes: ["companyName", "companyLogo"],
+  });
+  const branding = buildPortalBranding(portal);
+  return {
+    ...branding,
+    organizationName:
+      companySetup?.companyName ||
+      branding.organizationName ||
+      portal.organization?.company ||
+      "Support Portal",
+    logo: companySetup?.companyLogo || branding.logo || null,
+  };
+};
 
 const fullName = (record) =>
   [record?.firstName, record?.middleName, record?.lastName]
@@ -941,6 +959,24 @@ exports.activatePortalAccount = async (req, res) => {
   } catch (error) {
     console.error("Customer portal activation error:", error);
     return sendErrorResponse(res, 500, "Failed to activate customer portal account.");
+  }
+};
+
+exports.getPortalBranding = async (req, res) => {
+  const { organizationKey } = req.params;
+
+  try {
+    const portal = await findPortalByKey(organizationKey);
+    const accessError = await assertPublicPortalAccess(portal);
+    if (accessError) {
+      return sendErrorResponse(res, 404, "Support portal not found.");
+    }
+
+    const branding = await getPortalBrandingPayload(portal);
+    return res.json({ branding });
+  } catch (error) {
+    console.error("Customer portal branding error:", error);
+    return sendErrorResponse(res, 500, "Failed to load customer portal branding.");
   }
 };
 

@@ -24,16 +24,61 @@ const portalApi = axios.create({ baseURL: API_BASE_URL });
 const getErrorMessage = (error, fallback) =>
     error.response?.data?.message || error.response?.data?.msg || fallback;
 
-const PortalShell = ({ children, title, subtitle }) => (
+const getAssetUrl = (path) => {
+    if (!path) return "";
+    return path.startsWith("http") ? path : `${IMAGE_BASE_URL}${path}`;
+};
+
+const usePortalBranding = (organizationKey) => {
+    const [branding, setBranding] = useState(null);
+
+    useEffect(() => {
+        let mounted = true;
+        if (!organizationKey) return undefined;
+        portalApi
+            .get(`/customer-helpdesk/portal/${organizationKey}/branding`)
+            .then((response) => {
+                if (mounted) setBranding(response.data.branding || null);
+            })
+            .catch(() => {
+                if (mounted) setBranding(null);
+            });
+        return () => {
+            mounted = false;
+        };
+    }, [organizationKey]);
+
+    return branding;
+};
+
+const OrganizationMark = ({ branding, compact = false }) => {
+    const logo = getAssetUrl(branding?.logo);
+    const name = branding?.organizationName || "Customer Support Portal";
+
+    return (
+        <div className={`flex items-center gap-3 ${compact ? "" : "text-lg font-bold"}`}>
+            <div className={`${compact ? "h-14 w-24" : "h-14 w-28"} flex items-center justify-center rounded-lg border border-white/15 bg-white p-2 shadow-sm`}>
+                {logo ? (
+                    <img src={logo} alt={`${name} logo`} className="max-h-full max-w-full object-contain" />
+                ) : (
+                    <Headphones size={compact ? 22 : 24} className="text-[#10253f]" />
+                )}
+            </div>
+            {!compact && (
+                <div>
+                    <p className="text-base font-black leading-tight">{name}</p>
+                    <p className="text-xs font-semibold text-slate-300">Customer Support Portal</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const PortalShell = ({ children, title, subtitle, branding }) => (
     <main className="min-h-screen bg-[#f7f8fb] text-slate-900">
         <section className="grid min-h-screen lg:grid-cols-[0.95fr_1.05fr]">
             <div className="hidden bg-[#10253f] px-12 py-14 text-white lg:flex lg:flex-col lg:justify-between">
-                <div className="flex items-center gap-3 text-lg font-bold">
-                    <span className="grid h-10 w-10 place-items-center rounded bg-white/12">
-                        <Headphones size={22} />
-                    </span>
-                    Customer Support Portal
-                </div>
+                <OrganizationMark branding={branding} />
                 <div className="max-w-lg">
                     <p className="mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-teal-200">Secure helpdesk access</p>
                     <h1 className="text-4xl font-black leading-tight">Track support from the same customer record your service team uses.</h1>
@@ -49,8 +94,11 @@ const PortalShell = ({ children, title, subtitle }) => (
             <div className="flex items-center justify-center px-5 py-10">
                 <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
                     <div className="mb-6">
-                        <div className="mb-4 grid h-11 w-11 place-items-center rounded bg-[#e9f7f3] text-[#14765f]">
-                            <ShieldCheck size={22} />
+                        <div className="mb-5 flex items-center justify-between gap-3">
+                            <OrganizationMark branding={branding} compact />
+                            <div className="grid h-11 w-11 place-items-center rounded bg-[#e9f7f3] text-[#14765f]">
+                                <ShieldCheck size={22} />
+                            </div>
                         </div>
                         <h2 className="text-2xl font-black">{title}</h2>
                         <p className="mt-2 text-sm leading-6 text-slate-500">{subtitle}</p>
@@ -87,6 +135,7 @@ const StatusMessage = ({ type, children }) => {
 export const CustomerPortalLogin = () => {
     const { organizationKey } = useParams();
     const navigate = useNavigate();
+    const branding = usePortalBranding(organizationKey);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -115,6 +164,7 @@ export const CustomerPortalLogin = () => {
         <PortalShell
             title="Customer Login"
             subtitle="Use the email address invited by your support team."
+            branding={branding}
         >
             <form
                 className="space-y-4"
@@ -157,6 +207,7 @@ export const CustomerPortalLogin = () => {
 export const CustomerPortalActivate = () => {
     const { organizationKey } = useParams();
     const [searchParams] = useSearchParams();
+    const branding = usePortalBranding(organizationKey);
     const [email, setEmail] = useState(searchParams.get("email") || "");
     const [token, setToken] = useState(searchParams.get("token") || "");
     const [password, setPassword] = useState("");
@@ -189,6 +240,7 @@ export const CustomerPortalActivate = () => {
         <PortalShell
             title="Activate Account"
             subtitle="Set your password to finish portal activation."
+            branding={branding}
         >
             <form
                 className="space-y-4"
@@ -214,6 +266,7 @@ export const CustomerPortalActivate = () => {
 
 export const CustomerPortalForgotPassword = () => {
     const { organizationKey } = useParams();
+    const branding = usePortalBranding(organizationKey);
     const [email, setEmail] = useState("");
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
@@ -235,7 +288,7 @@ export const CustomerPortalForgotPassword = () => {
     };
 
     return (
-        <PortalShell title="Reset Password" subtitle="Request a secure reset link for your portal account.">
+        <PortalShell title="Reset Password" subtitle="Request a secure reset link for your portal account." branding={branding}>
             <form className="space-y-4" onSubmit={submit}>
                 <StatusMessage type="success">{message}</StatusMessage>
                 <StatusMessage>{error}</StatusMessage>
@@ -255,6 +308,7 @@ export const CustomerPortalForgotPassword = () => {
 export const CustomerPortalResetPassword = () => {
     const { organizationKey } = useParams();
     const [searchParams] = useSearchParams();
+    const branding = usePortalBranding(organizationKey);
     const [email, setEmail] = useState(searchParams.get("email") || "");
     const [token, setToken] = useState(searchParams.get("token") || "");
     const [password, setPassword] = useState("");
@@ -284,7 +338,7 @@ export const CustomerPortalResetPassword = () => {
     };
 
     return (
-        <PortalShell title="Set New Password" subtitle="Enter the reset token from your email and choose a new password.">
+        <PortalShell title="Set New Password" subtitle="Enter the reset token from your email and choose a new password." branding={branding}>
             <form className="space-y-4" onSubmit={submit}>
                 <StatusMessage type="success">{message}</StatusMessage>
                 <StatusMessage>{error}</StatusMessage>

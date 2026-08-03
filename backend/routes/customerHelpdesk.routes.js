@@ -160,6 +160,7 @@ router.post(
   controller.runAgentSlaEscalationScan
 );
 
+router.get("/portal/:organizationKey/branding", controller.getPortalBranding);
 router.post("/portal/:organizationKey/activate", controller.activatePortalAccount);
 router.post("/portal/:organizationKey/login", controller.loginPortalUser);
 router.post("/portal/:organizationKey/forgot-password", controller.forgotPortalPassword);
