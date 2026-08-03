@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       user_id: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: true
       },
       type: {
         type: DataTypes.ENUM(
@@ -35,6 +35,13 @@ module.exports = (sequelize, DataTypes) => {
           'account_deactivated',
           'ticket_created',
           'ticket_updated',
+          'customer_helpdesk_ticket_created',
+          'customer_helpdesk_ticket_updated',
+          'customer_helpdesk_ticket_assigned',
+          'customer_helpdesk_ticket_replied',
+          'customer_helpdesk_sla_warning',
+          'customer_helpdesk_sla_breached',
+          'customer_helpdesk_escalated',
           'enquiry_received',
           'landing_enquiry',
           'customer_created',

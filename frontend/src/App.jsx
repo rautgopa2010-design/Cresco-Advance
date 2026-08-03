@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { BrowserRouter, useRoutes } from "react-router-dom";
 import { Provider } from "react-redux";
@@ -123,6 +123,14 @@ import CustomerList from "./routes/customer/CustomerList";
 import PermissionRoute from "./routes/auth/PermissionRoute";
 import CustomerCategory from "./routes/master/CustomerCategory";
 import Industry from "./routes/master/Industry";
+import CustomerHelpdeskWorkspace from "./routes/customerHelpdesk/CustomerHelpdeskWorkspace";
+import {
+    CustomerPortalActivate,
+    CustomerPortalDashboard,
+    CustomerPortalForgotPassword,
+    CustomerPortalLogin,
+    CustomerPortalResetPassword,
+} from "./routes/customerPortal/CustomerPortal";
 
 // Expiry Renew Page
 import ExpiryRenew from "./routes/auth/ExpiryRenew";
@@ -221,6 +229,11 @@ function AppRoutes() {
             { path: "/reset-password", element: <ResetPassword /> },
             { path: "/choose-package", element: <ChoosePackage /> },
             { path: "/payment", element: <PaymentPage /> },
+            { path: "/support/:organizationKey", element: <CustomerPortalLogin /> },
+            { path: "/support/:organizationKey/activate", element: <CustomerPortalActivate /> },
+            { path: "/support/:organizationKey/forgot-password", element: <CustomerPortalForgotPassword /> },
+            { path: "/support/:organizationKey/reset-password", element: <CustomerPortalResetPassword /> },
+            { path: "/support/:organizationKey/dashboard", element: <CustomerPortalDashboard /> },
 
             // ==================== MARKETING WEBSITE (Always public, clean layout) ====================
             {
@@ -302,6 +315,15 @@ function AppRoutes() {
                                       { path: "profile/edit-profile/:id", element: <EditProfile /> },
                                   ]
                                 : [
+                                      {
+                                          path: "customer-helpdesk",
+                                          element: (
+                                              <PermissionRoute
+                                                  moduleName="Customer Helpdesk"
+                                                  element={<CustomerHelpdeskWorkspace />}
+                                              />
+                                          ),
+                                      },
                                       {
                                           path: "settings/master/salutations",
                                           element: (

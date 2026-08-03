@@ -1,13 +1,12 @@
 const jwt = require("jsonwebtoken");
 
-function auth(req, res, next) {
+function customerPortalAuth(req, res, next) {
   const authHeader = req.header("Authorization");
 
   if (!authHeader) {
     return res.status(401).json({ msg: "No token, authorization denied" });
   }
 
-  // Support both "Bearer <token>" and raw "<token>"
   const token = authHeader.startsWith("Bearer ")
     ? authHeader.split(" ")[1]
     : authHeader;
@@ -18,15 +17,15 @@ function auth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.user_type === "customer_portal") {
-      return res.status(403).json({ msg: "Customer portal users cannot access CRM routes" });
+    if (decoded.user_type !== "customer_portal") {
+      return res.status(403).json({ msg: "Customer portal token required" });
     }
-    req.user = decoded;
+    req.portalUser = decoded;
     next();
   } catch (err) {
-    console.error("JWT Error:", err.message);
+    console.error("Customer portal JWT error:", err.message);
     return res.status(401).json({ msg: "Token is not valid" });
   }
 }
 
-module.exports = auth;
+module.exports = customerPortalAuth;

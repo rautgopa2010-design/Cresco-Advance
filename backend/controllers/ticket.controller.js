@@ -5,6 +5,7 @@ const Employee = db.employee;
 const Register = db.register;
 const { sendErrorResponse } = require("../utility/sendErrorResponse");
 const { getParentRoles } = require("../utility/roleHelper");
+const { TICKET_SCOPES } = require("../utility/customerHelpdeskFoundation");
 
 // calculateDelay util (expects dueDate in dd-mm-yyyy)
 const calculateDelay = (dueDate, status) => {
@@ -60,7 +61,7 @@ exports.createTicket = async (req, res) => {
 
     // check employees exist
     const validEmployees = await Employee.findAll({
-      where: { id: assignedTo },
+      where: { id: assignedTo, org_id },
     });
     if (validEmployees.length !== assignedTo.length) {
       return sendErrorResponse(
@@ -80,6 +81,7 @@ exports.createTicket = async (req, res) => {
     const newTicket = await Ticket.create({
       org_id,
       user_id,
+      ticketScope: TICKET_SCOPES.PLATFORM_SUPPORT,
       createdDate,
       dueDate,
       delay,
@@ -111,7 +113,12 @@ exports.getAllTickets = async (req, res) => {
     // JOIN Register table ALWAYS for escalated tickets
     const allTickets = await Ticket.findAll({
       where:
-        user_type === "provider" ? { escalatedToProvider: true } : { org_id },
+        user_type === "provider"
+          ? {
+              escalatedToProvider: true,
+              ticketScope: TICKET_SCOPES.PLATFORM_SUPPORT,
+            }
+          : { org_id, ticketScope: TICKET_SCOPES.PLATFORM_SUPPORT },
       include: [
         {
           model: Register,
@@ -252,7 +259,9 @@ exports.updateTicket = async (req, res) => {
   } = req.body;
 
   try {
-    const ticket = await Ticket.findOne({ where: { id, org_id } });
+    const ticket = await Ticket.findOne({
+      where: { id, org_id, ticketScope: TICKET_SCOPES.PLATFORM_SUPPORT },
+    });
     if (!ticket) return sendErrorResponse(res, 404, "Ticket not found.");
 
     // if assignedTo provided, validate employees exist and compute assignedRoleIds
@@ -269,7 +278,7 @@ exports.updateTicket = async (req, res) => {
       }
 
       const validEmployees = await Employee.findAll({
-        where: { id: assignedTo },
+        where: { id: assignedTo, org_id },
       });
       if (validEmployees.length !== assignedTo.length) {
         return sendErrorResponse(
@@ -327,7 +336,9 @@ exports.updateTicketStatus = async (req, res) => {
   const org_id = req.user.org_id;
 
   try {
-    const ticket = await Ticket.findOne({ where: { id, org_id } });
+    const ticket = await Ticket.findOne({
+      where: { id, org_id, ticketScope: TICKET_SCOPES.PLATFORM_SUPPORT },
+    });
     if (!ticket) {
       return sendErrorResponse(res, 404, "Ticket not found.");
     }
@@ -354,10 +365,14 @@ exports.deleteTicket = async (req, res) => {
   const org_id = req.user.org_id;
 
   try {
-    const ticket = await Ticket.findOne({ where: { id, org_id } });
+    const ticket = await Ticket.findOne({
+      where: { id, org_id, ticketScope: TICKET_SCOPES.PLATFORM_SUPPORT },
+    });
     if (!ticket) return sendErrorResponse(res, 404, "Ticket not found.");
 
-    await Ticket.destroy({ where: { id } });
+    await Ticket.destroy({
+      where: { id, org_id, ticketScope: TICKET_SCOPES.PLATFORM_SUPPORT },
+    });
 
     res.status(200).json({ message: "Ticket deleted successfully." });
   } catch (error) {
@@ -373,7 +388,9 @@ exports.escalateTicket = async (req, res) => {
   const user_id = req.user.id;
 
   try {
-    const ticket = await Ticket.findOne({ where: { id, org_id } });
+    const ticket = await Ticket.findOne({
+      where: { id, org_id, ticketScope: TICKET_SCOPES.PLATFORM_SUPPORT },
+    });
     if (!ticket) return sendErrorResponse(res, 404, "Ticket not found");
 
     if (ticket.isEscalated)
@@ -429,7 +446,11 @@ exports.updateTicketByProvider = async (req, res) => {
 
   try {
     const ticket = await Ticket.findOne({
-      where: { id, escalatedToProvider: true },
+      where: {
+        id,
+        escalatedToProvider: true,
+        ticketScope: TICKET_SCOPES.PLATFORM_SUPPORT,
+      },
     });
 
     if (!ticket) {

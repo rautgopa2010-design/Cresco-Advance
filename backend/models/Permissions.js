@@ -18,27 +18,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       permission_type: {
-        type: DataTypes.ENUM(
-          "view",
-          "create",
-          "edit",
-          "delete",
-          "print",
-          "research",
-          "review",
-          "approve",
-          "reject",
-          "create_enquiry",
-          "configure",
-          "view_audit",
-          "knowledge_manage",
-          "appearance_manage",
-          "conversations_view",
-          "conversations_reply",
-          "handover_manage",
-          "analytics_view",
-          "install_manage"
-        ),
+        type: DataTypes.STRING,
         allowNull: false,
       },
       permission_code: {
@@ -53,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
       indexes: [
         {
           unique: true,
-          fields: ['org_id', 'module_id', 'permission_type'],
+          fields: ["org_id", "module_id", "permission_code"],
         },
       ],
     }

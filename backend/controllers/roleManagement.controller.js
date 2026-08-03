@@ -8,6 +8,10 @@ const {
   rolePermissions: RolePermissions,
   modules: Modules,
 } = db;
+const {
+  CUSTOMER_HELPDESK_MODULE,
+  CUSTOMER_HELPDESK_PERMISSION_CODES,
+} = require("../utility/customerHelpdeskFoundation");
 
 // Utility: recursively update inherited permissions for child roles
 const propagatePermissionsToChildren = async (
@@ -51,14 +55,20 @@ exports.createModule = async (req, res) => {
       return sendErrorResponse(res, 409, `Module '${module_name}' already exists.`);
     }
 
-    const permissionsData = ["view", "create", "edit", "delete", "print"].map(
-      (type) => ({
+    const permissionsData =
+      module_name === CUSTOMER_HELPDESK_MODULE
+        ? CUSTOMER_HELPDESK_PERMISSION_CODES.map((code) => ({
+            org_id,
+            module_id: module.id,
+            permission_type: code.replace("customer_helpdesk.", ""),
+            permission_code: code,
+          }))
+        : ["view", "create", "edit", "delete", "print"].map((type) => ({
         org_id,
         module_id: module.id,
         permission_type: type,
         permission_code: `${module_name.toLowerCase().replace(/\s+/g, "_")}_${type}`,
-      })
-    );
+          }));
 
     const createdPermissions = await Permissions.bulkCreate(permissionsData, {
       returning: true,

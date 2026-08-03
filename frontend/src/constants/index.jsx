@@ -191,6 +191,16 @@ export const adminNavbarLinks = [
             },
         ],
     },
+    {
+        links: [
+            {
+                label: "Customer Helpdesk",
+                moduleName: "Customer Helpdesk",
+                icon: IoTicket,
+                path: "/customer-helpdesk",
+            },
+        ],
+    },
     { links: [{ label: "Payment", moduleName: "Payment", icon: CreditCard, path: "/payments" }] },
     { links: [{ label: "Proforma Invoice", icon: LiaFileInvoiceSolid, path: "/proforma-invoice" }] },
     { links: [{ label: "Invoice", icon: LiaFileInvoiceSolid, path: "/invoice" }] },
@@ -324,13 +334,13 @@ export const providerHrmsNavbarLinks = [
     },
 ];
 
-// HelpDesk mode Links
+// Crescosoft Support mode Links
 export const helpDeskNavbarLinks = [
     {
         links: [{ label: "Dashboard", icon: Home, path: "/" }],
     },
     {
-        links: [{ label: "Tickets", icon: IoTicket, path: "/tickets" }],
+        links: [{ label: "Crescosoft Support Tickets", icon: IoTicket, path: "/tickets" }],
     },
     {
         links: [

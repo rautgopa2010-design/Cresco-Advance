@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Bell, CheckCheck, Trash2, Mail, MailOpen, X, Clock, UserPlus, CreditCard, AlertCircle, CheckCircle, FileText, ShoppingCart, MessageSquare } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Bell, CheckCheck, Trash2, MailOpen, Clock, UserPlus, CreditCard, AlertCircle, CheckCircle, FileText, ShoppingCart, MessageSquare } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
@@ -14,7 +14,7 @@ import {
 
 const NotificationBell = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const loading = false;
     const dropdownRef = useRef(null);
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -131,6 +131,15 @@ const NotificationBell = () => {
                         navigate(`/tickets/view-ticket/${notification.data.ticketId}`);
                     }
                     break;
+                case 'customer_helpdesk_ticket_created':
+                case 'customer_helpdesk_ticket_updated':
+                case 'customer_helpdesk_ticket_assigned':
+                case 'customer_helpdesk_ticket_replied':
+                case 'customer_helpdesk_sla_warning':
+                case 'customer_helpdesk_sla_breached':
+                case 'customer_helpdesk_escalated':
+                    navigate("/customer-helpdesk");
+                    break;
                 default:
                     break;
             }
@@ -168,6 +177,13 @@ const NotificationBell = () => {
                 return <CheckCircle size={16} className="text-green-500" />;
             case 'ticket_created':
             case 'ticket_updated':
+            case 'customer_helpdesk_ticket_created':
+            case 'customer_helpdesk_ticket_updated':
+            case 'customer_helpdesk_ticket_assigned':
+            case 'customer_helpdesk_ticket_replied':
+            case 'customer_helpdesk_sla_warning':
+            case 'customer_helpdesk_sla_breached':
+            case 'customer_helpdesk_escalated':
                 return <MessageSquare size={16} className="text-yellow-500" />;
             case 'login_alert':
                 return <AlertCircle size={16} className="text-red-500" />;

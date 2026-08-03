@@ -82,6 +82,8 @@ const ticketPriorityRoutes = require("./routes/ticketPriority.routes");
 app.use("/api/ticket-priority", ticketPriorityRoutes);
 const ticketRoutes = require("./routes/ticket.routes");
 app.use("/api/ticket", ticketRoutes);
+const customerHelpdeskRoutes = require("./routes/customerHelpdesk.routes");
+app.use("/api/customer-helpdesk", customerHelpdeskRoutes);
 const packageRoutes = require("./routes/package.routes");
 app.use("/api/package", packageRoutes);
 const apiMasterRoutes = require("./routes/apiMaster.routes");

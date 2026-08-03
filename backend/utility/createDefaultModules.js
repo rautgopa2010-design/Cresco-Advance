@@ -7,6 +7,10 @@ const Roles = db.roles;
 const RolePermissions = db.rolePermissions;
 const Permissions = db.permissions;
 const { ensureChatbotModuleForOrg } = require("./chatbotAuthorization");
+const {
+  CUSTOMER_HELPDESK_MODULE,
+  CUSTOMER_HELPDESK_PERMISSION_CODES,
+} = require("./customerHelpdeskFoundation");
 
 const DEFAULT_PERMISSIONS = ["view", "create", "edit", "delete", "print"];
 const CHATBOT_MODULE_NAME = "Website AI Chatbot";
@@ -82,6 +86,26 @@ const syncChatbotEntitlementForPackage = async (org_id, package_id) => {
   };
 
   await db.chatbotEntitlement.upsert(payload);
+};
+
+const getPermissionRowsForModule = (org_id, module) => {
+  if (module.module_name === CUSTOMER_HELPDESK_MODULE) {
+    return CUSTOMER_HELPDESK_PERMISSION_CODES.map((code) => ({
+      org_id,
+      module_id: module.id,
+      permission_type: code.replace("customer_helpdesk.", ""),
+      permission_code: code,
+    }));
+  }
+
+  return DEFAULT_PERMISSIONS.map((type) => ({
+    org_id,
+    module_id: module.id,
+    permission_type: type,
+    permission_code: `${module.module_name
+      .toLowerCase()
+      .replace(/\s+/g, "_")}_${type}`,
+  }));
 };
 
 exports.createDefaultModules = async (org_id, package_id) => {
@@ -160,14 +184,7 @@ exports.createDefaultModules = async (org_id, package_id) => {
       });
 
       if (existingPermissions.length === 0) {
-        const permissionRows = DEFAULT_PERMISSIONS.map((type) => ({
-          org_id,
-          module_id: module.id,
-          permission_type: type,
-          permission_code: `${module.module_name
-            .toLowerCase()
-            .replace(/\s+/g, "_")}_${type}`,
-        }));
+        const permissionRows = getPermissionRowsForModule(org_id, module);
 
         const createdPermissions = await Permissions.bulkCreate(permissionRows, {
           returning: true,
@@ -202,6 +219,31 @@ exports.createDefaultModules = async (org_id, package_id) => {
 
         if (missingRolePermissions.length) {
           await RolePermissions.bulkCreate(missingRolePermissions);
+        }
+
+        if (module.module_name === CUSTOMER_HELPDESK_MODULE) {
+          const existingCodes = new Set(
+            existingPermissions.map((permission) => permission.permission_code)
+          );
+          const missingPermissionRows = getPermissionRowsForModule(
+            org_id,
+            module
+          ).filter((permission) => !existingCodes.has(permission.permission_code));
+
+          if (missingPermissionRows.length) {
+            const createdPermissions = await Permissions.bulkCreate(
+              missingPermissionRows,
+              { returning: true }
+            );
+
+            await RolePermissions.bulkCreate(
+              createdPermissions.map((permission) => ({
+                org_id,
+                role_id: superAdminRole.id,
+                permission_id: permission.id,
+              }))
+            );
+          }
         }
       }
     }

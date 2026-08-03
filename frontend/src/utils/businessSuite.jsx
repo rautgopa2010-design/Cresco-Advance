@@ -83,11 +83,11 @@ export const BUSINESS_APPS = [
     },
     {
         id: "helpdesk",
-        name: "Help Desk",
+        name: "Customer Helpdesk",
         icon: Headphones,
         status: "future",
         gradient: "from-rose-500 via-pink-500 to-red-500",
-        description: "Tickets, SLA, customer support and service desk.",
+        description: "Customer portal tickets, SLA and organization support teams.",
     },
     {
         id: "assets",

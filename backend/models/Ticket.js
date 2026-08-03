@@ -17,6 +17,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      ticketScope: {
+        type: DataTypes.ENUM(
+          "PLATFORM_SUPPORT",
+          "ORGANIZATION_CUSTOMER_SUPPORT"
+        ),
+        allowNull: false,
+        defaultValue: "PLATFORM_SUPPORT",
+      },
       createdDate: {
         type: DataTypes.STRING,
         allowNull: false,

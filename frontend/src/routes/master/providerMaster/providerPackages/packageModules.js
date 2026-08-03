@@ -53,8 +53,11 @@ export const packageModuleGroups = [
     },
     {
         title: "Support",
-        description: "Helpdesk and customer support operations.",
-        modules: [{ id: "support-tickets", name: "Tickets" }],
+        description: "Separate Crescosoft platform support and organization customer support operations.",
+        modules: [
+            { id: "support-cresco-tickets", name: "Tickets" },
+            { id: "support-customer-helpdesk", name: "Customer Helpdesk" },
+        ],
     },
 ];
 

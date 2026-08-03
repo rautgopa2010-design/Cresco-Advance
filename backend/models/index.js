@@ -63,6 +63,61 @@ db.invoice = require("./Invoice")(sequelize, Sequelize);
 db.ticketService = require("./TicketService")(sequelize, Sequelize);
 db.ticketPriority = require("./TicketPriority")(sequelize, Sequelize);
 db.ticket = require("./Ticket")(sequelize, Sequelize);
+db.customerHelpdeskEntitlement = require("./CustomerHelpdeskEntitlement")(
+  sequelize,
+  Sequelize
+);
+db.customerPortal = require("./CustomerPortal")(sequelize, Sequelize);
+db.customerPortalUser = require("./CustomerPortalUser")(sequelize, Sequelize);
+db.customerPortalInvitation = require("./CustomerPortalInvitation")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskTicket = require("./CustomerHelpdeskTicket")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskTicketReply = require("./CustomerHelpdeskTicketReply")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskTicketAttachment = require("./CustomerHelpdeskTicketAttachment")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskTeam = require("./CustomerHelpdeskTeam")(sequelize, Sequelize);
+db.customerHelpdeskTeamMember = require("./CustomerHelpdeskTeamMember")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskCategory = require("./CustomerHelpdeskCategory")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskPriority = require("./CustomerHelpdeskPriority")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskSlaPolicy = require("./CustomerHelpdeskSlaPolicy")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskAssignmentRule = require("./CustomerHelpdeskAssignmentRule")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskKnowledgeArticle = require("./CustomerHelpdeskKnowledgeArticle")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskAuditLog = require("./CustomerHelpdeskAuditLog")(
+  sequelize,
+  Sequelize
+);
+db.customerHelpdeskSatisfaction = require("./CustomerHelpdeskSatisfaction")(
+  sequelize,
+  Sequelize
+);
 db.package = require("./Package")(sequelize, Sequelize);
 db.payment = require("./Payment")(sequelize, Sequelize);
 db.packageModules = require("./PackageModules")(sequelize, Sequelize);

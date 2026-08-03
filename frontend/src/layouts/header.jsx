@@ -238,7 +238,7 @@ import NotificationBell from "./NotificationBell";
 import { getFutureBusinessApps, getUserBusinessApps, rememberBusinessApp } from "@/utils/businessSuite";
 import { fetchPlatformConfig } from "@/utils/platformConfig";
 
-export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode, activeWorkspace, setActiveWorkspace, hasCrmAccess, hasHrmsAccess }) => {
+export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode, activeWorkspace, setActiveWorkspace }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
@@ -337,7 +337,7 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode,
     const profileImage = profile?.profileImage ? `${IMAGE_BASE_URL}${profile.profileImage}` : null;
     const firstLetter = user?.firstName?.charAt(0)?.toUpperCase() || "U";
 
-    // Check if user has 'Tickets' module
+    // Check if user has existing Crescosoft Support module access
     const hasTicketsModule = user?.packageModules?.some(
         (mod) => mod.module === "Tickets"
     ) ?? false;
@@ -472,7 +472,7 @@ export const Header = ({ collapsed, setCollapsed, helpDeskMode, setHelpDeskMode,
                         onClick={handleHelpDeskClick}
                     >
                         {helpDeskMode ? <FaRev size={18} /> : <SiHelpdesk size={18} />}
-                        <span className="hidden lg:inline">{helpDeskMode ? "Home" : "Help Desk"}</span>
+                        <span className="hidden lg:inline">{helpDeskMode ? "Home" : "Crescosoft Support"}</span>
                     </Button>
                 )}
 
@@ -569,6 +569,4 @@ Header.propTypes = {
     setHelpDeskMode: PropTypes.func,
     activeWorkspace: PropTypes.string,
     setActiveWorkspace: PropTypes.func,
-    hasCrmAccess: PropTypes.bool,
-    hasHrmsAccess: PropTypes.bool,
 };
