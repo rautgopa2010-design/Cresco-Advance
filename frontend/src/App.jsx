@@ -159,6 +159,37 @@ import { isSuperProviderUser } from "./utils/businessSuite";
 // Simple 404 Page
 const NotFound = () => <NotFoundPage />;
 
+const getStoredUser = () => {
+    try {
+        return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+        return {};
+    }
+};
+
+const getTokenUser = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return {};
+    try {
+        const payload = token.split(".")[1];
+        if (!payload) return {};
+        const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+        const paddedPayload = normalizedPayload.padEnd(
+            normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+            "="
+        );
+        return JSON.parse(window.atob(paddedPayload));
+    } catch {
+        return {};
+    }
+};
+
+const ProviderOnlyRoute = ({ element }) => {
+    const storedUser = getStoredUser();
+    const tokenUser = getTokenUser();
+    return isSuperProviderUser(storedUser) || isSuperProviderUser(tokenUser) ? element : <NotFound />;
+};
+
 function AppRoutes() {
     const location = useLocation();
     const token = localStorage.getItem("token");
@@ -287,14 +318,14 @@ function AppRoutes() {
                         element: <AppLayout />,
                         children: [
                             { index: true, element: <DashboardWrapper /> },
-                            { path: "provider/settings/master/package", element: isProviderUser ? <ProviderPackage /> : <NotFound /> },
-                            { path: "provider/settings/master/package/edit-package/:id", element: isProviderUser ? <ProviderEditPackage /> : <NotFound /> },
-                            { path: "provider/settings/master/package/create-package", element: isProviderUser ? <ProviderCreatePackage /> : <NotFound /> },
-                            { path: "provider/settings/master/payment", element: isProviderUser ? <ProviderPayment /> : <NotFound /> },
-                            { path: "provider/settings/master/payment/details/:orgId", element: isProviderUser ? <ProviderPaymentDetails /> : <NotFound /> },
-                            { path: "provider/settings/master/referrals", element: isProviderUser ? <ProviderReferrals /> : <NotFound /> },
-                            { path: "provider/settings/master/ai-prospecting", element: isProviderUser ? <ProviderProspecting /> : <NotFound /> },
-                            { path: "provider/settings/master/website-ai-chatbot", element: isProviderUser ? <ProviderChatbot /> : <NotFound /> },
+                            { path: "provider/settings/master/package", element: <ProviderOnlyRoute element={<ProviderPackage />} /> },
+                            { path: "provider/settings/master/package/edit-package/:id", element: <ProviderOnlyRoute element={<ProviderEditPackage />} /> },
+                            { path: "provider/settings/master/package/create-package", element: <ProviderOnlyRoute element={<ProviderCreatePackage />} /> },
+                            { path: "provider/settings/master/payment", element: <ProviderOnlyRoute element={<ProviderPayment />} /> },
+                            { path: "provider/settings/master/payment/details/:orgId", element: <ProviderOnlyRoute element={<ProviderPaymentDetails />} /> },
+                            { path: "provider/settings/master/referrals", element: <ProviderOnlyRoute element={<ProviderReferrals />} /> },
+                            { path: "provider/settings/master/ai-prospecting", element: <ProviderOnlyRoute element={<ProviderProspecting />} /> },
+                            { path: "provider/settings/master/website-ai-chatbot", element: <ProviderOnlyRoute element={<ProviderChatbot />} /> },
                             { path: "settings/bank-setup", element: <BankDetails /> },
                             { path: "settings/bank-setup/add-bank", element: <AddBankAccount /> },
                             { path: "settings/bank-setup/edit-bank/:id", element: <EditBankAccount /> },
