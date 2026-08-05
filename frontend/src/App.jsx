@@ -155,6 +155,7 @@ import AddBankAccount from "./routes/master/bankdetailsAndQRCode/AddBankAccount"
 import EditBankAccount from "./routes/master/bankdetailsAndQRCode/EditBankAccount";
 import TAndCAndDec from "./routes/master/TAndCAndDec";
 import { isSuperProviderUser } from "./utils/businessSuite";
+import { hasModulePermission } from "@/utils/hasModulePermission";
 
 // Simple 404 Page
 const NotFound = () => <NotFoundPage />;
@@ -188,6 +189,19 @@ const ProviderOnlyRoute = ({ element }) => {
     const storedUser = getStoredUser();
     const tokenUser = getTokenUser();
     return isSuperProviderUser(storedUser) || isSuperProviderUser(tokenUser) ? element : <NotFound />;
+};
+
+const OrganizationPermissionRoute = ({ moduleName, element }) => {
+    const storedUser = getStoredUser();
+    const tokenUser = getTokenUser();
+    const userType = tokenUser?.user_type || storedUser?.user_type;
+    const roleName = String(tokenUser?.role_name || storedUser?.role_name || storedUser?.role?.role_name || storedUser?.sa_role_name || "")
+        .trim()
+        .toLowerCase();
+    const isOrgSuperAdmin = roleName === "super admin" && userType !== "provider";
+    const allowed = userType !== "provider" && (isOrgSuperAdmin || hasModulePermission(storedUser?.permissions, moduleName));
+
+    return allowed ? element : <NotFound />;
 };
 
 function AppRoutes() {
@@ -326,6 +340,15 @@ function AppRoutes() {
                             { path: "provider/settings/master/referrals", element: <ProviderOnlyRoute element={<ProviderReferrals />} /> },
                             { path: "provider/settings/master/ai-prospecting", element: <ProviderOnlyRoute element={<ProviderProspecting />} /> },
                             { path: "provider/settings/master/website-ai-chatbot", element: <ProviderOnlyRoute element={<ProviderChatbot />} /> },
+                            {
+                                path: "customer-helpdesk",
+                                element: (
+                                    <OrganizationPermissionRoute
+                                        moduleName="Customer Helpdesk"
+                                        element={<CustomerHelpdeskWorkspace />}
+                                    />
+                                ),
+                            },
                             { path: "settings/bank-setup", element: <BankDetails /> },
                             { path: "settings/bank-setup/add-bank", element: <AddBankAccount /> },
                             { path: "settings/bank-setup/edit-bank/:id", element: <EditBankAccount /> },
@@ -346,15 +369,6 @@ function AppRoutes() {
                                       { path: "profile/edit-profile/:id", element: <EditProfile /> },
                                   ]
                                 : [
-                                      {
-                                          path: "customer-helpdesk",
-                                          element: (
-                                              <PermissionRoute
-                                                  moduleName="Customer Helpdesk"
-                                                  element={<CustomerHelpdeskWorkspace />}
-                                              />
-                                          ),
-                                      },
                                       {
                                           path: "settings/master/salutations",
                                           element: (
